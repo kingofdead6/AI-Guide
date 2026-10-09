@@ -1,0 +1,48 @@
+<h3>The steps</h3>
+<ol>
+<li><b>Data:</b> a few hundred MB of clean text (e.g. a Wikipedia dump in your language, public-domain books). Deduplicate and normalize.</li>
+<li><b>Tokenizer:</b> train byte-level BPE with a vocabulary of 8k–32k.</li>
+<li><b>Packing:</b> concatenate tokenized documents separated by an end-of-text token and cut into blocks of length 256–1024.</li>
+<li><b>Model:</b> <code>TinyGPT</code> from [[transformer]] (e.g. 6 layers, d = 384, 6 heads ≈ 10–30M parameters).</li>
+<li><b>Train:</b> AdamW (lr ≈ 3e-4 to 1e-3, weight decay 0.1, β₂ = 0.95), warmup + cosine decay, bf16 autocast, gradient clipping at 1.0.</li>
+<li><b>Monitor:</b> the initial loss should be ≈ ln(vocab size); track validation loss and perplexity; sample text every few hundred steps.</li>
+<li><b>Then:</b> instruction-tune on a small chat dataset with a chat template and the loss masked to assistant tokens only.</li>
+</ol>
+<pre><code class="language-python">import math, torch, numpy as np
+from tokenizers import ByteLevelBPETokenizer
+
+# 1–3. tokenizer + packed dataset
+tok = ByteLevelBPETokenizer()
+tok.train(["corpus.txt"], vocab_size=16000, min_frequency=2, special_tokens=["&lt;|endoftext|&gt;"])
+ids = np.array(tok.encode(open("corpus.txt", encoding="utf-8").read()).ids, dtype=np.uint16)
+split = int(0.98 * len(ids)); train_ids, val_ids = ids[:split], ids[split:]
+block, batch = 256, 32
+def get_batch(data):
+    ix = np.random.randint(0, len(data) - block - 1, batch)
+    x = torch.stack([torch.from_numpy(data[i:i + block].astype(np.int64)) for i in ix])
+    y = torch.stack([torch.from_numpy(data[i + 1:i + block + 1].astype(np.int64)) for i in ix])
+    return x.cuda(), y.cuda()
+
+# 4–5. model + training loop
+model = TinyGPT(vocab=16000, d=384, n_heads=6, n_layers=6, max_len=block).cuda()
+opt = torch.optim.AdamW(model.parameters(), lr=6e-4, betas=(0.9, 0.95), weight_decay=0.1)
+steps, warmup = 5000, 200
+lr_at = lambda s: 6e-4 * min(1, s / warmup) * 0.5 * (1 + math.cos(math.pi * min(1, s / steps)))
+for step in range(steps):
+    for g in opt.param_groups: g["lr"] = lr_at(step)
+    x, y = get_batch(train_ids)
+    with torch.autocast("cuda", dtype=torch.bfloat16):
+        _, loss = model(x, y)
+    opt.zero_grad(set_to_none=True); loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.step()
+    if step % 500 == 0:
+        model.eval()
+        with torch.no_grad():
+            vl = sum(model(*get_batch(val_ids))[1].item() for _ in range(20)) / 20
+        print(f"step {step} train {loss.item():.3f} val {vl:.3f} ppl {math.exp(vl):.1f}")
+        model.train()
+
+# 6. sample (generate() from [[decoding]])
+start = torch.tensor([tok.encode("The history of").ids]).cuda()
+print(tok.decode(generate(model, start, max_new=120, T=0.8)[0].tolist()))</code></pre>
+<div class="callout intuition"><b>What to expect</b><p>With 16k vocabulary the first loss is near ln(16000) ≈ 9.7. A few thousand steps bring it to roughly 3–4 on clean text, and samples go from random tokens to fluent but meaningless sentences. That gap between fluency and knowledge is what scale buys. If the loss plateaus early, check the learning rate first.</p></div>

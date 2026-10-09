@@ -1,0 +1,25 @@
+<h3>k-Means</h3>
+$$\min_{\{\boldsymbol\mu_k\},\{c_i\}}\sum_{i=1}^n\|\mathbf x_i-\boldsymbol\mu_{c_i}\|^2$$
+<p>Lloyd's algorithm alternates: assign each point to its nearest centroid, then move each centroid to the mean of its points. Each step can only decrease the objective, so it converges, but to a local optimum. Use k-means++ initialization and several restarts; pick \(k\) with the elbow method or silhouette score.</p>
+<div class="widget" data-widget="kmeans"></div>
+<h3>Gaussian mixtures and EM</h3>
+$$p(\mathbf x)=\sum_{k=1}^K\pi_k\,\mathcal N(\mathbf x\mid\boldsymbol\mu_k,\boldsymbol\Sigma_k)$$
+<p><b>E-step:</b> responsibilities \(\gamma_{ik}=\dfrac{\pi_k\mathcal N(\mathbf x_i\mid\boldsymbol\mu_k,\boldsymbol\Sigma_k)}{\sum_j\pi_j\mathcal N(\mathbf x_i\mid\boldsymbol\mu_j,\boldsymbol\Sigma_j)}\) (soft assignments). <b>M-step:</b> with \(N_k=\sum_i\gamma_{ik}\), update \(\boldsymbol\mu_k=\frac1{N_k}\sum_i\gamma_{ik}\mathbf x_i\), \(\boldsymbol\Sigma_k=\frac1{N_k}\sum_i\gamma_{ik}(\mathbf x_i-\boldsymbol\mu_k)(\mathbf x_i-\boldsymbol\mu_k)^\top\), \(\pi_k=N_k/n\). EM increases the likelihood monotonically by maximizing a lower bound, the same ELBO that appears in VAEs. k-means is the hard-assignment, equal-spherical-covariance limit of this.</p>
+<h3>PCA, derived</h3>
+<p>Find the unit direction \(\mathbf u\) along which centered data has maximum variance:</p>
+$$\max_{\mathbf u}\ \mathbf u^\top\boldsymbol\Sigma\mathbf u\quad\text{s.t.}\quad\mathbf u^\top\mathbf u=1\;\xrightarrow{\text{Lagrangian}}\;\nabla_{\mathbf u}\big[\mathbf u^\top\boldsymbol\Sigma\mathbf u-\lambda(\mathbf u^\top\mathbf u-1)\big]=0\;\Rightarrow\;\boldsymbol\Sigma\mathbf u=\lambda\mathbf u$$
+<p>So \(\mathbf u\) is an eigenvector, and the variance captured is \(\mathbf u^\top\boldsymbol\Sigma\mathbf u=\lambda\): take the top eigenvector. Subsequent components are the next eigenvectors. In practice compute the SVD of centered \(\mathbf X\): the right singular vectors are the principal directions and \(\lambda_i=\sigma_i^2/(n-1)\). The explained variance ratio of component \(i\) is \(\lambda_i/\sum_j\lambda_j\).</p>
+<!--FIG:pca-->
+<h3>Others to know</h3>
+<p><b>DBSCAN</b> (density-based clusters of any shape, marks outliers). <b>Hierarchical clustering</b> (dendrograms). <b>t-SNE / UMAP</b> (nonlinear 2-D visualizations; distances between far-apart clusters are not meaningful, so use them for looking, not as features). <b>Isolation Forest</b> (anomaly detection: anomalies are isolated by fewer random splits).</p>
+<pre><code class="language-python">def pca(X, k):
+    Xc = X - X.mean(0)
+    U, S, Vt = np.linalg.svd(Xc, full_matrices=False)
+    explained = S**2 / (S**2).sum()
+    return Xc @ Vt[:k].T, Vt[:k], explained[:k]
+
+from sklearn.cluster import KMeans
+from sklearn.mixture import GaussianMixture
+labels = KMeans(n_clusters=3, n_init=10, random_state=0).fit_predict(X)
+gmm = GaussianMixture(n_components=3, covariance_type="full").fit(X)
+probs = gmm.predict_proba(X)            # soft assignments</code></pre>

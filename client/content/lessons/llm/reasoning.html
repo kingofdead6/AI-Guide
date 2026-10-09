@@ -1,0 +1,21 @@
+<h3>Techniques</h3>
+<ul>
+<li><b>Chain-of-thought:</b> generating intermediate steps before the answer gives the model more serial computation per problem and lets it condition on its own partial results.</li>
+<li><b>Self-consistency:</b> sample several reasoning chains at temperature &gt; 0 and take a majority vote over final answers.</li>
+<li><b>Best-of-N with a verifier:</b> generate N candidates, score them with a reward model, unit tests or a checker, return the best. Coding agents get large gains from running tests.</li>
+<li><b>Search:</b> beam or tree search over reasoning steps, guided by a <b>process reward model</b> that scores individual steps (rather than an <b>outcome</b> reward model that scores only the final answer).</li>
+<li><b>RL-trained reasoning models:</b> RL with verifiable rewards ([[alignment]]) teaches models to produce long internal reasoning, backtrack and check their work before answering.</li>
+</ul>
+<!--FIG:reasoning-->
+<h3>Trade-offs</h3>
+<p>Accuracy rises with samples or thinking tokens on problems with checkable answers, but cost and latency rise linearly or worse. Gains are smaller on open-ended tasks without a verifier. Written reasoning is not guaranteed to reflect what actually drove the answer, so don't treat it as an explanation for high-stakes decisions. In practice: route easy queries to a fast mode and hard ones to extended reasoning.</p>
+<pre><code class="language-python">from collections import Counter
+def self_consistency(question, n=8):
+    answers = []
+    for _ in range(n):
+        out = llm(f"{question}\nThink step by step, then give the final answer after 'ANSWER:'.",
+                  temperature=0.8)
+        if "ANSWER:" in out:
+            answers.append(out.split("ANSWER:")[-1].strip())
+    best, votes = Counter(answers).most_common(1)[0]
+    return best, votes / max(len(answers), 1)     # answer and agreement (a rough confidence)</code></pre>

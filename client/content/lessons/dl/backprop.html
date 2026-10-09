@@ -1,0 +1,78 @@
+<h3>The idea</h3>
+<p>Represent the computation as a graph. In the forward pass, compute and store each node's value. In the backward pass, go in reverse: each node receives the <b>upstream gradient</b> \(\partial\mathcal L/\partial\text{output}\), multiplies by its <b>local gradient</b>, and passes \(\partial\mathcal L/\partial\text{input}\) to its parents. When a value feeds several nodes, its gradients add up.</p>
+<!--FIG:compgraph-->
+<h3>Full derivation for a 2-layer network</h3>
+<p>Forward pass for one example with label \(y\) (one-hot \(\mathbf y\)):</p>
+$$\mathbf z_1=\mathbf W_1\mathbf x+\mathbf b_1,\quad \mathbf h=\operatorname{ReLU}(\mathbf z_1),\quad \mathbf z_2=\mathbf W_2\mathbf h+\mathbf b_2,\quad \mathbf p=\operatorname{softmax}(\mathbf z_2),\quad \mathcal L=-\log p_y$$
+<p>Backward pass, using [[matrix-calculus]], [[logistic-regression]]:</p>
+$$\begin{aligned}
+\boldsymbol\delta_2&amp;=\frac{\partial\mathcal L}{\partial\mathbf z_2}=\mathbf p-\mathbf y\\
+\frac{\partial\mathcal L}{\partial\mathbf W_2}&amp;=\boldsymbol\delta_2\mathbf h^\top,\qquad \frac{\partial\mathcal L}{\partial\mathbf b_2}=\boldsymbol\delta_2\\
+\frac{\partial\mathcal L}{\partial\mathbf h}&amp;=\mathbf W_2^\top\boldsymbol\delta_2\\
+\boldsymbol\delta_1&amp;=\frac{\partial\mathcal L}{\partial\mathbf z_1}=\big(\mathbf W_2^\top\boldsymbol\delta_2\big)\odot\mathbb 1[\mathbf z_1\gt0]\\
+\frac{\partial\mathcal L}{\partial\mathbf W_1}&amp;=\boldsymbol\delta_1\mathbf x^\top,\qquad \frac{\partial\mathcal L}{\partial\mathbf b_1}=\boldsymbol\delta_1
+\end{aligned}$$
+<!--FIG:backprop_flow-->
+<p>The pattern repeats for any depth: <b>error signal × input transposed</b> gives the weight gradient; <b>weights transposed × error signal</b>, gated by the activation derivative, gives the next error signal.</p>
+<h3>NumPy implementation (batched, rows are examples)</h3>
+<pre><code class="language-python">rng = np.random.default_rng(0)
+# Toy data: 3-class spiral
+N, K = 100, 3
+X = np.zeros((N*K, 2)); y = np.zeros(N*K, dtype=int)
+for k in range(K):
+    r = np.linspace(0, 1, N); t = np.linspace(k*4, (k+1)*4, N) + rng.normal(0, 0.2, N)
+    X[k*N:(k+1)*N] = np.c_[r*np.sin(t), r*np.cos(t)]; y[k*N:(k+1)*N] = k
+
+H = 100
+W1 = rng.normal(0, np.sqrt(2/2), (2, H)); b1 = np.zeros(H)     # He init
+W2 = rng.normal(0, np.sqrt(2/H), (H, K)); b2 = np.zeros(K)
+lr, lam = 1.0, 1e-3
+for step in range(5000):
+    # forward
+    Z1 = X @ W1 + b1; Hh = np.maximum(0, Z1)
+    Z2 = Hh @ W2 + b2
+    Z2 -= Z2.max(1, keepdims=True); P = np.exp(Z2); P /= P.sum(1, keepdims=True)
+    loss = -np.log(P[np.arange(len(y)), y]).mean() + 0.5*lam*((W1**2).sum() + (W2**2).sum())
+    # backward
+    D2 = P.copy(); D2[np.arange(len(y)), y] -= 1; D2 /= len(y)    # dL/dZ2
+    dW2 = Hh.T @ D2 + lam*W2; db2 = D2.sum(0)
+    D1 = (D2 @ W2.T) * (Z1 > 0)                                   # dL/dZ1
+    dW1 = X.T @ D1 + lam*W1;  db1 = D1.sum(0)
+    for p, g in ((W1, dW1), (b1, db1), (W2, dW2), (b2, db2)):
+        p -= lr * g
+    if step % 1000 == 0: print(step, round(loss, 4))
+print("train accuracy:", ((np.maximum(0, X@W1+b1)@W2+b2).argmax(1) == y).mean())</code></pre>
+<h3>A tiny autograd engine</h3>
+<p>This is the core idea of PyTorch in about 30 lines (inspired by Karpathy's <i>micrograd</i>). Each <code>Value</code> remembers its parents and how to push gradients back to them.</p>
+<pre><code class="language-python">import math
+class Value:
+    def __init__(self, data, parents=()):
+        self.data, self.grad, self._parents, self._backward = data, 0.0, parents, lambda: None
+    def __add__(self, o):
+        o = o if isinstance(o, Value) else Value(o); out = Value(self.data + o.data, (self, o))
+        def bw(): self.grad += out.grad; o.grad += out.grad
+        out._backward = bw; return out
+    def __mul__(self, o):
+        o = o if isinstance(o, Value) else Value(o); out = Value(self.data * o.data, (self, o))
+        def bw(): self.grad += o.data * out.grad; o.grad += self.data * out.grad
+        out._backward = bw; return out
+    def tanh(self):
+        t = math.tanh(self.data); out = Value(t, (self,))
+        def bw(): self.grad += (1 - t*t) * out.grad
+        out._backward = bw; return out
+    def backward(self):
+        order, seen = [], set()
+        def topo(v):
+            if v not in seen:
+                seen.add(v); [topo(p) for p in v._parents]; order.append(v)
+        topo(self); self.grad = 1.0
+        for v in reversed(order): v._backward()
+
+a, b = Value(2.0), Value(-3.0)
+c = (a * b + a).tanh(); c.backward()
+print(a.grad, b.grad)      # gradients via the chain rule</code></pre>
+<div class="callout intuition"><b>Why reverse mode?</b><p>We have millions of inputs (parameters) and one output (the loss). Reverse-mode differentiation gets all the partial derivatives of one output in a single backward pass, roughly two to three times the cost of the forward pass. Forward mode would need one pass per parameter.</p></div>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>Add a check: compare <code>dW1</code> from the NumPy code with a numerical gradient ([[matrix-calculus]]) on a few entries.
+<details><summary>Solution</summary><div>Wrap the forward pass in a function <code>loss(W1)</code>, perturb a few entries by ±1e-5, and compare the central difference with <code>dW1</code>. The relative error \(|a-b|/\max(|a|,|b|)\) should be around \(10^{-6}\) or smaller. Gradient checking is the standard way to debug a hand-written backward pass.</div></details></li>
+</ol></div>

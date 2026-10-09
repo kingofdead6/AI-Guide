@@ -1,0 +1,280 @@
+@lesson neural-nets
+Q: Why does a network need nonlinear activation functions?
+* Without them, stacked layers collapse into a single linear map
+- They make training faster
+- They reduce the number of parameters
+- They prevent overfitting
+> \(\mathbf W_2(\mathbf W_1\mathbf x)=(\mathbf W_2\mathbf W_1)\mathbf x\): depth adds nothing without nonlinearity.
+
+Q: What is the maximum value of the sigmoid's derivative?
+= 0.25 ±0.001
+> \(\sigma'(z)=\sigma(1-\sigma)\) peaks at 0.25 when \(z=0\), one reason sigmoids cause vanishing gradients in deep stacks.
+
+Q: Which activation is the standard choice inside Transformer feed-forward layers like BERT and GPT?
+- Sigmoid
+- Step function
+* GELU (or SwiGLU variants)
+- Softmax
+> GELU is a smooth ReLU-like function; many recent LLMs use SwiGLU.
+
+Q: The universal approximation theorem guarantees that gradient descent will find a good network.
+= false
+> It only says a good enough network exists, not that training finds it or that it generalizes.
+
+@lesson backprop
+Q: In \(\mathbf z=\mathbf W\mathbf h+\mathbf b\) with \(\boldsymbol\delta=\partial\mathcal L/\partial\mathbf z\), what is \(\partial\mathcal L/\partial\mathbf h\)?
+- \(\boldsymbol\delta\mathbf h^\top\)
+* \(\mathbf W^\top\boldsymbol\delta\)
+- \(\mathbf W\boldsymbol\delta\)
+- \(\boldsymbol\delta\)
+> The error signal flows back through the transposed weights.
+
+Q: How is the error signal passed back through a ReLU?
+* Multiplied element-wise by \(\mathbb 1[\mathbf z\gt0]\)
+- Multiplied by \(\mathbf z\)
+- Unchanged
+- Set to zero everywhere
+> ReLU's derivative is 1 where the input was positive and 0 elsewhere.
+
+Q: On the graph \(f=(x\cdot y)+z\) with \(x=2, y=-3, z=4\), what is \(\partial f/\partial x\)?
+= -3
+> \(\partial f/\partial x=y=-3\).
+
+Q: Why is reverse-mode differentiation used for training rather than forward mode?
+- It is more accurate
+* One backward pass gives the derivative of a scalar loss with respect to all parameters
+- Forward mode cannot handle ReLU
+- It uses less code
+> Forward mode would need one pass per parameter; with millions of parameters that is hopeless.
+
+@lesson training-deep
+Q: What weight variance does He initialization use for ReLU layers?
+- \(1/n_{in}\)
+* \(2/n_{in}\)
+- \(2/(n_{in}+n_{out})\)
+- 1
+> The factor 2 compensates for ReLU zeroing about half of its inputs.
+
+Q: For 10 balanced classes, roughly what should the initial cross-entropy loss be? (natural log)
+= 2.303 ±0.05
+> A model that predicts uniformly gives \(\ln 10\approx2.30\). A very different value hints at a bug.
+
+Q: Which normalization layer normalizes across features within each example and is standard in Transformers?
+- BatchNorm
+* LayerNorm (or RMSNorm)
+- Dropout
+- Weight decay
+> It does not depend on batch statistics, so it works with any batch size and sequence length.
+
+Q: Which are good first steps when a new model won't train? (select all)
+* Overfit a single small batch
+* Check the initial loss value
+* Sweep the learning rate on a log scale
+- Add more regularization
+> Regularization comes after the model can fit at all.
+
+@lesson pytorch-loop
+Q: Which line must come between `loss.backward()` and the next forward pass to apply the update?
+- `model.eval()`
+* `optimizer.step()`
+- `loss.item()`
+- `torch.no_grad()`
+> `step()` updates the parameters using the computed gradients.
+
+Q: What does `torch.nn.utils.clip_grad_norm_(params, 1.0)` do?
+* Rescales the gradient if its global norm exceeds 1.0
+- Sets all gradients to 1
+- Removes gradients smaller than 1
+- Clips weights to [-1, 1]
+> Clipping prevents a single huge gradient from destabilizing training.
+
+Q: You should apply softmax to the model output before passing it to `F.cross_entropy`.
+= false
+> `F.cross_entropy` takes raw logits and applies a stable log-softmax itself.
+
+@lesson cnn
+Q: Input 224×224×3, a convolution with 64 filters of 7×7, stride 2 and padding 3. What is the output height?
+= 112
+> \(\lfloor(224-7+6)/2\rfloor+1=112\).
+
+Q: How many parameters does that convolution have (including biases)?
+= 9472
+> \(7\cdot7\cdot3\cdot64+64=9{,}472\).
+
+Q: What is the receptive field of three stacked 3×3 convolutions with stride 1?
+- 3×3
+- 5×5
+* 7×7
+- 9×9
+> Each layer adds 2 pixels, so 3 → 5 → 7.
+
+Q: Why do residual connections help very deep networks train?
+* The identity path gives gradients a direct route backward
+- They reduce the number of parameters
+- They replace batch normalization
+- They make convolutions faster
+> \(\partial\mathbf y/\partial\mathbf x=\partial\mathcal F/\partial\mathbf x+\mathbf I\), so the gradient never has to pass only through many small factors.
+
+@lesson rnn
+Q: Why do vanilla RNNs struggle with long-range dependencies?
+- They have too many parameters
+* Gradients through many time steps vanish or explode, like repeated matrix powers
+- They can only read one word
+- They lack an output layer
+> The product of Jacobians behaves like \(\mathbf W_{hh}^{T-t}\).
+
+Q: Which mechanism lets an LSTM preserve information over many steps?
+* The additively updated cell state controlled by a forget gate
+- The output softmax
+- Dropout
+- Weight tying
+> When the forget gate is near 1, both information and gradients flow through the cell state almost unchanged.
+
+Q: Gradient clipping fixes exploding gradients but not vanishing ones.
+= true
+> Clipping caps large gradients; vanishing needs architectural fixes such as gating, residuals or attention.
+
+@lesson transformer
+Q: Why are attention scores divided by \(\sqrt{d_k}\)?
+* To keep the variance of the dot products near 1 so the softmax does not saturate
+- To make the scores positive
+- To reduce memory use
+- To normalize the values
+> A dot product of \(d_k\) unit-variance terms has variance \(d_k\).
+
+Q: What does the causal mask do in a decoder?
+- Hides padding tokens only
+* Prevents each token from attending to later tokens
+- Randomly drops attention weights
+- Masks the first token
+> Setting future scores to \(-\infty\) makes the model a valid next-token predictor.
+
+Q: How does standard self-attention's time and memory scale with sequence length \(n\)?
+- \(O(n)\)
+- \(O(n\log n)\)
+* \(O(n^2)\)
+- \(O(n^3)\)
+> The score matrix \(\mathbf Q\mathbf K^\top\) is \(n\times n\).
+
+Q: Roughly how many parameters does one Transformer block with model width \(d\) have (ignoring biases and norms)?
+- \(4d^2\)
+- \(8d^2\)
+* \(12d^2\)
+- \(d^3\)
+> About \(4d^2\) for the attention projections plus \(8d^2\) for a 4× wide feed-forward layer.
+
+Q: Without positional information, self-attention treats its input as a set.
+= true
+> Permuting the tokens permutes the outputs identically, so order must be injected with positional encodings such as RoPE.
+
+@lesson gnn
+Q: Why must a GNN's neighbour aggregation be permutation-invariant (sum, mean, max)?
+* Graph neighbours have no inherent order
+- To save memory
+- To make it differentiable
+- Because GPUs require it
+> The result must not depend on how nodes happen to be numbered.
+
+Q: What is over-smoothing in deep GNNs?
+- Weights become too small
+* Node representations become nearly identical after many rounds of averaging
+- The graph loses edges
+- Training becomes too fast
+> Repeated neighbourhood averaging blurs everything together, so most GNNs use only a few layers.
+
+Q: A Transformer can be viewed as a GNN on a fully connected graph of tokens.
+= true
+> Attention is message passing with learned weights over every pair of tokens.
+
+@lesson ssm
+Q: What is the main advantage of state space models and linear attention over standard attention for long sequences?
+* Constant memory per generated token and linear scaling in sequence length
+- Higher accuracy on every task
+- No parameters
+- They need no training
+> A fixed-size recurrent state replaces the growing KV cache.
+
+Q: A linear time-invariant SSM can be trained in parallel because it can be written as…
+- a decision tree
+* a convolution over the input sequence
+- a softmax
+- a lookup table
+> Unrolling the recurrence gives a convolution kernel \((\mathbf C\bar{\mathbf B},\mathbf C\bar{\mathbf A}\bar{\mathbf B},\dots)\).
+
+Q: Why do many long-context models mix a few attention layers into an SSM stack?
+* Pure SSMs can struggle with exact recall of specific earlier tokens
+- Attention layers are cheaper
+- SSMs cannot be trained
+- To reduce parameters
+> Attention retrieves precise tokens easily; hybrids combine that with SSM efficiency.
+
+@lesson ssl
+Q: In contrastive learning, what prevents representation collapse?
+- A larger learning rate
+* Negative examples (or stop-gradient and momentum-teacher tricks)
+- Removing augmentations
+- Using a smaller batch
+> Without negatives or asymmetry, mapping everything to one vector trivially makes views agree.
+
+Q: What do data augmentations define in contrastive learning?
+* Which differences the representation learns to ignore
+- The number of classes
+- The learning rate
+- The test set
+> Crops, colour jitter and blur teach invariance to exactly those changes.
+
+Q: What is a linear probe?
+- Fine-tuning every layer
+* Training only a linear classifier on top of frozen features
+- A probe that measures GPU temperature
+- A kind of data augmentation
+> It measures how linearly accessible useful information is in the representation.
+
+@lesson compression
+Q: Why does knowledge distillation multiply the KL term by \(T^2\)?
+* Softening by temperature \(T\) scales gradients down by \(1/T^2\); the factor restores their size
+- To make the loss positive
+- To increase the temperature
+- It has no effect
+> This keeps the soft and hard losses balanced across temperatures.
+
+Q: Which pruning gives real speedups on ordinary GPUs without special sparse kernels?
+- Unstructured weight pruning
+* Structured pruning of whole channels, heads or layers
+- Random pruning
+- Pruning biases only
+> Removing whole structures shrinks dense matrix sizes, which standard hardware benefits from.
+
+Q: Quantization-aware training usually recovers more accuracy than post-training quantization at very low bit-widths.
+= true
+> The model learns to tolerate rounding during training.
+
+@lesson exam
+Q: A 50-layer plain CNN trains worse than a 20-layer one even on the training set. What is the most direct fix?
+- More dropout
+* Residual connections
+- A smaller learning rate only
+- Removing batch normalization
+> This degradation problem motivated ResNets: identity shortcuts make deeper networks at least as trainable.
+
+Q: Count the parameters of a single-head attention layer with \(d=64\) (Q, K, V and output projections, no biases).
+= 16384
+> Four \(64\times64\) matrices: \(4\cdot4096=16{,}384\).
+
+Q: Your loss becomes NaN after a few hundred steps of fp16 training. Which fixes are reasonable? (select all)
+* Switch to bf16 or enable dynamic loss scaling
+* Lower the learning rate and add gradient clipping
+* Use fused, numerically stable loss functions on logits
+- Remove all normalization layers
+> Instability comes from overflow, underflow and too-large updates.
+
+Q: Which architecture best fits a molecule-toxicity prediction task?
+- A CNN on a fixed grid
+* A graph neural network with graph-level pooling
+- A plain RNN over atom names
+- k-means
+> Molecules are graphs of atoms and bonds; GNNs respect that structure.
+
+Q: In a Transformer block, the feed-forward layer mixes information across tokens.
+= false
+> The FFN processes each token independently; attention is what mixes across tokens.

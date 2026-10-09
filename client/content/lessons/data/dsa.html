@@ -1,0 +1,69 @@
+<h3>The complexity table to know cold</h3>
+<table>
+<tr><th>Structure</th><th>Access / search</th><th>Insert / delete</th><th>ML use</th></tr>
+<tr><td>Array / list</td><td>O(1) index, O(n) search</td><td>O(n) middle, O(1) append</td><td>tensors, batches</td></tr>
+<tr><td>Hash map / set</td><td>O(1) average</td><td>O(1) average</td><td>vocabularies, caches, dedup</td></tr>
+<tr><td>Heap (priority queue)</td><td>O(1) min</td><td>O(log n)</td><td>top-k, beam search, schedulers</td></tr>
+<tr><td>Balanced BST / sorted list</td><td>O(log n)</td><td>O(log n)</td><td>ordered stats, intervals</td></tr>
+<tr><td>Deque</td><td>O(1) both ends</td><td>O(1) both ends</td><td>sliding windows, replay buffers</td></tr>
+<tr><td>Graph (adjacency list)</td><td>O(deg)</td><td>O(1)</td><td>dependency DAGs, GNNs, knowledge graphs</td></tr>
+<tr><td>Trie</td><td>O(length)</td><td>O(length)</td><td>tokenizers, autocomplete, constrained decoding</td></tr>
+</table>
+<h3>Patterns that solve most interview problems</h3>
+<p>Two pointers · sliding window · binary search (also on the answer) · BFS/DFS · topological sort · dynamic programming · heaps for top-k · union-find · prefix sums · interval merging · backtracking.</p>
+<h3>ML-flavoured problems you should be able to write from scratch</h3>
+<p>Softmax and cross-entropy · k-means · kNN · IoU and NMS · AUC from scores · reservoir sampling · an LRU cache · edit distance (the core of WER/CER) · beam search · BPE merges · matrix multiplication · a mini-batch iterator · stratified train/test split.</p>
+<pre><code class="language-python">import heapq, random
+from collections import Counter, OrderedDict
+
+def top_k_frequent(words, k):                  # O(n log k)
+    return [w for w, _ in heapq.nlargest(k, Counter(words).items(), key=lambda t: t[1])]
+
+class LRUCache:                                # the idea behind prompt / KV caches
+    def __init__(self, cap): self.cap, self.d = cap, OrderedDict()
+    def get(self, k):
+        if k not in self.d: return None
+        self.d.move_to_end(k); return self.d[k]
+    def put(self, k, v):
+        self.d[k] = v; self.d.move_to_end(k)
+        if len(self.d) > self.cap: self.d.popitem(last=False)
+
+def edit_distance(a, b):                       # DP, O(len(a)·len(b)); word error rate uses this
+    dp = list(range(len(b) + 1))
+    for i in range(1, len(a) + 1):
+        prev, dp[0] = dp[0], i
+        for j in range(1, len(b) + 1):
+            prev, dp[j] = dp[j], min(dp[j] + 1, dp[j - 1] + 1, prev + (a[i - 1] != b[j - 1]))
+    return dp[-1]
+
+def reservoir_sample(stream, k):               # uniform sample from a stream of unknown length
+    res = []
+    for i, x in enumerate(stream):
+        if i &lt; k: res.append(x)
+        else:
+            j = random.randint(0, i)
+            if j &lt; k: res[j] = x
+    return res
+
+def auc(scores, labels):                       # P(score_pos > score_neg), O(n log n)
+    order = sorted(range(len(scores)), key=lambda i: scores[i])
+    rank_sum = sum(r + 1 for r, i in enumerate(order) if labels[i] == 1)
+    P = sum(labels); N = len(labels) - P
+    return (rank_sum - P * (P + 1) / 2) / (P * N)       # Mann–Whitney U (ignores ties)
+
+print(edit_distance("kitten", "sitting"))      # 3</code></pre>
+<div class="callout intuition"><b>How to run a coding interview</b><p>Restate the problem and ask about input sizes and edge cases. Say a brute-force solution and its complexity first. Improve it, then code cleanly with good names. Test out loud with a small example and an edge case. Interviewers grade communication as much as the final code.</p></div>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>Implement beam search with beam width \(b\) over a function <code>next_logprobs(prefix)</code> returning a dict of token → log-probability.
+<details><summary>Solution</summary><div><pre><code class="language-python">def beam_search(next_logprobs, bos, eos, b=3, max_len=20):
+    beams = [(0.0, [bos])]
+    for _ in range(max_len):
+        cand = []
+        for score, seq in beams:
+            if seq[-1] == eos: cand.append((score, seq)); continue
+            for tok, lp in next_logprobs(seq).items():
+                cand.append((score + lp, seq + [tok]))
+        beams = heapq.nlargest(b, cand, key=lambda t: t[0])
+        if all(s[-1] == eos for _, s in beams): break
+    return beams[0][1]</code></pre></div></details></li>
+</ol></div>

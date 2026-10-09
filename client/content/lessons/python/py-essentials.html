@@ -1,0 +1,96 @@
+<h3>Why Python for AI</h3>
+<p>Python is slow at raw arithmetic, yet almost every AI system is written in it. The reason is that Python is the <b>glue</b>: the heavy maths runs inside libraries written in C, C++, CUDA or Rust (NumPy, PyTorch, tokenizers), and Python orchestrates them with readable code. Your job is to write clear Python that hands big chunks of work to those libraries.</p>
+<div class="callout intuition"><b>The rule of thumb</b><p>A Python loop runs roughly 10–100 million simple operations per second. A vectorized library call can do billions. Write the logic in Python; push the number crunching into libraries.</p></div>
+
+<h3>Values, types and names</h3>
+<p>Every value is an <b>object</b> with a type. A variable is just a <b>name</b> bound to an object; the name has no type of its own.</p>
+<table>
+<tr><th>Type</th><th>Example</th><th>Notes</th></tr>
+<tr><td><code>int</code></td><td><code>42</code>, <code>10**30</code></td><td>Arbitrary precision: never overflows</td></tr>
+<tr><td><code>float</code></td><td><code>3.14</code>, <code>1e-8</code></td><td>64-bit IEEE 754; <code>0.1 + 0.2 != 0.3</code> (see [[numerics]])</td></tr>
+<tr><td><code>bool</code></td><td><code>True</code>, <code>False</code></td><td>A subclass of int: <code>True + True == 2</code></td></tr>
+<tr><td><code>str</code></td><td><code>"attention"</code></td><td>Immutable Unicode text</td></tr>
+<tr><td><code>None</code></td><td><code>None</code></td><td>"No value"; compare with <code>is None</code></td></tr>
+</table>
+<pre><code class="language-python">x = 7
+y = x / 2          # 3.5: true division always gives a float
+z = x // 2         # 3: floor division
+r = x % 2          # 1: remainder
+p = 2 ** 10        # 1024: power
+name = "Youcef"
+msg = f"{name} has {x} new lessons, {y:.2f} per day"   # f-strings format values
+print(type(x), type(y), isinstance(x, int))</code></pre>
+
+<h3>Control flow</h3>
+<p>Indentation <i>is</i> the syntax: a block is everything indented under a line ending in a colon.</p>
+<pre><code class="language-python">score = 0.83
+if score &gt;= 0.9:
+    grade = "excellent"
+elif score &gt;= 0.6:
+    grade = "pass"
+else:
+    grade = "retry"
+
+for epoch in range(3):            # 0, 1, 2
+    print("epoch", epoch)
+
+loss, step = 10.0, 0
+while loss &gt; 1.0 and step &lt; 100:
+    loss *= 0.8
+    step += 1
+
+for i, word in enumerate(["the", "cat", "sat"]):   # index and value together
+    print(i, word)
+for a, b in zip([1, 2, 3], [10, 20, 30]):           # walk two sequences in step
+    print(a * b)</code></pre>
+<p><b>Truthiness:</b> empty containers, <code>0</code>, <code>0.0</code>, <code>""</code> and <code>None</code> count as false in an <code>if</code>. So <code>if items:</code> means "if the list is not empty".</p>
+
+<h3>Functions</h3>
+<pre><code class="language-python">def accuracy(preds, labels, *, ignore_index=None):
+    """Share of predictions that match the labels.
+
+    The * makes ignore_index keyword-only, so calls stay readable.
+    """
+    pairs = [(p, y) for p, y in zip(preds, labels) if y != ignore_index]
+    if not pairs:
+        return 0.0
+    return sum(p == y for p, y in pairs) / len(pairs)
+
+print(accuracy([1, 0, 1], [1, 1, 1]))                     # 0.666...
+print(accuracy([1, 0, 1], [1, -1, 1], ignore_index=-1))   # 1.0</code></pre>
+<ul>
+<li><b>Default arguments</b> are evaluated once, when the function is defined. Never use a mutable default like <code>def f(x, cache=[])</code>: the same list is shared by every call. Use <code>cache=None</code> and create it inside.</li>
+<li><code>*args</code> collects extra positional arguments into a tuple and <code>**kwargs</code> extra keyword arguments into a dict. This is how wrappers forward arguments to libraries: <code>model(**batch)</code>.</li>
+<li>Functions are objects: you can pass them around, store them in dicts and return them. <code>sorted(words, key=len)</code> passes the function <code>len</code>.</li>
+<li><b>Scope:</b> names assigned inside a function are local. Reading a global works; assigning one needs <code>global</code> (and is usually a design smell).</li>
+</ul>
+<pre><code class="language-python">square = lambda v: v * v                 # small anonymous function
+activations = {"relu": lambda v: max(0.0, v), "identity": lambda v: v}
+print(activations["relu"](-3.0))          # 0.0
+
+def make_scheduler(base_lr, decay):
+    def lr_at(step):                      # a closure: remembers base_lr and decay
+        return base_lr * decay ** step
+    return lr_at
+
+sched = make_scheduler(0.1, 0.9)
+print([round(sched(s), 4) for s in range(4)])   # [0.1, 0.09, 0.081, 0.0729]</code></pre>
+
+<h3>Strings for text processing</h3>
+<p>NLP work starts with string handling. The methods you will use constantly:</p>
+<pre><code class="language-python">s = "  The Transformer changed NLP.  "
+s.strip().lower()                    # 'the transformer changed nlp.'
+s.split()                            # ['The', 'Transformer', 'changed', 'NLP.']
+" ".join(["a", "b", "c"])            # 'a b c'
+"attention".startswith("att")        # True
+"loss=0.32".replace("=", ": ")       # 'loss: 0.32'
+"مرحبا".encode("utf-8")              # bytes: Arabic letters take 2 bytes each in UTF-8
+len("مرحبا"), len("مرحبا".encode())  # (5, 10)</code></pre>
+<div class="callout warn"><b>Text is Unicode, files are bytes</b>Always open text files with an explicit <code>encoding="utf-8"</code>. Many bugs with Arabic, French accents or emoji come from relying on a platform default encoding.</div>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>What does <code>[i * i for i in range(5) if i % 2 == 0]</code> produce?
+<details><summary>Solution</summary><div><code>[0, 4, 16]</code>: squares of 0, 2 and 4.</div></details></li>
+<li>Why is <code>def add_item(x, items=[])</code> a bug?
+<details><summary>Solution</summary><div>The default list is created once and shared, so items from earlier calls leak into later ones. Use <code>items=None</code> and <code>if items is None: items = []</code>.</div></details></li>
+</ol></div>

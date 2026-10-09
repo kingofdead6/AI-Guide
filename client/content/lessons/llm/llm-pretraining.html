@@ -1,0 +1,22 @@
+<h3>The objective</h3>
+$$p_\theta(x_1,\dots,x_T)=\prod_{t=1}^Tp_\theta(x_t\mid x_{\lt t}),\qquad \mathcal L(\theta)=-\frac1T\sum_{t=1}^T\log p_\theta(x_t\mid x_{\lt t})$$
+<p>This is the chain rule of probability ([[variance-joint]]) plus maximum likelihood ([[estimation]]). Thanks to the causal mask, one forward pass over a sequence of \(T\) tokens trains on \(T\) predictions at once.</p>
+<h3>The pipeline</h3>
+<ol>
+<li><b>Data:</b> web crawl, books, code, papers; deduplication, quality filtering, toxicity and PII filtering, language and domain mixing. Data quality is one of the biggest levers.</li>
+<li><b>Pretraining:</b> next-token prediction over trillions of tokens. Produces a <i>base model</i> that continues text but doesn't follow instructions reliably.</li>
+<li><b>Supervised fine-tuning (SFT):</b> train on curated (instruction, response) pairs.</li>
+<li><b>Preference tuning / RL:</b> RLHF, DPO, or RL with verifiable rewards ([[alignment]]) to make responses helpful, honest and safe, and to improve reasoning.</li>
+</ol>
+<!--FIG:llm_pipeline-->
+<h3>Compute and scaling laws</h3>
+<p>Training compute for a dense model is about \(C\approx6ND\) FLOPs (\(N\) parameters, \(D\) tokens): about \(2N\) per token forward and \(4N\) backward. Empirically, loss falls as a power law in model size, data and compute:</p>
+$$\mathcal L(N,D)\approx E+\frac{A}{N^\alpha}+\frac{B}{D^\beta}$$
+<!--FIG:scaling_law-->
+<p>The "Chinchilla" analysis (2022) found that for a fixed compute budget, parameters and tokens should grow together, roughly 20 tokens per parameter. Many recent models train far beyond that ratio because smaller, over-trained models are cheaper to serve.</p>
+<h3>Modern architecture choices</h3>
+<p>Typical recent decoder LLMs use pre-norm with <b>RMSNorm</b>, <b>RoPE</b> positions, <b>SwiGLU</b> feed-forward layers (\(\operatorname{FFN}(\mathbf x)=\mathbf W_2(\operatorname{SiLU}(\mathbf W_1\mathbf x)\odot\mathbf W_3\mathbf x)\)), <b>grouped-query attention</b>, no biases, and often <b>mixture-of-experts</b> layers ([[inference]]). Exact recipes differ between labs and change quickly.</p>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>Roughly how much compute does it take to train a 7B model on 2 trillion tokens? How long on 1,000 GPUs sustaining \(4\times10^{14}\) FLOP/s each?
+<details><summary>Solution</summary><div>\(6\cdot7\times10^9\cdot2\times10^{12}=8.4\times10^{22}\) FLOPs. Cluster throughput \(4\times10^{17}\) FLOP/s gives \(2.1\times10^5\) s, about 2.4 days.</div></details></li>
+</ol></div>

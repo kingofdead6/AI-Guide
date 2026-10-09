@@ -1,0 +1,26 @@
+<h3>Decision trees</h3>
+<p>Recursively split on the feature and threshold that most reduce impurity. For class proportions \(p_k\) in a node:</p>
+$$\text{Gini}=1-\sum_kp_k^2,\qquad \text{Entropy}=-\sum_kp_k\log_2p_k,\qquad \text{Gain}=I(\text{parent})-\sum_{c}\frac{n_c}{n}I(c)$$
+<p>For regression, minimize the variance (MSE) within children. Trees need no scaling and handle interactions, but a deep tree overfits badly: high variance.</p>
+<!--FIG:tree-->
+<h3>Bagging and random forests</h3>
+<p>Train \(B\) trees on bootstrap samples and average them. For \(B\) predictors, each with variance \(\sigma^2\) and pairwise correlation \(\rho\):</p>
+$$\operatorname{Var}\Big(\frac1B\sum_bT_b\Big)=\rho\sigma^2+\frac{1-\rho}{B}\sigma^2$$
+<p>Averaging kills the second term; a <b>random forest</b> also shrinks \(\rho\) by letting each split consider only a random subset of features (often \(\sqrt d\)). Out-of-bag samples give a free validation estimate.</p>
+<h3>Gradient boosting</h3>
+<p>Build an additive model stage by stage, each new tree correcting the current errors:</p>
+$$F_m(\mathbf x)=F_{m-1}(\mathbf x)+\nu\,h_m(\mathbf x),\qquad h_m\ \text{fit to}\ r_i=-\frac{\partial\mathcal L(y_i,F)}{\partial F}\Big|_{F=F_{m-1}(\mathbf x_i)}$$
+<p>This is gradient descent in function space. For squared loss, the pseudo-residuals \(r_i\) are literally \(y_i-F_{m-1}(\mathbf x_i)\). The learning rate \(\nu\) (shrinkage, e.g. 0.05) trades more trees for better generalization.</p>
+<!--FIG:boosting-->
+<p><b>XGBoost</b> uses a second-order Taylor expansion. With per-leaf sums of gradients \(G\) and Hessians \(H\), and L2 penalty \(\lambda\) on leaf weights:</p>
+$$w^*_{\text{leaf}}=-\frac{G}{H+\lambda},\qquad \text{Gain}=\frac12\left[\frac{G_L^2}{H_L+\lambda}+\frac{G_R^2}{H_R+\lambda}-\frac{(G_L+G_R)^2}{H_L+H_R+\lambda}\right]-\gamma$$
+<pre><code class="language-python">import xgboost as xgb
+model = xgb.XGBClassifier(n_estimators=2000, learning_rate=0.05, max_depth=6,
+                          subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0,
+                          early_stopping_rounds=100, eval_metric="auc")
+model.fit(X_tr, y_tr, eval_set=[(X_val, y_val)], verbose=False)
+importances = model.feature_importances_</code></pre>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>A node has 6 positives and 4 negatives. Compute its Gini impurity and entropy.
+<details><summary>Solution</summary><div>Gini \(=1-(0.36+0.16)=0.48\). Entropy \(=-(0.6\log_20.6+0.4\log_20.4)\approx0.971\) bits.</div></details></li>
+</ol></div>

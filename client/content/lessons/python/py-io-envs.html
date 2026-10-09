@@ -1,0 +1,104 @@
+<h3>Files and paths</h3>
+<p>Use <code>pathlib</code> instead of string paths: it works on Windows and Linux and reads clearly.</p>
+<pre><code class="language-python">from pathlib import Path
+import json, csv
+
+root = Path("data")
+(root / "raw").mkdir(parents=True, exist_ok=True)
+for p in sorted(root.glob("**/*.jsonl")):      # recursive search
+    print(p.name, p.suffix, p.stat().st_size)
+
+text = Path("notes.txt").read_text(encoding="utf-8")
+Path("out.txt").write_text("done\n", encoding="utf-8")
+
+with open("config.json", encoding="utf-8") as f:   # always close files: use with
+    cfg = json.load(f)
+with open("results.json", "w", encoding="utf-8") as f:
+    json.dump({"acc": 0.91}, f, ensure_ascii=False, indent=2)   # keep Arabic readable
+
+with open("rows.csv", newline="", encoding="utf-8") as f:
+    for row in csv.DictReader(f):                 # each row is a dict keyed by header
+        print(row["label"])</code></pre>
+<p>Formats worth knowing: <b>JSON</b> for configs and API payloads, <b>JSONL</b> (one JSON object per line) for datasets and LLM fine-tuning data, <b>CSV</b> for simple tables, <b>Parquet</b> for large tabular data (see [[sql-data-eng]]), and <code>pickle</code> only for trusted, temporary Python objects: loading a pickle runs arbitrary code.</p>
+
+<h3>Errors and exceptions</h3>
+<pre><code class="language-python">def parse_score(raw: str) -&gt; float:
+    try:
+        value = float(raw)
+    except ValueError as e:
+        raise ValueError(f"score must be a number, got {raw!r}") from e
+    if not 0 &lt;= value &lt;= 1:
+        raise ValueError(f"score must be in [0, 1], got {value}")
+    return value
+
+try:
+    s = parse_score("1.7")
+except ValueError as e:
+    print("bad input:", e)
+else:
+    print("ok", s)          # runs only if no exception
+finally:
+    print("always runs")    # cleanup</code></pre>
+<ul>
+<li>Catch the <b>specific</b> exceptions you can handle. A bare <code>except:</code> also swallows <code>KeyboardInterrupt</code> and hides real bugs.</li>
+<li><b>Fail fast</b> with clear messages at the boundary of your system (inputs, configs, API responses), so errors surface where they start.</li>
+<li>Define your own exception classes for domain errors: <code>class RateLimited(Exception): pass</code>.</li>
+<li>Use <code>assert</code> for internal sanity checks (shapes, invariants), not for validating user input: assertions can be disabled with <code>python -O</code>.</li>
+</ul>
+
+<h3>Logging instead of print</h3>
+<pre><code class="language-python">import logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+log = logging.getLogger("train")
+log.info("epoch %d loss %.4f", 3, 0.4123)
+log.warning("learning rate %.0e looks high", 1e-1)</code></pre>
+
+<h3>Command-line scripts</h3>
+<pre><code class="language-python"># train.py  — run with: python train.py --lr 1e-3 --epochs 5
+import argparse
+from pathlib import Path
+
+def main():
+    ap = argparse.ArgumentParser(description="Train a classifier")
+    ap.add_argument("--lr", type=float, default=3e-4)
+    ap.add_argument("--epochs", type=int, default=10)
+    ap.add_argument("--data", type=Path, required=True)
+    args = ap.parse_args()
+    print(args.lr, args.epochs, args.data)
+
+if __name__ == "__main__":     # only runs when executed directly, not when imported
+    main()</code></pre>
+
+<h3>Environments and dependencies</h3>
+<p>Every project gets its own isolated environment so library versions don't collide. Record exact versions so the project runs the same on another machine, in CI and in Docker.</p>
+<pre><code class="language-bash"># Standard library tooling
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install numpy pandas torch
+pip freeze &gt; requirements.txt      # pin exact versions
+
+# uv: a fast modern alternative that manages Python versions, envs and lockfiles
+uv init my-project &amp;&amp; cd my-project
+uv add numpy pandas torch          # updates pyproject.toml and uv.lock
+uv run python train.py
+
+# conda/mamba: useful when you need non-Python binaries (CUDA toolkits, GDAL)</code></pre>
+<p>Secrets (API keys) never go in code or git. Read them from environment variables, often loaded from a <code>.env</code> file that is listed in <code>.gitignore</code>:</p>
+<pre><code class="language-python">import os
+api_key = os.environ.get("LLM_API_KEY")
+if not api_key:
+    raise RuntimeError("Set LLM_API_KEY before running this script")</code></pre>
+
+<h3>Modules and packages</h3>
+<p>A <b>module</b> is a <code>.py</code> file; a <b>package</b> is a folder of modules. Put reusable code in a package under <code>src/</code> and import it from notebooks and scripts instead of copying cells around. A <code>pyproject.toml</code> declares the package name, dependencies and tool settings; <code>pip install -e .</code> makes it importable everywhere in the environment while you edit it.</p>
+<pre><code class="language-bash">my-project/
+├── pyproject.toml
+├── src/my_project/__init__.py
+├── src/my_project/data.py
+└── tests/test_data.py</code></pre>
+<p>[[swe-for-ml]] goes further into structure, testing and configs.</p>
+
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>A teammate's script works on their laptop but crashes on the server with <code>ModuleNotFoundError</code> for a library they installed months ago. What should the project have, and why?
+<details><summary>Solution</summary><div>A pinned dependency file (requirements.txt with versions, or pyproject + lockfile) and a fresh virtual environment created from it. Then the server installs exactly the same versions, and missing or mismatched packages show up immediately instead of at runtime.</div></details></li>
+</ol></div>

@@ -1,0 +1,21 @@
+<h3>The Bayesian recipe</h3>
+$$p(\theta\mid\mathcal D)\propto p(\mathcal D\mid\theta)\,p(\theta),\qquad p(y_*\mid x_*,\mathcal D)=\int p(y_*\mid x_*,\theta)\,p(\theta\mid\mathcal D)\,d\theta$$
+<p>Predictions average over all plausible parameters. Two kinds of uncertainty: <b>aleatoric</b> (noise in the data, irreducible) and <b>epistemic</b> (lack of data, shrinks with more data).</p>
+<h3>Bayesian linear regression (closed form)</h3>
+<p>With prior \(\mathbf w\sim\mathcal N(\mathbf 0,\alpha^{-1}\mathbf I)\) and noise precision \(\beta\), the posterior is Gaussian:</p>
+$$\mathbf S_N^{-1}=\alpha\mathbf I+\beta\boldsymbol\Phi^\top\boldsymbol\Phi,\qquad \mathbf m_N=\beta\,\mathbf S_N\boldsymbol\Phi^\top\mathbf y,\qquad \sigma^2_*(x)=\beta^{-1}+\boldsymbol\phi(x)^\top\mathbf S_N\boldsymbol\phi(x)$$
+<p>The posterior mean is exactly ridge regression with \(\lambda=\alpha/\beta\); the extra term in the variance grows away from the training data.</p>
+<h3>Gaussian processes</h3>
+<p>A GP puts a prior directly on functions: any finite set of function values is jointly Gaussian with covariance given by a kernel, e.g. RBF \(k(x,x')=\sigma_f^2\exp(-\|x-x'\|^2/2\ell^2)\). Conditioning on data gives</p>
+$$\mu_*=\mathbf k_*^\top(\mathbf K+\sigma_n^2\mathbf I)^{-1}\mathbf y,\qquad \sigma_*^2=k_{**}-\mathbf k_*^\top(\mathbf K+\sigma_n^2\mathbf I)^{-1}\mathbf k_*$$
+<!--FIG:gp-->
+<p>GPs are excellent with small data and calibrated uncertainty, but exact inference costs \(O(n^3)\); sparse/inducing-point approximations scale them up. They are the standard surrogate in Bayesian optimization (next lesson).</p>
+<h3>Uncertainty for deep networks</h3>
+<p>Exact posteriors are intractable, so we approximate: <b>variational inference</b> (fit a simple \(q(\theta)\) by maximizing an ELBO, [[vae]]), Laplace approximations, MCMC for small models, and the practical favourites: <b>deep ensembles</b> (train 5 networks from different seeds and use their disagreement) and <b>MC dropout</b> (keep dropout on at test time and average several passes). Always check <b>calibration</b>.</p>
+<pre><code class="language-python">from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, WhiteKernel
+X = np.array([[0.8], [2.2], [3.5], [5.1], [7.4], [8.6]]); y = np.sin(X).ravel()
+gp = GaussianProcessRegressor(RBF(length_scale=1.0) + WhiteKernel(1e-3)).fit(X, y)
+xs = np.linspace(0, 10, 200)[:, None]
+mean, std = gp.predict(xs, return_std=True)        # wide std far from the data
+print(gp.kernel_)                                  # hyperparameters fit by marginal likelihood</code></pre>

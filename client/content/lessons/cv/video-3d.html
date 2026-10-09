@@ -1,0 +1,25 @@
+<h3>Video</h3>
+<p>A video is a tensor \(T\times H\times W\times C\). Approaches: 2D CNN per frame plus temporal pooling or an RNN; <b>3D convolutions</b> over space and time; two-stream networks (RGB + optical flow); and <b>video Transformers</b> over spatio-temporal patches ("tubelets"). Compute is the main constraint, so sample frames sparsely and use factorized space/time attention.</p>
+<h3>Tracking</h3>
+<p>Tracking-by-detection: run a detector each frame, then associate detections to existing tracks. A <b>Kalman filter</b> predicts where each track moves; the <b>Hungarian algorithm</b> solves the assignment using IoU and appearance-embedding similarity (SORT / DeepSORT / ByteTrack). Used in sports analytics, traffic, retail and license-plate systems.</p>
+<h3>3D vision</h3>
+<ul>
+<li><b>Depth estimation</b> from stereo pairs, or from a single image with a network (monocular depth).</li>
+<li><b>Point clouds</b> (LiDAR): PointNet applies a shared MLP to each point and a symmetric max-pool, making the result independent of point order.</li>
+<li><b>Neural radiance fields (NeRF):</b> an MLP maps a 3D position and viewing direction to density \(\sigma\) and colour \(\mathbf c\). A pixel is rendered by integrating along its camera ray:
+$$\hat C(\mathbf r)=\sum_{i}T_i\big(1-e^{-\sigma_i\delta_i}\big)\mathbf c_i,\qquad T_i=\exp\Big(-\sum_{j\lt i}\sigma_j\delta_j\Big)$$
+The whole renderer is differentiable, so the scene is learned from photos alone.</li>
+<li><b>3D Gaussian splatting</b> represents the scene as millions of small coloured Gaussians rasterized directly, rendering in real time.</li>
+</ul>
+<h3>OCR and document AI</h3>
+<p>Classic OCR = text detection (find word boxes) + recognition (a CNN/Transformer reading a crop, trained with CTC loss, [[speech]]). Documents also need <b>layout</b> understanding (tables, forms, reading order). Today, vision-language models can read a page image and output structured JSON directly; combine them with classic OCR for verifiable coordinates, and evaluate on character error rate and field-level accuracy. Arabic and mixed-script documents need models trained on those scripts: test before trusting.</p>
+<pre><code class="language-python"># NeRF-style volume rendering along one ray (the core equation above)
+def render_ray(sigmas, colors, deltas):          # (S,), (S, 3), (S,)
+    alpha = 1 - torch.exp(-sigmas * deltas)
+    T = torch.cumprod(torch.cat([torch.ones(1), 1 - alpha + 1e-10])[:-1], dim=0)
+    weights = T * alpha
+    return (weights[:, None] * colors).sum(0)    # pixel colour
+
+# Multi-object tracking with an off-the-shelf detector + tracker (ultralytics)
+# from ultralytics import YOLO
+# for r in YOLO("yolov8n.pt").track("traffic.mp4", stream=True, persist=True): print(r.boxes.id)</code></pre>

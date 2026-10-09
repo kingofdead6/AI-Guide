@@ -1,0 +1,20 @@
+<table>
+<tr><th>Model family</th><th>Architecture</th><th>Pretraining objective</th><th>Best for</th></tr>
+<tr><td>BERT / RoBERTa / DeBERTa</td><td>Encoder</td><td>Masked LM: hide ~15% of tokens, predict them using both sides</td><td>Classification, NER, embeddings, reranking</td></tr>
+<tr><td>GPT family</td><td>Decoder</td><td>Causal LM: predict the next token</td><td>Generation, chat, reasoning</td></tr>
+<tr><td>T5 / BART</td><td>Encoder–decoder</td><td>Reconstruct corrupted spans</td><td>Translation, summarization</td></tr>
+</table>
+<!--FIG:bert_gpt-->
+<p><b>Fine-tuning an encoder</b> for classification: take the final hidden state of <code>[CLS]</code> (or mean-pool all tokens), add a linear layer, and train everything end to end with a small learning rate (about 2e-5) for a few epochs. For token-level tasks like NER, put the classifier on every token's state.</p>
+<p><b>Sentence embeddings</b> (Sentence-BERT and successors): fine-tune encoders with contrastive objectives so that the cosine similarity of pooled vectors reflects meaning. These are the embedding models behind semantic search and RAG.</p>
+<pre><code class="language-python">from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
+from datasets import load_dataset
+name = "distilbert-base-uncased"
+tok = AutoTokenizer.from_pretrained(name)
+ds = load_dataset("imdb").map(lambda b: tok(b["text"], truncation=True, max_length=256), batched=True)
+model = AutoModelForSequenceClassification.from_pretrained(name, num_labels=2)
+args = TrainingArguments("out", learning_rate=2e-5, per_device_train_batch_size=16,
+                         num_train_epochs=2, eval_strategy="epoch", weight_decay=0.01)
+Trainer(model=model, args=args, train_dataset=ds["train"], eval_dataset=ds["test"],
+        tokenizer=tok).train()</code></pre>
+<p>(Argument names in <code>transformers</code> change between versions; check the docs for the version you install.)</p>

@@ -1,0 +1,23 @@
+<h3>Vanilla RNN</h3>
+$$\mathbf h_t=\tanh(\mathbf W_{hh}\mathbf h_{t-1}+\mathbf W_{xh}\mathbf x_t+\mathbf b),\qquad \hat{\mathbf y}_t=\mathbf W_{hy}\mathbf h_t$$
+<p>The same weights are used at every step. Training unrolls the network through time and backpropagates (<b>BPTT</b>).</p>
+<!--FIG:rnn_unrolled-->
+<h3>Why gradients vanish or explode</h3>
+$$\frac{\partial\mathbf h_T}{\partial\mathbf h_t}=\prod_{k=t+1}^{T}\operatorname{diag}\big(1-\mathbf h_k^2\big)\,\mathbf W_{hh}$$
+<p>A product of \(T-t\) matrices behaves like \(\mathbf W_{hh}^{T-t}\) ([[eigen-svd]]): if its largest singular value is below 1 the gradient vanishes exponentially, above 1 it explodes. So plain RNNs can't learn long-range dependencies. Clipping handles explosion; gating handles vanishing.</p>
+<h3>LSTM</h3>
+$$\begin{aligned}
+\mathbf f_t&amp;=\sigma(\mathbf W_f[\mathbf h_{t-1},\mathbf x_t]+\mathbf b_f)&amp;&amp;\text{forget gate}\\
+\mathbf i_t&amp;=\sigma(\mathbf W_i[\mathbf h_{t-1},\mathbf x_t]+\mathbf b_i)&amp;&amp;\text{input gate}\\
+\mathbf o_t&amp;=\sigma(\mathbf W_o[\mathbf h_{t-1},\mathbf x_t]+\mathbf b_o)&amp;&amp;\text{output gate}\\
+\tilde{\mathbf c}_t&amp;=\tanh(\mathbf W_c[\mathbf h_{t-1},\mathbf x_t]+\mathbf b_c)&amp;&amp;\text{candidate}\\
+\mathbf c_t&amp;=\mathbf f_t\odot\mathbf c_{t-1}+\mathbf i_t\odot\tilde{\mathbf c}_t&amp;&amp;\text{cell state}\\
+\mathbf h_t&amp;=\mathbf o_t\odot\tanh(\mathbf c_t)
+\end{aligned}$$
+<!--FIG:lstm_cell-->
+<p>The cell state is updated additively, so \(\partial\mathbf c_t/\partial\mathbf c_{t-1}=\operatorname{diag}(\mathbf f_t)\). When the forget gate is near 1, information and gradients flow across many steps: the same trick as residual connections. The <b>GRU</b> merges gates into update and reset gates, with fewer parameters and similar performance.</p>
+<h3>Sequence-to-sequence and the bottleneck</h3>
+<p>For translation, an encoder RNN compresses the source into one vector and a decoder RNN generates the target from it. Squeezing a whole sentence into one fixed vector is a bottleneck. <b>Attention</b> (Bahdanau, 2014) let the decoder look back at all encoder states. The Transformer then kept attention and dropped recurrence entirely.</p>
+<pre><code class="language-python">lstm = nn.LSTM(input_size=32, hidden_size=128, num_layers=2, batch_first=True, dropout=0.1)
+x = torch.randn(16, 50, 32)            # (batch, time, features)
+out, (h_n, c_n) = lstm(x)              # out: (16, 50, 128)</code></pre>

@@ -1,0 +1,14 @@
+<p>One-hot vectors are huge and every pair is orthogonal ("cat" is as far from "kitten" as from "carburetor"). Embeddings map each word to \(\mathbf v_w\in\mathbb R^{d}\) with \(d\) around 100–300.</p>
+<h3>Skip-gram</h3>
+<p>Predict context words \(o\) from a center word \(c\), with separate center vectors \(\mathbf v\) and context vectors \(\mathbf u\):</p>
+$$p(o\mid c)=\frac{\exp(\mathbf u_o^\top\mathbf v_c)}{\sum_{w\in V}\exp(\mathbf u_w^\top\mathbf v_c)}$$
+<!--FIG:skipgram-->
+<p>The denominator sums over the whole vocabulary, which is too expensive. <b>Negative sampling</b> turns it into binary classification: real pairs versus \(k\) random "noise" words:</p>
+$$\mathcal L=-\log\sigma(\mathbf u_o^\top\mathbf v_c)-\sum_{j=1}^{k}\log\sigma(-\mathbf u_{n_j}^\top\mathbf v_c)$$
+<p><b>GloVe</b> instead fits embeddings to global co-occurrence statistics: \(\mathbf v_i^\top\mathbf u_j+b_i+b_j\approx\log X_{ij}\). Both produce linear structure: \(\mathbf v_{\text{king}}-\mathbf v_{\text{man}}+\mathbf v_{\text{woman}}\approx\mathbf v_{\text{queen}}\).</p>
+<!--FIG:embed_space-->
+<div class="callout warn"><b>Limitation</b>One vector per word means "bank" (river) and "bank" (money) share a vector. Contextual embeddings from Transformers (6.4) give each <i>occurrence</i> its own vector. Embeddings also absorb social biases present in their training text.</div>
+<pre><code class="language-python">from gensim.models import Word2Vec
+sentences = [["the", "cat", "sat"], ["the", "dog", "ran"]]          # tokenized corpus
+w2v = Word2Vec(sentences, vector_size=100, window=5, min_count=1, sg=1, negative=5)
+print(w2v.wv.most_similar("cat"))</code></pre>

@@ -1,0 +1,38 @@
+<h3>The loop</h3>
+<ol>
+<li>The model receives the goal, available tools (name, description, JSON schema for arguments), and history.</li>
+<li>It outputs either a final answer or a structured <b>tool call</b>.</li>
+<li>Your code executes the tool (search, SQL, code execution, an API) and appends the result.</li>
+<li>Repeat, with a step limit.</li>
+</ol>
+<p>This "reason, act, observe" pattern is often called <b>ReAct</b>. Providers support native function calling, and the <b>Model Context Protocol (MCP)</b> standardizes how tools and data sources are exposed to models.</p>
+<!--FIG:agent_loop-->
+<h3>Design principles</h3>
+<ul>
+<li>Start with the simplest thing: a single LLM call, then a fixed workflow (prompt chaining, routing), and only then a free-form agent.</li>
+<li>Write tool descriptions as carefully as prompts; return concise, informative errors so the model can recover.</li>
+<li><b>Memory:</b> short-term is the conversation context; long-term is a store the agent can write to and search.</li>
+<li><b>Safety:</b> least-privilege tools, human confirmation for irreversible actions (sending, paying, deleting), and treat tool outputs and web content as untrusted data, never instructions.</li>
+<li><b>Evaluate on full tasks</b> (success rate, steps, cost), not single turns.</li>
+</ul>
+<pre><code class="language-python">import json
+TOOLS = {
+    "search_docs": lambda query: [c for c, _ in rag.retrieve(query, k=3)],
+    "calculator":  lambda expression: eval(expression, {"__builtins__": {}}),   # demo only; never eval untrusted input in production
+}
+SYSTEM = ("You can use tools. Reply with JSON only: "
+          '{"tool": name, "args": {...}} to call a tool, or {"answer": text} when done. '
+          "Tools: search_docs(query), calculator(expression).")
+
+def run_agent(goal, max_steps=6):
+    history = [f"Goal: {goal}"]
+    for _ in range(max_steps):
+        reply = json.loads(llm(SYSTEM + "\n\n" + "\n".join(history)))
+        if "answer" in reply:
+            return reply["answer"]
+        try:
+            result = TOOLS[reply["tool"]](**reply["args"])
+        except Exception as e:
+            result = f"ERROR: {e}"
+        history.append(f"Called {reply['tool']}({reply['args']}) -> {json.dumps(result)[:2000]}")
+    return "Stopped: step limit reached."</code></pre>

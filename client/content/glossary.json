@@ -1,0 +1,697 @@
+[
+ {
+  "term": "Activation function",
+  "def": "A nonlinear function applied after a linear layer, such as ReLU, GELU or sigmoid. Without it, stacked layers collapse into one linear map.",
+  "lesson": "neural-nets"
+ },
+ {
+  "term": "Active learning",
+  "def": "Choosing which unlabelled examples to label next, usually the ones the model is least certain about.",
+  "lesson": "data-centric"
+ },
+ {
+  "term": "Adam",
+  "def": "An optimizer that keeps running averages of the gradient and its square to give each parameter its own step size. AdamW adds decoupled weight decay.",
+  "lesson": "optimization"
+ },
+ {
+  "term": "Adversarial example",
+  "def": "An input changed by a small, deliberately chosen perturbation that makes a model predict wrongly.",
+  "lesson": "adversarial-examples"
+ },
+ {
+  "term": "Agent",
+  "def": "An LLM running in a loop that chooses actions, calls tools and reads the results until a task is done.",
+  "lesson": "agents"
+ },
+ {
+  "term": "All-reduce",
+  "def": "A collective operation in which every GPU ends up with the sum (or mean) of a tensor across all GPUs; used to average gradients.",
+  "lesson": "distributed"
+ },
+ {
+  "term": "ANN index",
+  "def": "An approximate nearest-neighbour index (such as HNSW or IVF) that finds similar vectors far faster than brute force, at a small cost in recall.",
+  "lesson": "vector-search"
+ },
+ {
+  "term": "Attention",
+  "def": "A mechanism that computes each output as a weighted average of values, with weights from query–key similarity: \\(\\operatorname{softmax}(\\mathbf{QK}^\\top/\\sqrt{d_k})\\mathbf V\\).",
+  "lesson": "transformer"
+ },
+ {
+  "term": "AUC (ROC)",
+  "def": "The area under the ROC curve: the probability that a random positive is scored above a random negative.",
+  "lesson": "metrics"
+ },
+ {
+  "term": "Autograd",
+  "def": "Automatic differentiation: the framework records operations and applies the chain rule backwards to get gradients.",
+  "lesson": "pytorch"
+ },
+ {
+  "term": "Backpropagation",
+  "def": "Computing gradients of a loss with respect to every parameter by applying the chain rule backwards through the network.",
+  "lesson": "backprop"
+ },
+ {
+  "term": "Bagging",
+  "def": "Training models on bootstrap resamples of the data and averaging them to reduce variance; the basis of random forests.",
+  "lesson": "trees-ensembles"
+ },
+ {
+  "term": "Batch normalization",
+  "def": "Normalizing each feature using statistics over the mini-batch, then rescaling with learned parameters. Common in CNNs.",
+  "lesson": "training-deep"
+ },
+ {
+  "term": "Bayes' theorem",
+  "def": "\\(p(\\theta\\mid\\mathcal D)\\propto p(\\mathcal D\\mid\\theta)\\,p(\\theta)\\): how to update beliefs with evidence.",
+  "lesson": "bayes"
+ },
+ {
+  "term": "Beam search",
+  "def": "A decoding method that keeps the \\(b\\) most likely partial sequences at every step.",
+  "lesson": "decoding"
+ },
+ {
+  "term": "BERT",
+  "def": "A Transformer encoder pretrained with masked language modelling; used for classification, NER, embeddings and reranking.",
+  "lesson": "pretrained-nlp"
+ },
+ {
+  "term": "Bias–variance trade-off",
+  "def": "Expected error splits into bias², variance and noise. Flexible models lower bias but raise variance.",
+  "lesson": "ml-framework"
+ },
+ {
+  "term": "BM25",
+  "def": "A keyword ranking function: TF-IDF with term-frequency saturation and document-length normalization.",
+  "lesson": "retrieval-ranking"
+ },
+ {
+  "term": "BPE (byte-pair encoding)",
+  "def": "A subword tokenizer built by repeatedly merging the most frequent adjacent pair of symbols.",
+  "lesson": "tokenization"
+ },
+ {
+  "term": "Broadcasting",
+  "def": "NumPy's rule for combining arrays of different shapes by virtually stretching dimensions of size 1.",
+  "lesson": "numpy"
+ },
+ {
+  "term": "Calibration",
+  "def": "A model is calibrated when its predicted probabilities match observed frequencies, e.g. 80% of 0.8 predictions are positive.",
+  "lesson": "metrics"
+ },
+ {
+  "term": "Chain-of-thought",
+  "def": "Having a model write intermediate reasoning steps before its final answer.",
+  "lesson": "reasoning"
+ },
+ {
+  "term": "Chunking",
+  "def": "Splitting documents into passages for retrieval. Chunk size and overlap strongly affect RAG quality.",
+  "lesson": "rag-pipeline"
+ },
+ {
+  "term": "CLIP",
+  "def": "A model that embeds images and text into one space by contrastive training on image–caption pairs; enables zero-shot classification.",
+  "lesson": "vit-clip"
+ },
+ {
+  "term": "Concept drift",
+  "def": "A change over time in the relationship between inputs and the target, so a once-good model degrades.",
+  "lesson": "mlops"
+ },
+ {
+  "term": "Confounder",
+  "def": "A variable that influences both a treatment and an outcome, creating a spurious association between them.",
+  "lesson": "causal"
+ },
+ {
+  "term": "Contrastive learning",
+  "def": "Learning representations by pulling related pairs together and pushing unrelated ones apart, often with the InfoNCE loss.",
+  "lesson": "ssl"
+ },
+ {
+  "term": "Convolution",
+  "def": "Sliding a small learned kernel over an input and computing a weighted sum at each position; the core operation of CNNs.",
+  "lesson": "cnn"
+ },
+ {
+  "term": "Cosine similarity",
+  "def": "\\(\\mathbf x^\\top\\mathbf y/(\\|\\mathbf x\\|\\|\\mathbf y\\|)\\): the cosine of the angle between two vectors.",
+  "lesson": "vectors"
+ },
+ {
+  "term": "Cross-encoder",
+  "def": "A model that reads a query and a document together to score relevance; accurate but too slow for first-stage retrieval.",
+  "lesson": "retrieval-ranking"
+ },
+ {
+  "term": "Cross-entropy",
+  "def": "\\(H(p,q)=-\\sum p\\log q\\); the standard classification loss and the negative log-likelihood of a categorical model.",
+  "lesson": "info-theory"
+ },
+ {
+  "term": "Cross-validation",
+  "def": "Rotating which part of the training data is held out for validation to get a lower-variance estimate of generalization.",
+  "lesson": "ml-framework"
+ },
+ {
+  "term": "CTC loss",
+  "def": "A speech-recognition loss that sums over all alignments between audio frames and a shorter output sequence.",
+  "lesson": "speech"
+ },
+ {
+  "term": "Data leakage",
+  "def": "Information unavailable at prediction time sneaking into training or validation, inflating offline scores.",
+  "lesson": "preprocessing"
+ },
+ {
+  "term": "Diffusion model",
+  "def": "A generative model trained to reverse a gradual noising process; generation starts from noise and denoises step by step.",
+  "lesson": "diffusion"
+ },
+ {
+  "term": "Differential privacy",
+  "def": "A guarantee that an algorithm's output changes little whether or not any single person's data is included.",
+  "lesson": "poisoning-privacy"
+ },
+ {
+  "term": "Distillation",
+  "def": "Training a small student model to match a larger teacher's soft predictions.",
+  "lesson": "compression"
+ },
+ {
+  "term": "DPO",
+  "def": "Direct preference optimization: aligning a model on preference pairs with a classification-style loss, without a separate reward model.",
+  "lesson": "alignment"
+ },
+ {
+  "term": "Dropout",
+  "def": "Randomly zeroing units during training so the network cannot rely on any single unit; a regularizer.",
+  "lesson": "training-deep"
+ },
+ {
+  "term": "Eigenvector",
+  "def": "A nonzero vector \\(\\mathbf v\\) whose direction a matrix preserves: \\(\\mathbf A\\mathbf v=\\lambda\\mathbf v\\).",
+  "lesson": "eigen-svd"
+ },
+ {
+  "term": "ELBO",
+  "def": "Evidence lower bound: reconstruction term minus a KL term; the objective maximized by VAEs.",
+  "lesson": "vae"
+ },
+ {
+  "term": "Embedding",
+  "def": "A dense vector representation of a token, item, sentence or image, learned so that similar things are close.",
+  "lesson": "word-embeddings"
+ },
+ {
+  "term": "Empirical risk",
+  "def": "The average loss over the training set; an estimate of the expected loss on the true data distribution.",
+  "lesson": "ml-framework"
+ },
+ {
+  "term": "Entropy",
+  "def": "\\(H(p)=-\\sum p\\log p\\): the average surprise of a distribution.",
+  "lesson": "info-theory"
+ },
+ {
+  "term": "Epoch",
+  "def": "One full pass through the training data.",
+  "lesson": "pytorch-loop"
+ },
+ {
+  "term": "Expected value",
+  "def": "The probability-weighted average of a random variable's values.",
+  "lesson": "probability"
+ },
+ {
+  "term": "Fine-tuning",
+  "def": "Continuing to train a pretrained model on task-specific data.",
+  "lesson": "finetuning"
+ },
+ {
+  "term": "FlashAttention",
+  "def": "An exact attention algorithm that tiles computation in on-chip memory, avoiding the full \\(n\\times n\\) matrix in GPU memory.",
+  "lesson": "inference"
+ },
+ {
+  "term": "Flow matching",
+  "def": "Training a velocity field that transports noise to data by regressing on simple interpolation paths.",
+  "lesson": "flows"
+ },
+ {
+  "term": "FSDP / ZeRO",
+  "def": "Sharding weights, gradients and optimizer states across GPUs so each holds only a fraction of the training state.",
+  "lesson": "distributed"
+ },
+ {
+  "term": "GAN",
+  "def": "Generative adversarial network: a generator and discriminator trained against each other.",
+  "lesson": "gan"
+ },
+ {
+  "term": "Gaussian process",
+  "def": "A distribution over functions; any finite set of function values is jointly Gaussian with a kernel covariance.",
+  "lesson": "bayesian-ml"
+ },
+ {
+  "term": "Generalization",
+  "def": "How well a model performs on data it was not trained on.",
+  "lesson": "ml-framework"
+ },
+ {
+  "term": "Gini impurity",
+  "def": "\\(1-\\sum_kp_k^2\\): a measure of class mixing used to choose decision-tree splits.",
+  "lesson": "trees-ensembles"
+ },
+ {
+  "term": "GNN",
+  "def": "Graph neural network: layers that update each node from messages sent by its neighbours.",
+  "lesson": "gnn"
+ },
+ {
+  "term": "Gradient",
+  "def": "The vector of partial derivatives of a function; it points in the direction of steepest increase.",
+  "lesson": "calculus"
+ },
+ {
+  "term": "Gradient boosting",
+  "def": "Building an additive model of trees, each fitted to the negative gradient of the loss of the current ensemble.",
+  "lesson": "trees-ensembles"
+ },
+ {
+  "term": "Gradient clipping",
+  "def": "Rescaling gradients whose norm exceeds a threshold to stabilize training.",
+  "lesson": "training-deep"
+ },
+ {
+  "term": "Gradient descent",
+  "def": "Repeatedly stepping parameters against the gradient: \\(\\theta\\leftarrow\\theta-\\eta\\nabla\\mathcal L\\).",
+  "lesson": "optimization"
+ },
+ {
+  "term": "Grouped-query attention",
+  "def": "Several query heads sharing one key–value head, shrinking the KV cache.",
+  "lesson": "inference"
+ },
+ {
+  "term": "Hallucination",
+  "def": "Fluent model output that is not supported by facts or sources.",
+  "lesson": "using-llms"
+ },
+ {
+  "term": "HNSW",
+  "def": "Hierarchical navigable small world graph: a popular ANN index with excellent recall and speed.",
+  "lesson": "vector-search"
+ },
+ {
+  "term": "Hybrid search",
+  "def": "Combining keyword (BM25) and dense vector retrieval, often merged with reciprocal rank fusion.",
+  "lesson": "retrieval-ranking"
+ },
+ {
+  "term": "Hyperparameter",
+  "def": "A setting chosen outside training, such as learning rate or tree depth, tuned on validation data.",
+  "lesson": "hpo"
+ },
+ {
+  "term": "Imitation learning",
+  "def": "Learning a policy from expert demonstrations, for example by behaviour cloning.",
+  "lesson": "robot-learning"
+ },
+ {
+  "term": "InfoNCE",
+  "def": "A contrastive loss: cross-entropy where the matching pair is the correct class among in-batch candidates.",
+  "lesson": "vit-clip"
+ },
+ {
+  "term": "IoU",
+  "def": "Intersection over union: overlap area divided by combined area of two boxes or masks.",
+  "lesson": "detection-segmentation"
+ },
+ {
+  "term": "Jacobian",
+  "def": "The matrix of first partial derivatives of a vector-valued function.",
+  "lesson": "calculus"
+ },
+ {
+  "term": "Kalman filter",
+  "def": "A recursive estimator that fuses predictions and noisy measurements for linear-Gaussian systems.",
+  "lesson": "state-estimation"
+ },
+ {
+  "term": "Kernel trick",
+  "def": "Computing dot products in a high-dimensional feature space through a kernel function, without building the features.",
+  "lesson": "svm"
+ },
+ {
+  "term": "KL divergence",
+  "def": "\\(D_{\\mathrm{KL}}(p\\|q)=\\sum p\\log(p/q)\\ge0\\): how much \\(q\\) differs from \\(p\\). Not symmetric.",
+  "lesson": "info-theory"
+ },
+ {
+  "term": "k-means",
+  "def": "Clustering by alternately assigning points to the nearest centroid and moving centroids to the mean of their points.",
+  "lesson": "unsupervised"
+ },
+ {
+  "term": "KV cache",
+  "def": "Stored keys and values of previous tokens so each generation step only computes the new token.",
+  "lesson": "inference"
+ },
+ {
+  "term": "Layer normalization",
+  "def": "Normalizing across the features of each example; standard in Transformers.",
+  "lesson": "training-deep"
+ },
+ {
+  "term": "Learning rate",
+  "def": "The step size of gradient-based optimization; the most important hyperparameter of neural network training.",
+  "lesson": "optimization"
+ },
+ {
+  "term": "Likelihood",
+  "def": "\\(p(\\mathcal D\\mid\\theta)\\): how probable the observed data is under given parameters.",
+  "lesson": "estimation"
+ },
+ {
+  "term": "LLM",
+  "def": "Large language model: a large Transformer trained to predict the next token, then usually fine-tuned to follow instructions.",
+  "lesson": "llm-pretraining"
+ },
+ {
+  "term": "LoRA",
+  "def": "Low-rank adaptation: fine-tuning by learning a low-rank update \\(\\mathbf{BA}\\) beside frozen weights.",
+  "lesson": "finetuning"
+ },
+ {
+  "term": "Logit",
+  "def": "An unnormalized score before softmax or sigmoid.",
+  "lesson": "logistic-regression"
+ },
+ {
+  "term": "LSTM",
+  "def": "A recurrent network with gates and an additively updated cell state that carries information over long sequences.",
+  "lesson": "rnn"
+ },
+ {
+  "term": "MAP estimate",
+  "def": "Maximum a posteriori: the parameters that maximize likelihood times prior; equivalent to regularized training.",
+  "lesson": "estimation"
+ },
+ {
+  "term": "MCP",
+  "def": "Model Context Protocol: an open standard for exposing tools, resources and prompts to AI applications.",
+  "lesson": "agents-advanced"
+ },
+ {
+  "term": "Membership inference",
+  "def": "An attack that determines whether a specific record was in a model's training data.",
+  "lesson": "poisoning-privacy"
+ },
+ {
+  "term": "Mixture of experts",
+  "def": "A layer that routes each token to a few of many expert networks, growing capacity without growing per-token compute.",
+  "lesson": "inference"
+ },
+ {
+  "term": "MLE",
+  "def": "Maximum likelihood estimation: choosing parameters that make the observed data most probable.",
+  "lesson": "estimation"
+ },
+ {
+  "term": "Model card",
+  "def": "A document describing a model's intended use, data, evaluation results, limitations and owner.",
+  "lesson": "ai-governance"
+ },
+ {
+  "term": "Monte Carlo",
+  "def": "Estimating expectations or integrals with averages over random samples; error shrinks as \\(1/\\sqrt N\\).",
+  "lesson": "monte-carlo"
+ },
+ {
+  "term": "MPC",
+  "def": "Model predictive control: optimizing a short-horizon plan at each step and applying only the first action.",
+  "lesson": "robot-control"
+ },
+ {
+  "term": "Multi-head attention",
+  "def": "Running several attention operations in parallel with separate projections and concatenating their outputs.",
+  "lesson": "transformer"
+ },
+ {
+  "term": "Naive Bayes",
+  "def": "A classifier that assumes features are independent given the class; a fast baseline for text.",
+  "lesson": "knn-nb"
+ },
+ {
+  "term": "NMS",
+  "def": "Non-maximum suppression: keeping the highest-scoring box and discarding overlapping duplicates.",
+  "lesson": "detection-segmentation"
+ },
+ {
+  "term": "Normal equations",
+  "def": "\\(\\mathbf X^\\top\\mathbf X\\mathbf w=\\mathbf X^\\top\\mathbf y\\): the conditions solved by least-squares regression.",
+  "lesson": "linear-regression"
+ },
+ {
+  "term": "Overfitting",
+  "def": "Fitting noise in the training data so that validation performance suffers.",
+  "lesson": "ml-framework"
+ },
+ {
+  "term": "Particle filter",
+  "def": "A state estimator that represents the belief with weighted samples and can track multi-modal distributions.",
+  "lesson": "state-estimation"
+ },
+ {
+  "term": "PCA",
+  "def": "Principal component analysis: projecting data onto the directions of maximum variance (eigenvectors of the covariance).",
+  "lesson": "unsupervised"
+ },
+ {
+  "term": "Perplexity",
+  "def": "\\(\\exp\\) of the average negative log-likelihood per token; lower means a better language model.",
+  "lesson": "info-theory"
+ },
+ {
+  "term": "PID controller",
+  "def": "A feedback controller combining proportional, integral and derivative terms of the error.",
+  "lesson": "robot-control"
+ },
+ {
+  "term": "Policy gradient",
+  "def": "Optimizing a policy directly by increasing the log-probability of actions in proportion to their advantage.",
+  "lesson": "policy-gradient"
+ },
+ {
+  "term": "PPO",
+  "def": "Proximal policy optimization: a policy-gradient method that clips the probability ratio to keep updates small.",
+  "lesson": "policy-gradient"
+ },
+ {
+  "term": "Precision",
+  "def": "Of the items predicted positive, the fraction that are truly positive: \\(TP/(TP+FP)\\).",
+  "lesson": "metrics"
+ },
+ {
+  "term": "Prompt injection",
+  "def": "Instructions planted in input or retrieved content that hijack an LLM application's behaviour.",
+  "lesson": "llm-security"
+ },
+ {
+  "term": "Quantization",
+  "def": "Storing weights or activations in fewer bits (int8, int4, fp8) to save memory and speed up inference.",
+  "lesson": "finetuning"
+ },
+ {
+  "term": "RAG",
+  "def": "Retrieval-augmented generation: retrieving relevant passages and giving them to an LLM to ground its answer.",
+  "lesson": "rag-pipeline"
+ },
+ {
+  "term": "Recall",
+  "def": "Of the truly positive items, the fraction the model finds: \\(TP/(TP+FN)\\).",
+  "lesson": "metrics"
+ },
+ {
+  "term": "Regularization",
+  "def": "Any technique that discourages overfitting, such as weight decay, dropout or early stopping.",
+  "lesson": "linear-regression"
+ },
+ {
+  "term": "ReLU",
+  "def": "\\(\\max(0,z)\\): the default activation in many networks; its gradient is 1 for positive inputs.",
+  "lesson": "neural-nets"
+ },
+ {
+  "term": "Reparameterization trick",
+  "def": "Writing a random sample as a deterministic function of parameters and independent noise so gradients can flow through it.",
+  "lesson": "vae"
+ },
+ {
+  "term": "Reranker",
+  "def": "A second-stage model that reorders retrieved candidates more accurately, often a cross-encoder.",
+  "lesson": "retrieval-ranking"
+ },
+ {
+  "term": "Residual connection",
+  "def": "Adding a block's input to its output, \\(\\mathbf y=\\mathcal F(\\mathbf x)+\\mathbf x\\), which lets very deep networks train.",
+  "lesson": "cnn"
+ },
+ {
+  "term": "Reward model",
+  "def": "A model trained on human preference comparisons to score responses; used in RLHF.",
+  "lesson": "alignment"
+ },
+ {
+  "term": "RLHF",
+  "def": "Reinforcement learning from human feedback: SFT, a reward model trained on preferences, then RL against it with a KL penalty.",
+  "lesson": "alignment"
+ },
+ {
+  "term": "RoPE",
+  "def": "Rotary positional embeddings: rotating query and key components by position-dependent angles to encode relative position.",
+  "lesson": "transformer"
+ },
+ {
+  "term": "RRT",
+  "def": "Rapidly-exploring random tree: a sampling-based motion planner that grows a tree toward random samples.",
+  "lesson": "motion-planning"
+ },
+ {
+  "term": "Scaling laws",
+  "def": "Empirical power laws relating loss to model size, data size and compute.",
+  "lesson": "llm-pretraining"
+ },
+ {
+  "term": "Self-attention",
+  "def": "Attention in which queries, keys and values all come from the same sequence.",
+  "lesson": "transformer"
+ },
+ {
+  "term": "SFT",
+  "def": "Supervised fine-tuning on curated instruction–response pairs.",
+  "lesson": "llm-pretraining"
+ },
+ {
+  "term": "SHAP",
+  "def": "Shapley-value attributions that explain a prediction as contributions of each feature.",
+  "lesson": "responsible-ai"
+ },
+ {
+  "term": "Sigmoid",
+  "def": "\\(1/(1+e^{-z})\\): squashes a score into (0, 1); used for binary probabilities and gates.",
+  "lesson": "logistic-regression"
+ },
+ {
+  "term": "Softmax",
+  "def": "\\(e^{z_k}/\\sum_je^{z_j}\\): turns a vector of scores into a probability distribution.",
+  "lesson": "logistic-regression"
+ },
+ {
+  "term": "State space model",
+  "def": "A sequence model built on a linear recurrence that can also be computed as a convolution; efficient for long sequences.",
+  "lesson": "ssm"
+ },
+ {
+  "term": "Stochastic gradient descent",
+  "def": "Gradient descent using the gradient of a random mini-batch instead of the full dataset.",
+  "lesson": "optimization"
+ },
+ {
+  "term": "SVD",
+  "def": "Singular value decomposition \\(\\mathbf A=\\mathbf U\\boldsymbol\\Sigma\\mathbf V^\\top\\); its truncation gives the best low-rank approximation.",
+  "lesson": "eigen-svd"
+ },
+ {
+  "term": "SVM",
+  "def": "Support vector machine: a classifier that maximizes the margin between classes, made nonlinear with kernels.",
+  "lesson": "svm"
+ },
+ {
+  "term": "Temperature",
+  "def": "Dividing logits by \\(T\\) before softmax; low values make sampling more deterministic, high values more random.",
+  "lesson": "decoding"
+ },
+ {
+  "term": "Tensor parallelism",
+  "def": "Splitting individual weight matrices across GPUs so each computes part of every layer.",
+  "lesson": "distributed"
+ },
+ {
+  "term": "TF-IDF",
+  "def": "Term frequency times inverse document frequency: weights words that are frequent in a document but rare overall.",
+  "lesson": "classic-nlp"
+ },
+ {
+  "term": "Tokenizer",
+  "def": "The component that converts text into a sequence of integer token IDs and back.",
+  "lesson": "tokenization"
+ },
+ {
+  "term": "Top-p sampling",
+  "def": "Sampling from the smallest set of tokens whose cumulative probability reaches \\(p\\).",
+  "lesson": "decoding"
+ },
+ {
+  "term": "Transfer learning",
+  "def": "Reusing a model trained on one task or dataset as the starting point for another.",
+  "lesson": "cv-basics"
+ },
+ {
+  "term": "Transformer",
+  "def": "A neural architecture built from self-attention and feed-forward blocks with residual connections and normalization.",
+  "lesson": "transformer"
+ },
+ {
+  "term": "Underfitting",
+  "def": "A model too simple to capture the pattern, with high error on both training and validation data.",
+  "lesson": "ml-framework"
+ },
+ {
+  "term": "VAE",
+  "def": "Variational autoencoder: an encoder–decoder generative model trained by maximizing the ELBO.",
+  "lesson": "vae"
+ },
+ {
+  "term": "Vanishing gradient",
+  "def": "Gradients shrinking exponentially as they flow back through many layers or time steps.",
+  "lesson": "rnn"
+ },
+ {
+  "term": "Variance",
+  "def": "\\(\\mathbb E[(X-\\mu)^2]\\): the expected squared deviation from the mean.",
+  "lesson": "variance-joint"
+ },
+ {
+  "term": "Vector database",
+  "def": "A system that stores embeddings with metadata and answers nearest-neighbour queries at scale.",
+  "lesson": "vector-search"
+ },
+ {
+  "term": "Vision Transformer (ViT)",
+  "def": "A Transformer that treats image patches as tokens.",
+  "lesson": "vit-clip"
+ },
+ {
+  "term": "VLA model",
+  "def": "Vision-language-action model: a vision-language model fine-tuned to output robot actions from images and instructions.",
+  "lesson": "robot-learning"
+ },
+ {
+  "term": "Weight decay",
+  "def": "Shrinking weights toward zero each step; the L2 penalty implemented in the optimizer.",
+  "lesson": "optimization"
+ },
+ {
+  "term": "Word2vec",
+  "def": "An early method that learns word embeddings by predicting context words with negative sampling.",
+  "lesson": "word-embeddings"
+ }
+]

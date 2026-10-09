@@ -1,0 +1,26 @@
+<h3>Markov decision process</h3>
+<p>A tuple \((\mathcal S,\mathcal A,P,R,\gamma)\): states, actions, transitions \(P(s'\mid s,a)\), rewards, and a discount \(\gamma\in[0,1)\). A policy \(\pi(a\mid s)\) chooses actions. The return and value functions:</p>
+$$G_t=\sum_{k=0}^\infty\gamma^kr_{t+k+1},\qquad V^\pi(s)=\mathbb E_\pi[G_t\mid s_t=s],\qquad Q^\pi(s,a)=\mathbb E_\pi[G_t\mid s_t=s,a_t=a]$$
+<!--FIG:rl_loop-->
+<h3>Bellman equations</h3>
+<p>Value today = immediate reward + discounted value tomorrow:</p>
+$$V^\pi(s)=\sum_a\pi(a\mid s)\sum_{s'}P(s'\mid s,a)\big[R(s,a,s')+\gamma V^\pi(s')\big]$$
+$$Q^*(s,a)=\sum_{s'}P(s'\mid s,a)\big[R(s,a,s')+\gamma\max_{a'}Q^*(s',a')\big]$$
+<p>With a known model, iterate the optimality equation until convergence (<b>value iteration</b>). Without one, learn from experience.</p>
+<!--FIG:gridworld-->
+<h3>Q-learning</h3>
+$$Q(s,a)\leftarrow Q(s,a)+\alpha\Big[r+\gamma\max_{a'}Q(s',a')-Q(s,a)\Big]$$
+<p>The bracket is the <b>temporal-difference error</b>. Explore with <b>ε-greedy</b>: random action with probability \(\varepsilon\), otherwise the best known. <b>DQN</b> replaces the table with a neural network and stabilizes training with an experience replay buffer and a slowly-updated target network.</p>
+<pre><code class="language-python">import gymnasium as gym
+env = gym.make("FrozenLake-v1", is_slippery=False)
+Q = np.zeros((env.observation_space.n, env.action_space.n))
+alpha, gamma, eps = 0.8, 0.95, 1.0
+for episode in range(2000):
+    s, _ = env.reset(); done = False
+    while not done:
+        a = env.action_space.sample() if np.random.rand() &lt; eps else Q[s].argmax()
+        s2, r, term, trunc, _ = env.step(a); done = term or trunc
+        Q[s, a] += alpha * (r + gamma * Q[s2].max() * (not term) - Q[s, a])
+        s = s2
+    eps = max(0.05, eps * 0.995)
+print(Q.argmax(1).reshape(4, 4))      # learned greedy policy</code></pre>

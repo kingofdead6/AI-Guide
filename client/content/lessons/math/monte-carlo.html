@@ -1,0 +1,39 @@
+<h3>Monte Carlo estimation</h3>
+$$\mathbb E_{x\sim p}[f(x)]\approx\frac1N\sum_{i=1}^Nf(x_i),\quad x_i\sim p,\qquad \text{std. error}=\frac{\sigma_f}{\sqrt N}$$
+<p>The error shrinks like \(1/\sqrt N\) regardless of dimension. That is why Monte Carlo works in high dimensions where grids are hopeless. To halve the error you need four times the samples.</p>
+<h3>Ways to draw samples</h3>
+<ul>
+<li><b>Inverse transform:</b> if \(U\sim\text{Uniform}(0,1)\) then \(F^{-1}(U)\) has CDF \(F\). Example: \(-\ln(U)/\lambda\) is exponential.</li>
+<li><b>Rejection sampling:</b> propose from an easy \(q\) with \(p\le Mq\), accept with probability \(p(x)/(Mq(x))\).</li>
+<li><b>Importance sampling:</b> sample from \(q\) but reweight:
+$$\mathbb E_p[f(x)]=\mathbb E_q\!\Big[f(x)\frac{p(x)}{q(x)}\Big]$$
+The ratio \(p/q\) is exactly the probability ratio in PPO and off-policy RL ([[policy-gradient]], [[deep-rl]]). Variance explodes if \(q\) misses regions where \(p\) is large.</li>
+<li><b>Gumbel-max trick:</b> \(\arg\max_i(\log\pi_i+g_i)\) with \(g_i\sim\text{Gumbel}(0,1)\) is a sample from \(\text{Categorical}(\pi)\). Replacing the argmax with a softmax gives the differentiable <b>Gumbel-softmax</b> relaxation.</li>
+</ul>
+<h3>Markov chain Monte Carlo</h3>
+<p>For a distribution known only up to a constant, \(p(x)\propto\tilde p(x)\) (common for Bayesian posteriors), build a Markov chain whose stationary distribution is \(p\). <b>Metropolis–Hastings:</b> propose \(x'\sim q(x'\mid x)\) and accept with probability</p>
+$$\alpha=\min\!\left(1,\ \frac{\tilde p(x')\,q(x\mid x')}{\tilde p(x)\,q(x'\mid x)}\right)$$
+<p>The unknown normalizing constant cancels. Discard an initial burn-in, and remember consecutive samples are correlated. <b>Gibbs sampling</b> updates one variable at a time from its conditional. <b>Hamiltonian Monte Carlo</b> uses gradients to make long, efficient moves (used by Stan and PyMC).</p>
+<h3>Gradients of expectations</h3>
+<p>Two estimators of \(\nabla_\theta\,\mathbb E_{x\sim q_\theta}[f(x)]\) appear everywhere:</p>
+$$\text{score function (REINFORCE): }\ \mathbb E\big[f(x)\nabla_\theta\log q_\theta(x)\big],\qquad \text{reparameterization: }\ \mathbb E_\epsilon\big[\nabla_\theta f(g_\theta(\epsilon))\big]$$
+<p>The first works for any distribution, even discrete ones, but has high variance (policy gradients). The second needs \(x=g_\theta(\epsilon)\) to be differentiable but has much lower variance (VAEs).</p>
+<pre><code class="language-python">rng = np.random.default_rng(0)
+# Monte Carlo estimate of pi and its error
+for N in [100, 10_000, 1_000_000]:
+    pts = rng.uniform(-1, 1, (N, 2))
+    print(N, 4 * ((pts**2).sum(1) &lt;= 1).mean())
+
+# Metropolis–Hastings on an unnormalized bimodal density
+p_tilde = lambda x: np.exp(-0.5 * (x - 2)**2) + 0.6 * np.exp(-0.5 * (x + 2)**2)
+x, samples = 0.0, []
+for t in range(50_000):
+    x_new = x + rng.normal(0, 1.5)                  # symmetric proposal: q terms cancel
+    if rng.uniform() &lt; p_tilde(x_new) / p_tilde(x):
+        x = x_new
+    if t > 2_000: samples.append(x)                 # drop burn-in
+print(np.mean(samples))                             # ≈ 0.5 = (1·2 + 0.6·(−2)) / 1.6</code></pre>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>An estimate from 10,000 samples has standard error 0.02. How many samples for 0.005?
+<details><summary>Solution</summary><div>Error ∝ \(1/\sqrt N\): a 4× smaller error needs 16× the samples, so 160,000.</div></details></li>
+</ol></div>

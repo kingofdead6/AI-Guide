@@ -1,0 +1,35 @@
+<h3>The machine</h3>
+<p>A GPU has many streaming multiprocessors (SMs), each running thousands of threads, with <b>tensor cores</b> that perform small matrix multiply-accumulates in low precision very fast. Thousands of threads hide memory latency by switching between work. The programming model: launch a <b>kernel</b> over a grid of <b>blocks</b>; each block's threads share fast on-chip memory.</p>
+<!--FIG:gpu_mem-->
+<h3>Compute-bound or memory-bound?</h3>
+<p><b>Arithmetic intensity</b> = FLOPs performed per byte moved from memory. Compare it to the hardware's ratio of peak FLOP/s to memory bandwidth (the "ridge point", often a few hundred FLOPs/byte for bf16 on modern data-centre GPUs):</p>
+$$\text{matmul }(m\times k)(k\times n):\ \ \frac{2mkn\ \text{FLOPs}}{2(mk+kn+mn)\ \text{bytes (bf16)}}\qquad\text{vs.}\qquad \text{elementwise add: }\frac{1\ \text{FLOP}}{6\ \text{bytes}}$$
+<!--FIG:roofline-->
+<ul>
+<li>Large matmuls are <b>compute-bound</b>: good. Elementwise ops, normalization, softmax and small-batch LLM decoding are <b>memory-bound</b>: the GPU waits for data.</li>
+<li><b>Kernel fusion</b> combines several memory-bound ops into one kernel so data is read once (what <code>torch.compile</code> and FlashAttention do).</li>
+<li>Batching raises intensity: a decode step for 64 sequences reads the weights once for all of them.</li>
+<li><b>MFU</b> (model FLOPs utilization) = achieved useful FLOP/s ÷ peak. Good large-scale training runs reach roughly 40–60%.</li>
+</ul>
+<h3>Writing a kernel: Triton</h3>
+<pre><code class="language-python">import torch, triton, triton.language as tl
+
+@triton.jit
+def add_kernel(x_ptr, y_ptr, out_ptr, n, BLOCK: tl.constexpr):
+    pid = tl.program_id(0)                       # which block am I?
+    offs = pid * BLOCK + tl.arange(0, BLOCK)
+    mask = offs &lt; n                              # guard the tail
+    x = tl.load(x_ptr + offs, mask=mask); y = tl.load(y_ptr + offs, mask=mask)
+    tl.store(out_ptr + offs, x + y, mask=mask)
+
+def add(x, y):
+    out = torch.empty_like(x); n = x.numel()
+    add_kernel[(triton.cdiv(n, 1024),)](x, y, out, n, BLOCK=1024)
+    return out
+
+# Usually you don't need custom kernels: try torch.compile(model) and fused library ops first,
+# then profile with torch.profiler to find the real bottleneck.</code></pre>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>Batch-1 decoding of a 7B model in bf16 on a GPU with ~3 TB/s of memory bandwidth: what is the best-case tokens per second?
+<details><summary>Solution</summary><div>Each token must read all 14 GB of weights: 3,000 GB/s ÷ 14 GB ≈ 210 tokens/s at most (less in practice, plus KV-cache reads). That's why decode speed is limited by memory bandwidth, and why quantization (fewer bytes) and batching (more tokens per weight read) help so much.</div></details></li>
+</ol></div>

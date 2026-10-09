@@ -1,0 +1,22 @@
+<h3>Families</h3>
+<table>
+<tr><th>Family</th><th>Pretext task</th><th>Examples</th></tr>
+<tr><td>Autoregressive</td><td>Predict the next token</td><td>GPT-style LLMs, image/audio token models</td></tr>
+<tr><td>Masked modelling</td><td>Reconstruct hidden parts</td><td>BERT, MAE (75% of image patches masked)</td></tr>
+<tr><td>Contrastive</td><td>Pull two views of the same item together, push others apart</td><td>SimCLR, MoCo, CLIP, sentence embedders</td></tr>
+<tr><td>Self-distillation (non-contrastive)</td><td>Match a slowly-updated teacher's output on another view</td><td>BYOL, DINO</td></tr>
+<tr><td>Joint-embedding predictive</td><td>Predict the <i>representation</i> of a hidden region, not its pixels</td><td>JEPA-style models</td></tr>
+</table>
+<!--FIG:contrastive-->
+<h3>The contrastive loss (NT-Xent / InfoNCE)</h3>
+<p>For a batch of \(N\) items, create two augmented views each (2N embeddings, normalized). For a positive pair \((i,j)\):</p>
+$$\ell_{i,j}=-\log\frac{\exp(\operatorname{sim}(\mathbf z_i,\mathbf z_j)/\tau)}{\sum_{k\ne i}\exp(\operatorname{sim}(\mathbf z_i,\mathbf z_k)/\tau)}$$
+<p>The danger in joint-embedding methods is <b>collapse</b>: mapping everything to the same vector trivially makes views agree. Negatives (contrastive), stop-gradient with a momentum teacher (BYOL/DINO), or variance/covariance regularizers prevent it. The <b>augmentations define what the model learns to ignore</b> (crop, color, blur for images).</p>
+<p><b>Evaluating representations:</b> freeze the encoder and train a linear classifier on top (linear probe), or check kNN accuracy and few-shot transfer.</p>
+<pre><code class="language-python">def nt_xent(z1, z2, tau=0.2):                  # z1, z2: (N, d) two views of the same N items
+    z = F.normalize(torch.cat([z1, z2]), dim=1)   # (2N, d)
+    sim = z @ z.T / tau
+    sim.fill_diagonal_(float("-inf"))             # exclude self-similarity
+    N = z1.shape[0]
+    targets = torch.cat([torch.arange(N, 2 * N), torch.arange(0, N)]).to(z.device)
+    return F.cross_entropy(sim, targets)</code></pre>

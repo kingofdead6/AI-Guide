@@ -1,0 +1,30 @@
+<h3>Model and loss</h3>
+$$\hat{\mathbf y}=\mathbf X\mathbf w,\qquad \mathcal L(\mathbf w)=\|\mathbf y-\mathbf X\mathbf w\|_2^2$$
+<p>(Absorb the bias by adding a column of ones to \(\mathbf X\).)</p>
+<h3>Derivation: the normal equations</h3>
+$$\nabla_{\mathbf w}\mathcal L=-2\mathbf X^\top(\mathbf y-\mathbf X\mathbf w)=0\;\Rightarrow\;\mathbf X^\top\mathbf X\mathbf w=\mathbf X^\top\mathbf y\;\Rightarrow\;\boxed{\hat{\mathbf w}=(\mathbf X^\top\mathbf X)^{-1}\mathbf X^\top\mathbf y}$$
+<p><b>Geometry:</b> \(\mathbf X\hat{\mathbf w}\) is the orthogonal projection of \(\mathbf y\) onto the column space of \(\mathbf X\); the residual is perpendicular to every feature column (\(\mathbf X^\top\mathbf r=0\)). <b>Probability:</b> with \(y=\mathbf w^\top\mathbf x+\varepsilon,\ \varepsilon\sim\mathcal N(0,\sigma^2)\), this is the MLE ([[estimation]]).</p>
+<!--FIG:linreg_proj-->
+<h3>Regularization</h3>
+$$\text{Ridge: }\min_{\mathbf w}\|\mathbf y-\mathbf X\mathbf w\|^2+\lambda\|\mathbf w\|_2^2\;\Rightarrow\;\hat{\mathbf w}=(\mathbf X^\top\mathbf X+\lambda\mathbf I)^{-1}\mathbf X^\top\mathbf y$$
+<p>Adding \(\lambda\mathbf I\) makes the matrix always invertible and shrinks weights, which reduces variance. <b>Lasso</b> uses \(\lambda\|\mathbf w\|_1\): its diamond-shaped constraint region has corners on the axes, so solutions are often exactly zero, giving automatic feature selection. It has no closed form (use coordinate descent). <b>Elastic net</b> combines both.</p>
+<p><b>Nonlinear features:</b> linear regression is linear in \(\mathbf w\), not in \(\mathbf x\). Add \(x^2\), \(x_1x_2\), \(\log x\), etc., and it fits curves.</p>
+<pre><code class="language-python"># From scratch: closed form and gradient descent
+rng = np.random.default_rng(0)
+X = np.c_[np.ones(200), rng.normal(size=(200, 2))]
+w_true = np.array([1.0, 2.0, -3.0]); y = X @ w_true + 0.5 * rng.normal(size=200)
+
+w_closed = np.linalg.solve(X.T @ X, X.T @ y)            # never invert explicitly
+w = np.zeros(3)
+for _ in range(500):
+    w -= 0.1 * (2 / len(y)) * X.T @ (X @ w - y)          # gradient of the mean squared error
+print(w_closed, w)
+
+from sklearn.linear_model import Ridge, Lasso
+print(Lasso(alpha=0.1).fit(X[:, 1:], y).coef_)</code></pre>
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>Prove the residual \(\mathbf r=\mathbf y-\mathbf X\hat{\mathbf w}\) is orthogonal to every column of \(\mathbf X\).
+<details><summary>Solution</summary><div>The normal equations say \(\mathbf X^\top(\mathbf y-\mathbf X\hat{\mathbf w})=\mathbf 0\), i.e. \(\mathbf X^\top\mathbf r=\mathbf0\).</div></details></li>
+<li>Derive ridge's closed form.
+<details><summary>Solution</summary><div>\(\nabla=-2\mathbf X^\top(\mathbf y-\mathbf X\mathbf w)+2\lambda\mathbf w=0\Rightarrow(\mathbf X^\top\mathbf X+\lambda\mathbf I)\mathbf w=\mathbf X^\top\mathbf y\).</div></details></li>
+</ol></div>

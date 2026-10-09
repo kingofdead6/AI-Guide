@@ -1,0 +1,26 @@
+<h3>From neuron to network</h3>
+$$a=\phi(\mathbf w^\top\mathbf x+b),\qquad \mathbf h^{(l)}=\phi\big(\mathbf W^{(l)}\mathbf h^{(l-1)}+\mathbf b^{(l)}\big),\qquad \hat{\mathbf y}=\mathbf W^{(L)}\mathbf h^{(L-1)}+\mathbf b^{(L)}$$
+<!--FIG:neuron-->
+<div class="widget" data-widget="neuron"></div>
+<!--FIG:mlp-->
+<p><b>Why nonlinearity is essential:</b> without \(\phi\), stacking layers gives \(\mathbf W_2(\mathbf W_1\mathbf x)=(\mathbf W_2\mathbf W_1)\mathbf x\), which is still one linear map. Depth would add nothing.</p>
+<h3>Activation functions</h3>
+<table>
+<tr><th>Name</th><th>\(\phi(z)\)</th><th>\(\phi'(z)\)</th><th>Notes</th></tr>
+<tr><td>Sigmoid</td><td>\(\frac1{1+e^{-z}}\)</td><td>\(\sigma(1-\sigma)\le\tfrac14\)</td><td>Saturates; gates and binary outputs</td></tr>
+<tr><td>Tanh</td><td>\(\tanh z\)</td><td>\(1-\tanh^2z\)</td><td>Zero-centred; RNNs</td></tr>
+<tr><td>ReLU</td><td>\(\max(0,z)\)</td><td>\(\mathbb 1[z\gt0]\)</td><td>Default for CNNs/MLPs; neurons can "die"</td></tr>
+<tr><td>Leaky ReLU</td><td>\(\max(\alpha z,z)\)</td><td>\(1\) or \(\alpha\)</td><td>Fixes dying ReLU</td></tr>
+<tr><td>GELU</td><td>\(z\,\Phi(z)\)</td><td>smooth</td><td>Transformers (BERT, GPT)</td></tr>
+<tr><td>SiLU / Swish</td><td>\(z\,\sigma(z)\)</td><td>smooth</td><td>Modern CNNs and LLMs (inside SwiGLU)</td></tr>
+<tr><td>Softmax</td><td>\(\frac{e^{z_k}}{\sum_je^{z_j}}\)</td><td>\(p_k(\delta_{kj}-p_j)\)</td><td>Output layer for classes</td></tr>
+</table>
+<!--FIG:activations-->
+<!--FIG:act_derivs-->
+<h3>Universal approximation</h3>
+<p>A network with one hidden layer and enough units can approximate any continuous function on a compact set arbitrarily well. That says such a network exists, not that SGD will find it or that it will generalize. In practice <b>depth</b> is far more parameter-efficient than width, because deep networks compose features hierarchically (edges → textures → parts → objects).</p>
+<div class="widget" data-widget="nn"></div>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>Why does the sigmoid's maximum derivative of 1/4 cause trouble in a 20-layer network?
+<details><summary>Solution</summary><div>Backprop multiplies one activation derivative per layer. Even in the best case, \((1/4)^{20}\approx10^{-12}\): gradients reaching early layers vanish. ReLU's derivative of 1 (for active units) avoids this, which is a big reason deep learning took off after 2010.</div></details></li>
+</ol></div>

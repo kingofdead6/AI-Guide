@@ -1,0 +1,250 @@
+@lesson llm-pretraining
+Q: Approximately how many FLOPs does it take to train a 7-billion-parameter dense model on 2 trillion tokens? Enter the value in units of \(10^{22}\).
+= 8.4 ±0.2
+> \(C\approx6ND=6\cdot7\times10^9\cdot2\times10^{12}=8.4\times10^{22}\).
+
+Q: What did the Chinchilla analysis recommend for a fixed compute budget?
+* Scale parameters and training tokens together, roughly 20 tokens per parameter
+- Always use the largest possible model
+- Train on as few tokens as possible
+- Only scale data, never parameters
+> Many models train far beyond that ratio because smaller over-trained models are cheaper to serve.
+
+Q: Which stage first turns a pretrained base model into an instruction follower?
+- Pretraining
+* Supervised fine-tuning on instruction–response pairs
+- Tokenizer training
+- Quantization
+> SFT comes after pretraining and before preference tuning or RL.
+
+Q: Thanks to the causal mask, one forward pass over a sequence of T tokens trains on T next-token predictions.
+= true
+> Every position predicts its successor in parallel, which makes LM training efficient.
+
+@lesson decoding
+Q: What does a temperature below 1 do to the next-token distribution?
+* Sharpens it toward the most likely tokens
+- Flattens it toward uniform
+- Removes the top token
+- Nothing
+> Dividing logits by \(T\lt1\) exaggerates their differences.
+
+Q: How does top-p (nucleus) sampling choose candidate tokens?
+- Always the top 50 tokens
+* The smallest set of tokens whose cumulative probability reaches p
+- Tokens with probability above p
+- A random subset of size p
+> The candidate set adapts: small when the model is confident, large when it is not.
+
+Q: Which decoding method is a good fit for translation but tends to be bland for open-ended chat?
+- Top-p sampling at T = 1.2
+* Beam search
+- Random sampling
+- Top-k with k = 1000
+> Beam search finds high-likelihood sequences, which favours safe, repetitive text in open-ended generation.
+
+@lesson finetuning
+Q: About how many bytes per parameter does mixed-precision Adam training need (weights, gradients, master weights and two moments)?
+= 16
+> 2 + 2 + 4 + 8 bytes, before activations.
+
+Q: How many trainable parameters does LoRA with rank 8 add to a single 4096×4096 matrix?
+= 65536
+> \(r(d+k)=8\cdot(4096+4096)=65{,}536\).
+
+Q: Why is LoRA's \(\mathbf B\) matrix initialized to zero?
+* So the model starts exactly as the pretrained model
+- To save memory
+- To make training random
+- Because \(\mathbf A\) is also zero
+> \(\mathbf B\mathbf A=0\) at the start, so the update begins as a no-op.
+
+Q: Your assistant must answer questions about company policies that change monthly. What is the better first choice?
+- Fine-tune monthly on the policies
+* Retrieval-augmented generation over the current documents
+- Increase the temperature
+- Train a new model from scratch
+> RAG handles changing knowledge and gives citations; fine-tuning suits style, format and behaviour.
+
+@lesson alignment
+Q: Why does RLHF add a KL penalty to the reference model?
+* To stop the policy from drifting into odd outputs that exploit the reward model
+- To speed up training
+- To make outputs longer
+- To remove the need for a reward model
+> Reward hacking is the main risk when optimizing against a learned reward.
+
+Q: What does DPO need that standard RLHF also needs?
+- A separately trained reward model
+- On-policy sampling during training
+* Preference pairs (preferred and rejected responses)
+- A value network
+> DPO optimizes a classification-style loss directly on preference pairs and a reference model.
+
+Q: In GRPO, how is the advantage of each sampled answer computed?
+* By normalizing its reward against the mean and standard deviation of rewards in its group
+- With a learned value function
+- From human ratings only
+- It is always 1
+> Group-relative baselines remove the need for a critic.
+
+@lesson inference
+Q: A model has 32 layers, 8 KV heads of dimension 128, fp16. How many bytes of KV cache per token? (2 for K and V)
+= 131072
+> \(2\cdot32\cdot8\cdot128\cdot2=131{,}072\) bytes, about 128 KB per token.
+
+Q: Why is generating output tokens memory-bound?
+* Each new token requires reading all the weights and the KV cache with little computation per byte
+- The GPU has too few cores
+- Tokens are large
+- The prompt is processed one token at a time
+> Batching more sequences raises arithmetic intensity.
+
+Q: Speculative decoding changes the output distribution of the large model.
+= false
+> The large model verifies the draft tokens, so the distribution is preserved while latency drops.
+
+Q: What does a mixture-of-experts layer change?
+- It uses every expert for every token
+* Each token is routed to a few experts, so total parameters grow while per-token compute stays small
+- It removes attention
+- It reduces total parameters
+> A load-balancing loss keeps the experts evenly used.
+
+@lesson using-llms
+Q: Which practices make LLM outputs more reliable in an application? (select all)
+* Request JSON matching a schema and validate it in code
+* Separate instructions from untrusted data with clear delimiters
+* Maintain an evaluation set and rerun it on every change
+- Trust outputs because the model sounds confident
+> Validation, separation and regression testing are the basics of production prompting.
+
+Q: LLM-as-judge evaluations have known biases. Which? (select all)
+* Preference for longer answers
+* Position bias between options
+* Preference for outputs from the same model family
+- They never disagree with humans
+> Calibrate judges against human ratings on a sample.
+
+Q: What is the most reliable way to reduce hallucinations about facts?
+- Increase the temperature
+* Ground answers in retrieved sources and check citations
+- Ask the model to be honest
+- Use a longer prompt
+> Retrieved evidence plus verification beats instructions alone.
+
+@lesson multimodal
+Q: In a LLaVA-style model, what does the projector do?
+* Maps vision-encoder outputs into the LLM's token embedding space
+- Compresses the LLM
+- Generates images
+- Translates text
+> Projected patch features become "visual tokens" that the language model reads.
+
+Q: Which tasks are typical weaknesses of vision-language models? (select all)
+* Counting objects
+* Reading small text
+* Fine spatial relations
+- Describing the overall scene
+> Evaluate on your own images, especially for these failure modes.
+
+Q: In the first training stage of a LLaVA-style model, which part is usually trained?
+- The whole LLM
+* Only the projector, with the vision encoder and LLM frozen
+- Only the vision encoder
+- Nothing
+> Alignment comes first; instruction tuning later unfreezes more.
+
+@lesson reasoning
+Q: What is self-consistency?
+* Sampling several reasoning chains and taking the majority answer
+- Asking the model to agree with itself
+- Using temperature 0
+- Fine-tuning on its own outputs
+> Majority voting over diverse chains improves accuracy on problems with a single answer.
+
+Q: What does a process reward model score?
+- Only the final answer
+* Individual reasoning steps
+- The prompt
+- Latency
+> Step-level scores can guide search over reasoning paths.
+
+Q: More test-time compute helps most on tasks with a reliable verifier, such as unit tests or checkable math answers.
+= true
+> Without a verifier, extra samples are hard to choose between.
+
+@lesson llm-eval-safety
+Q: From 20 samples with 3 correct, what is the unbiased pass@1 estimate?
+= 0.15 ±0.001
+> \(1-\binom{17}{1}/\binom{20}{1}=1-17/20=0.15\).
+
+Q: What is benchmark contamination?
+* Test items leaked into the model's training data, inflating scores
+- A benchmark with typos
+- Using too few examples
+- Bias in the reward model
+> Contaminated scores measure memorization rather than capability.
+
+Q: What does a sparse autoencoder on model activations try to find?
+- Smaller weights
+* An overcomplete set of sparse, more interpretable features
+- The training data
+- The optimal learning rate
+> Many learned features correspond to human-interpretable concepts.
+
+Q: What is indirect prompt injection?
+* Malicious instructions placed in content the model reads, such as a web page or document
+- A typo in the system prompt
+- A slow API call
+- Using too many tokens
+> Agents that read untrusted content and can act are the main target.
+
+@lesson train-small-llm
+Q: With a vocabulary of 16,000 tokens, what should the initial loss be roughly? (natural log, one decimal)
+= 9.7 ±0.1
+> A uniform prediction gives \(\ln16000\approx9.68\).
+
+Q: Why shift the targets by one position when training a GPT?
+* Each position must predict the next token
+- To pad the sequence
+- To skip the first word
+- To make batches equal size
+> Inputs are tokens 0..T−1 and targets are tokens 1..T.
+
+Q: When instruction-tuning, the loss is usually masked so that it is computed only on…
+- the system prompt
+- the user's message
+* the assistant's response tokens
+- every token equally
+> You want the model to learn to produce answers, not to imitate user prompts.
+
+@lesson exam
+Q: A 70B-parameter model is served in 4-bit precision. Roughly how many GB do the weights need?
+= 35 ±3
+> \(70\times10^9\times0.5\) bytes ≈ 35 GB, plus KV cache and overhead.
+
+Q: Which changes reduce KV-cache memory per token? (select all)
+* Grouped-query attention
+* Quantizing the cache
+- Increasing the number of KV heads
+* Using fewer layers
+> Memory is proportional to layers × KV heads × head dimension × bytes.
+
+Q: A fine-tuned model writes in the right style but invents facts about new products. What is the fix?
+* Add retrieval over product documentation and require citations
+- Fine-tune longer
+- Lower the learning rate
+- Increase temperature
+> Fine-tuning teaches style; facts that change belong in retrieval.
+
+Q: Sorting these by when they occur in a typical LLM's life, which comes last?
+- Pretraining
+- Supervised fine-tuning
+* Preference tuning (RLHF or DPO)
+- Tokenizer training
+> Tokenizer → pretraining → SFT → preference tuning or RL.
+
+Q: Lowering temperature makes a model more knowledgeable.
+= false
+> Temperature changes randomness, not knowledge.

@@ -1,0 +1,31 @@
+<!--FIG:llmops-->
+<h3>Latency and cost arithmetic</h3>
+$$\text{latency}\approx\text{TTFT}+\frac{n_{\text{output tokens}}}{\text{tokens per second}},\qquad \text{cost}=\frac{n_{\text{in}}\cdot p_{\text{in}}+n_{\text{out}}\cdot p_{\text{out}}}{10^6}$$
+<p>TTFT (time to first token) grows with prompt length (prefill); output tokens are generated sequentially and usually cost more per token. Stream responses so users see progress. Do the arithmetic before building: 1M requests/day × 3k input tokens is 3B input tokens per day.</p>
+<h3>Levers</h3>
+<ul>
+<li><b>Prompt caching:</b> keep long, stable content (system prompt, documents, tool definitions) at the start of the prompt so providers can reuse its computation at a discount.</li>
+<li><b>Semantic caching:</b> return a stored answer when a new query is near-identical (by embedding similarity) to a past one. Use a strict threshold and only for non-personalized answers.</li>
+<li><b>Model routing:</b> a small fast model for easy requests, a large one for hard ones; cascade on low confidence.</li>
+<li><b>Shorter context:</b> retrieve fewer, better chunks; summarize history.</li>
+<li><b>Batch APIs</b> for offline jobs (evaluations, labelling, backfills).</li>
+</ul>
+<h3>Quality over time</h3>
+<p>Version prompts like code and keep them in the repository. Run the evaluation suite in CI on every prompt, model or retrieval change. Trace each request (prompt, retrieved context, tool calls, output, latency, cost, user feedback) with an observability tool. Feed real failures back into the test set: that data flywheel is the main moat of a good LLM product.</p>
+<pre><code class="language-python">def monthly_cost(req_per_day, in_tok, out_tok, price_in, price_out, cache_hit=0.0, cached_discount=0.9):
+    """Prices in $ per 1M tokens. cache_hit = share of input tokens served from the prompt cache."""
+    eff_in = in_tok * (1 - cache_hit * cached_discount)
+    per_req = (eff_in * price_in + out_tok * price_out) / 1e6
+    return per_req * req_per_day * 30
+
+print(monthly_cost(50_000, 3000, 400, price_in=3, price_out=15))                  # no caching
+print(monthly_cost(50_000, 3000, 400, price_in=3, price_out=15, cache_hit=0.8))   # big savings
+
+class SemanticCache:
+    def __init__(self, embed, threshold=0.95): self.embed, self.t, self.keys, self.vals = embed, threshold, [], []
+    def get(self, q):
+        if not self.keys: return None
+        v = self.embed(q); sims = np.array(self.keys) @ v
+        i = int(sims.argmax()); return self.vals[i] if sims[i] >= self.t else None
+    def put(self, q, answer): self.keys.append(self.embed(q)); self.vals.append(answer)</code></pre>
+<p>The prices in the example are placeholders: check your provider's current pricing and caching rules.</p>

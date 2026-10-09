@@ -1,0 +1,28 @@
+<h3>Why full fine-tuning is expensive</h3>
+<p>With Adam in mixed precision you store roughly: bf16 weights (2 bytes) + bf16 gradients (2) + fp32 master weights (4) + two fp32 Adam moments (8) ≈ <b>16 bytes per parameter</b>, before activations. A 7B model needs about 112 GB.</p>
+<!--FIG:memory_breakdown-->
+<h3>LoRA</h3>
+<p>Freeze the pretrained \(\mathbf W_0\in\mathbb R^{d\times k}\) and learn a low-rank update:</p>
+$$\mathbf W=\mathbf W_0+\frac{\alpha}{r}\mathbf B\mathbf A,\qquad \mathbf B\in\mathbb R^{d\times r},\ \mathbf A\in\mathbb R^{r\times k},\ r\ll\min(d,k)$$
+<!--FIG:lora-->
+<p>Trainable parameters drop from \(dk\) to \(r(d+k)\). \(\mathbf B\) is initialized to zero, so training starts exactly at the pretrained model. After training, \(\mathbf B\mathbf A\) can be merged into \(\mathbf W_0\) for zero inference overhead, or kept separate to swap adapters per task.</p>
+<h3>Quantization</h3>
+<p>Map floats to \(b\)-bit integers with a scale \(s\) and zero point \(z\):</p>
+$$q=\operatorname{round}\!\Big(\frac{x}{s}\Big)+z,\qquad \hat x=s\,(q-z),\qquad s=\frac{x_{\max}-x_{\min}}{2^b-1}$$
+<p>Weight memory for inference: 7B parameters × 2 bytes (fp16) ≈ 14 GB; 8-bit ≈ 7 GB; 4-bit ≈ 3.5 GB (plus overhead). Per-group scales (e.g. every 64–128 weights) and outlier-aware methods (GPTQ, AWQ) keep quality high. <b>QLoRA</b> fine-tunes LoRA adapters on top of a frozen 4-bit base model.</p>
+<h3>When to fine-tune at all</h3>
+<p>Try prompting and RAG first. Fine-tune to teach a <b>format, style, or behaviour</b>, to specialize a small model to beat a big one on a narrow task, or to cut prompt length and latency. Use RAG for <b>knowledge</b> that changes or must be cited.</p>
+<pre><code class="language-python">from transformers import AutoModelForCausalLM, BitsAndBytesConfig
+from peft import LoraConfig, get_peft_model
+bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
+                         bnb_4bit_compute_dtype=torch.bfloat16)
+base = AutoModelForCausalLM.from_pretrained("YOUR_BASE_MODEL", quantization_config=bnb)
+cfg = LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05, task_type="CAUSAL_LM",
+                 target_modules=["q_proj", "k_proj", "v_proj", "o_proj"])
+model = get_peft_model(base, cfg)
+model.print_trainable_parameters()       # typically well under 1% of the total
+# then train with transformers' Trainer or TRL's SFTTrainer on (prompt, response) data</code></pre>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>LoRA with \(r=8\) on the four attention projections (each \(4096\times4096\)) in all 32 layers. Trainable parameters?
+<details><summary>Solution</summary><div>Per matrix \(8\cdot(4096+4096)=65{,}536\); × 4 × 32 = 8.4M, about 0.13% of a 6.7B model.</div></details></li>
+</ol></div>

@@ -1,0 +1,18 @@
+<h3>Derivative and partial derivatives</h3>
+$$f'(x)=\lim_{h\to0}\frac{f(x+h)-f(x)}{h},\qquad \frac{\partial f}{\partial x_i}=\lim_{h\to0}\frac{f(\mathbf{x}+h\mathbf{e}_i)-f(\mathbf{x})}{h}$$
+<p>The <b>gradient</b> collects all partials: \(\nabla f(\mathbf{x})=\big(\tfrac{\partial f}{\partial x_1},\dots,\tfrac{\partial f}{\partial x_n}\big)^\top\).</p>
+<h3>Why the gradient is the direction of steepest ascent</h3>
+<p>The rate of change of \(f\) along a unit direction \(\mathbf{u}\) is the directional derivative \(D_{\mathbf{u}}f=\nabla f^\top\mathbf{u}\). By Cauchy–Schwarz, \(\nabla f^\top\mathbf{u}\le\|\nabla f\|\), with equality when \(\mathbf{u}=\nabla f/\|\nabla f\|\). So \(\nabla f\) points uphill fastest and \(-\nabla f\) points downhill fastest. That one fact is the basis of gradient descent.</p>
+<h3>Chain rule</h3>
+$$\frac{dz}{dx}=\frac{dz}{dy}\frac{dy}{dx},\qquad \frac{\partial z}{\partial x_i}=\sum_j\frac{\partial z}{\partial y_j}\frac{\partial y_j}{\partial x_i}$$
+<p>The multivariate version sums over every path from \(x_i\) to \(z\). Backpropagation ([[backprop]]) is nothing more than the chain rule applied efficiently to a computational graph.</p>
+<h3>Jacobian, Hessian, Taylor expansion</h3>
+<p>For \(\mathbf{f}:\mathbb{R}^n\to\mathbb{R}^m\), the <b>Jacobian</b> \(\mathbf{J}\in\mathbb{R}^{m\times n}\) has \(J_{ij}=\partial f_i/\partial x_j\). For scalar \(f\), the <b>Hessian</b> \(\mathbf{H}_{ij}=\partial^2 f/\partial x_i\partial x_j\) captures curvature.</p>
+$$f(\mathbf{x}+\boldsymbol\delta)\approx f(\mathbf{x})+\nabla f(\mathbf{x})^\top\boldsymbol\delta+\tfrac12\boldsymbol\delta^\top\mathbf{H}\boldsymbol\delta$$
+<div class="callout intuition"><b>Two algorithms from one expansion</b><p>Keep only the first-order term and pick \(\boldsymbol\delta=-\eta\nabla f\): the change is \(-\eta\|\nabla f\|^2\le0\). That is <b>gradient descent</b>. Keep the second-order term and minimize over \(\boldsymbol\delta\): you get \(\boldsymbol\delta=-\mathbf{H}^{-1}\nabla f\), <b>Newton's method</b>.</p></div>
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>Compute \(\nabla f\) for \(f(x,y)=x^2y+e^{xy}\).
+<details><summary>Solution</summary><div>\(\partial_x f=2xy+ye^{xy}\), \(\partial_y f=x^2+xe^{xy}\).</div></details></li>
+<li>Show that the sigmoid \(\sigma(z)=1/(1+e^{-z})\) satisfies \(\sigma'(z)=\sigma(z)(1-\sigma(z))\).
+<details><summary>Solution</summary><div>\(\sigma'=\dfrac{e^{-z}}{(1+e^{-z})^2}=\dfrac{1}{1+e^{-z}}\cdot\dfrac{e^{-z}}{1+e^{-z}}=\sigma(1-\sigma)\). You will use this in logistic regression and LSTMs.</div></details></li>
+</ol></div>

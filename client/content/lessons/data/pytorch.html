@@ -1,0 +1,32 @@
+<pre><code class="language-python">import torch, torch.nn as nn
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# Tensors behave like NumPy arrays
+t = torch.randn(4, 3, device=device)
+print(t.shape, t.dtype, t.T @ t)
+
+# Autograd: build a graph, call backward, read .grad
+x = torch.tensor(2.0, requires_grad=True)
+y = x**3 + 2 * x
+y.backward()
+print(x.grad)            # dy/dx = 3x^2 + 2 = 14
+
+# Modules hold parameters and define forward()
+class MLP(nn.Module):
+    def __init__(self, d_in, d_hidden, d_out):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(d_in, d_hidden), nn.ReLU(),
+                                 nn.Linear(d_hidden, d_out))
+    def forward(self, x):
+        return self.net(x)
+
+model = MLP(784, 256, 10).to(device)
+print(sum(p.numel() for p in model.parameters()))   # 203,530 (matches [[matrices]])
+
+# Datasets and loaders: batching, shuffling, parallel loading
+from torch.utils.data import TensorDataset, DataLoader
+ds = TensorDataset(torch.randn(1000, 784), torch.randint(0, 10, (1000,)))
+dl = DataLoader(ds, batch_size=64, shuffle=True)
+xb, yb = next(iter(dl))   # (64, 784), (64,)</code></pre>
+<div class="callout intuition"><b>How autograd works</b><p>Every operation on a tensor with <code>requires_grad=True</code> records itself and its inputs in a graph. <code>.backward()</code> walks that graph in reverse, applying the chain rule with each operation's local derivative. You will build a tiny version of this yourself in [[backprop]].</p></div>
+<div class="callout warn"><b>Three things beginners forget</b><code>optimizer.zero_grad()</code> each step (gradients accumulate by default); <code>model.eval()</code> plus <code>torch.no_grad()</code> for evaluation (affects dropout and batch norm); and moving both model and data to the same device.</div>

@@ -1,0 +1,19 @@
+<h3>Linear attention</h3>
+<p>Replace \(\operatorname{softmax}(\mathbf q^\top\mathbf k)\) by a kernel \(\phi(\mathbf q)^\top\phi(\mathbf k)\). Associativity then lets us compute \(\phi(\mathbf Q)\big(\phi(\mathbf K)^\top\mathbf V\big)\) in \(O(nd^2)\) instead of \(O(n^2d)\). In causal form the running sum \(\mathbf S_t=\mathbf S_{t-1}+\phi(\mathbf k_t)\mathbf v_t^\top\) is a recurrence with a fixed-size state: constant memory per generated token.</p>
+<h3>State space models</h3>
+<p>A continuous linear system \(\mathbf h'(t)=\mathbf A\mathbf h(t)+\mathbf Bx(t),\ y(t)=\mathbf C\mathbf h(t)\), discretized with step \(\Delta\), becomes</p>
+$$\mathbf h_t=\bar{\mathbf A}\mathbf h_{t-1}+\bar{\mathbf B}x_t,\qquad y_t=\mathbf C\mathbf h_t,\qquad \bar{\mathbf A}=e^{\Delta\mathbf A}$$
+<ul>
+<li>As a <b>recurrence</b>: O(1) memory per step at inference, like an RNN.</li>
+<li>Unrolled, it is a <b>convolution</b> of the input with kernel \((\mathbf C\bar{\mathbf B},\mathbf C\bar{\mathbf A}\bar{\mathbf B},\mathbf C\bar{\mathbf A}^2\bar{\mathbf B},\dots)\): parallel training like a CNN.</li>
+<li>Careful initialization of \(\mathbf A\) (S4) gives long memory without vanishing gradients.</li>
+<li><b>Selective SSMs (Mamba):</b> make \(\Delta,\mathbf B,\mathbf C\) depend on the input, so the model can choose what to remember or ignore, computed with a hardware-aware parallel scan.</li>
+</ul>
+<p>Pure SSMs can struggle with exact recall (copying a phone number from far back), which attention does easily. Many recent long-context models are <b>hybrids</b> that interleave a few attention layers with many SSM or linear-attention layers. Other efficient options: sliding-window and sparse attention, and grouped-query attention to shrink the KV cache ([[inference]]).</p>
+<pre><code class="language-python">def ssm_scan(x, A_bar, B_bar, C):                 # x: (T,), diagonal A_bar: (N,)
+    h = torch.zeros_like(A_bar); ys = []
+    for t in range(len(x)):                       # sequential form (inference)
+        h = A_bar * h + B_bar * x[t]
+        ys.append((C * h).sum())
+    return torch.stack(ys)
+# Training uses the equivalent convolution or a parallel associative scan over t.</code></pre>

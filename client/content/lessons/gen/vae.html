@@ -1,0 +1,27 @@
+<h3>Autoencoders</h3>
+<p>Encoder \(\mathbf z=g_\phi(\mathbf x)\), decoder \(\hat{\mathbf x}=f_\theta(\mathbf z)\), minimize \(\|\mathbf x-\hat{\mathbf x}\|^2\) with a bottleneck \(\dim\mathbf z\ll\dim\mathbf x\). Useful for compression, denoising and anomaly detection (high reconstruction error = unusual). But the latent space has holes: decoding a random \(\mathbf z\) gives garbage.</p>
+<h3>VAE: deriving the ELBO</h3>
+<p>Model \(p_\theta(\mathbf x)=\int p_\theta(\mathbf x\mid\mathbf z)p(\mathbf z)\,d\mathbf z\) with prior \(p(\mathbf z)=\mathcal N(\mathbf 0,\mathbf I)\). The integral is intractable, so introduce an encoder \(q_\phi(\mathbf z\mid\mathbf x)\) and apply Jensen's inequality (\(\log\) is concave):</p>
+$$\log p_\theta(\mathbf x)=\log\mathbb E_{q_\phi}\Big[\frac{p_\theta(\mathbf x\mid\mathbf z)p(\mathbf z)}{q_\phi(\mathbf z\mid\mathbf x)}\Big]\ge\underbrace{\mathbb E_{q_\phi}\big[\log p_\theta(\mathbf x\mid\mathbf z)\big]}_{\text{reconstruction}}-\underbrace{D_{\mathrm{KL}}\big(q_\phi(\mathbf z\mid\mathbf x)\,\|\,p(\mathbf z)\big)}_{\text{keep latents near the prior}}$$
+<p>The gap is exactly \(D_{\mathrm{KL}}(q_\phi(\mathbf z\mid\mathbf x)\|p_\theta(\mathbf z\mid\mathbf x))\). Maximize this <b>evidence lower bound</b> over both \(\theta\) and \(\phi\).</p>
+<!--FIG:vae-->
+<h3>Reparameterization trick</h3>
+<p>We can't backpropagate through "sample \(\mathbf z\sim\mathcal N(\boldsymbol\mu,\boldsymbol\sigma^2)\)". Rewrite it as \(\mathbf z=\boldsymbol\mu+\boldsymbol\sigma\odot\boldsymbol\epsilon\) with \(\boldsymbol\epsilon\sim\mathcal N(\mathbf 0,\mathbf I)\): the randomness moves to an input, and gradients flow through \(\boldsymbol\mu\) and \(\boldsymbol\sigma\). For a diagonal Gaussian encoder the KL term has a closed form:</p>
+$$D_{\mathrm{KL}}=-\frac12\sum_{j=1}^{d}\big(1+\log\sigma_j^2-\mu_j^2-\sigma_j^2\big)$$
+<pre><code class="language-python">class VAE(nn.Module):
+    def __init__(self, d_in=784, d_h=400, d_z=20):
+        super().__init__()
+        self.enc = nn.Sequential(nn.Linear(d_in, d_h), nn.ReLU())
+        self.mu, self.logvar = nn.Linear(d_h, d_z), nn.Linear(d_h, d_z)
+        self.dec = nn.Sequential(nn.Linear(d_z, d_h), nn.ReLU(), nn.Linear(d_h, d_in))
+    def forward(self, x):
+        h = self.enc(x); mu, logvar = self.mu(h), self.logvar(h)
+        z = mu + torch.exp(0.5 * logvar) * torch.randn_like(mu)    # reparameterization
+        return self.dec(z), mu, logvar
+
+def vae_loss(x_logits, x, mu, logvar):
+    rec = F.binary_cross_entropy_with_logits(x_logits, x, reduction="sum")
+    kl = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    return (rec + kl) / x.size(0)
+# Generate: model.dec(torch.randn(16, 20)).sigmoid()</code></pre>
+<p>VAEs give smooth latent spaces but somewhat blurry samples. Their encoder–decoder idea lives on in <b>latent diffusion</b>, where a VAE compresses images before diffusion runs in latent space.</p>

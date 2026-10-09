@@ -1,0 +1,33 @@
+<h3>Potential outcomes</h3>
+<p>Each unit has two potential outcomes, \(Y(1)\) with treatment and \(Y(0)\) without; we only ever observe one. The <b>average treatment effect</b> is \(\text{ATE}=\mathbb E[Y(1)-Y(0)]\). Randomization makes treatment independent of the potential outcomes, so a simple difference in means estimates the ATE without bias.</p>
+<!--FIG:causal_dag-->
+<p>Without randomization, a <b>confounder</b> \(Z\) that drives both treatment and outcome creates spurious correlation (Simpson's paradox is the extreme case, where a trend reverses once you condition on \(Z\)).</p>
+<h3>A/B testing done right</h3>
+<p>Sample size per group to detect an effect \(\delta\) with significance \(\alpha\) and power \(1-\beta\):</p>
+$$n\approx\frac{2\,(z_{1-\alpha/2}+z_{1-\beta})^2\,\sigma^2}{\delta^2}\qquad(\alpha=0.05,\ \text{power}=0.8\ \Rightarrow\ (1.96+0.84)^2\approx7.85)$$
+<!--FIG:ab_power-->
+<ul>
+<li>Decide the primary metric, guardrail metrics and duration <b>before</b> starting. Don't stop early when the p-value dips below 0.05 ("peeking" inflates false positives) unless you use sequential testing.</li>
+<li>Many metrics or variants → correct for multiple comparisons.</li>
+<li><b>CUPED</b> reduces variance by adjusting for each user's pre-experiment metric, so you need fewer users.</li>
+<li>Watch for novelty effects, network effects between users, and sample ratio mismatch (unequal group sizes signal a bug).</li>
+</ul>
+<h3>When you can't randomize</h3>
+<p><b>Regression adjustment</b> on measured confounders; <b>propensity scores</b> \(e(x)=P(T=1\mid x)\) for matching or inverse-probability weighting (weight treated units by \(1/e(x)\) and controls by \(1/(1-e(x))\)); <b>difference-in-differences</b> (compare changes over time against a control group); <b>instrumental variables</b>; <b>regression discontinuity</b>. Each rests on assumptions you must state. <b>Uplift models</b> predict the individual treatment effect to target interventions.</p>
+<pre><code class="language-python">from scipy import stats
+import numpy as np
+# Sample size for a conversion-rate test: baseline 10%, detect +1 point absolute
+p, delta = 0.10, 0.01
+sigma2 = p * (1 - p)
+n = 2 * (stats.norm.ppf(0.975) + stats.norm.ppf(0.8))**2 * sigma2 / delta**2
+print(round(n))                                   # ≈ 14,100 users per group
+
+# Analysis: two-proportion z-test
+conv = np.array([1520, 1415]); users = np.array([14000, 14000])
+pooled = conv.sum() / users.sum()
+z = (conv[0] / users[0] - conv[1] / users[1]) / np.sqrt(pooled * (1 - pooled) * (2 / users[0]))
+print(z, 2 * (1 - stats.norm.cdf(abs(z))))        # z ≈ 2.05, p ≈ 0.04</code></pre>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>Users who use feature X retain 20% better. Your manager wants to force everyone to use X. What do you say?
+<details><summary>Solution</summary><div>That's a correlation with a likely confounder: engaged users both discover X and retain better. Forcing X may do nothing or even hurt. Run a randomized experiment (e.g. prompt a random half of users toward X) and measure the effect on retention, or at least adjust for prior engagement.</div></details></li>
+</ol></div>

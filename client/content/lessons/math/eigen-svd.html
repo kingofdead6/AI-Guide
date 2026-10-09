@@ -1,0 +1,28 @@
+<h3>Eigendecomposition</h3>
+$$\mathbf{Av}=\lambda\mathbf{v}\quad(\mathbf{v}\ne\mathbf{0}),\qquad \det(\mathbf{A}-\lambda\mathbf{I})=0$$
+<p>An eigenvector keeps its direction under \(\mathbf{A}\); it is only scaled by \(\lambda\). <b>Spectral theorem:</b> a real symmetric matrix has real eigenvalues and orthonormal eigenvectors, so</p>
+$$\mathbf{A}=\mathbf{Q}\boldsymbol{\Lambda}\mathbf{Q}^\top,\qquad \mathbf{A}^k=\mathbf{Q}\boldsymbol{\Lambda}^k\mathbf{Q}^\top .$$
+<p>A symmetric matrix is PSD exactly when all \(\lambda_i\ge0\). The power formula shows why repeated multiplication explodes if \(|\lambda|\gt1\) and vanishes if \(|\lambda|\lt1\): this is the vanishing/exploding gradient problem in RNNs ([[rnn]]).</p>
+<h3>Singular Value Decomposition</h3>
+<p>Every matrix \(\mathbf{A}\in\mathbb{R}^{m\times n}\), square or not, factors as</p>
+$$\mathbf{A}=\mathbf{U}\boldsymbol{\Sigma}\mathbf{V}^\top=\sum_{i=1}^{r}\sigma_i\,\mathbf{u}_i\mathbf{v}_i^\top,\qquad \sigma_1\ge\sigma_2\ge\dots\ge\sigma_r\gt0$$
+<p>with \(\mathbf{U},\mathbf{V}\) orthogonal. Geometrically: rotate (\(\mathbf{V}^\top\)), stretch (\(\boldsymbol\Sigma\)), rotate (\(\mathbf{U}\)). Link to eigen: \(\mathbf{A}^\top\mathbf{A}=\mathbf{V}\boldsymbol\Sigma^2\mathbf{V}^\top\), so singular values are square roots of the eigenvalues of \(\mathbf{A}^\top\mathbf{A}\).</p>
+<!--FIG:svd_geom-->
+<div class="key">
+<p><b>Eckart–Young theorem.</b> The best rank-\(k\) approximation of \(\mathbf{A}\) (in Frobenius or spectral norm) is the truncated SVD</p>
+$$\mathbf{A}_k=\sum_{i=1}^{k}\sigma_i\mathbf{u}_i\mathbf{v}_i^\top,\qquad \|\mathbf{A}-\mathbf{A}_k\|_F=\sqrt{\textstyle\sum_{i\gt k}\sigma_i^2}.$$
+</div>
+<p>The <b>condition number</b> \(\kappa=\sigma_{\max}/\sigma_{\min}\) measures how badly a matrix distorts space. High \(\kappa\) means slow gradient descent and numerical instability ([[optimization]]).</p>
+<div class="callout mllink"><b>Where ML uses it</b>PCA ([[unsupervised]]) is an SVD of centered data. LoRA ([[finetuning]]) assumes weight updates are low-rank. Matrix factorization recommenders, latent semantic analysis, embedding compression and model compression all rely on low-rank approximation.</div>
+<pre><code class="language-python">A = np.random.randn(100, 50)
+U, S, Vt = np.linalg.svd(A, full_matrices=False)
+k = 10
+A_k = U[:, :k] @ np.diag(S[:k]) @ Vt[:k]
+err = np.linalg.norm(A - A_k)             # Frobenius norm
+print(np.isclose(err, np.sqrt((S[k:]**2).sum())))   # True (Eckart–Young)</code></pre>
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>Find the eigenvalues and eigenvectors of \(\begin{pmatrix}2&amp;1\\1&amp;2\end{pmatrix}\).
+<details><summary>Solution</summary><div>\(\det\begin{pmatrix}2-\lambda&amp;1\\1&amp;2-\lambda\end{pmatrix}=(2-\lambda)^2-1=0\Rightarrow\lambda=3,1\). Eigenvectors \((1,1)/\sqrt2\) and \((1,-1)/\sqrt2\): orthogonal, as the spectral theorem promises.</div></details></li>
+<li>A \(4096\times4096\) weight matrix is replaced by a rank-16 factorization \(\mathbf{BA}\). How many parameters does that need?
+<details><summary>Solution</summary><div>\(4096\cdot16\cdot2=131{,}072\) versus \(16{,}777{,}216\): about 0.8%. This is exactly the LoRA trick.</div></details></li>
+</ol></div>

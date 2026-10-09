@@ -1,0 +1,15 @@
+<h3>Vision Transformer (ViT)</h3>
+<p>Split an \(H\times W\) image into \(P\times P\) patches, giving \(N=HW/P^2\) tokens (224×224 with \(P=16\) gives 196). Flatten each patch, project it linearly to \(d\) dimensions, add position embeddings and a learnable <code>[CLS]</code> token, and run a standard Transformer encoder. ViTs have weaker built-in assumptions than CNNs (no locality bias), so they need more data or strong pretraining, but they scale extremely well.</p>
+<!--FIG:vit_patches-->
+<h3>CLIP: contrastive image–text learning</h3>
+<p>Train an image encoder and a text encoder so matching pairs have high cosine similarity. For a batch of \(N\) pairs with normalized embeddings \(\mathbf u_i\) (image) and \(\mathbf v_j\) (text) and temperature \(\tau\):</p>
+$$\mathcal L=-\frac1{2N}\sum_{i=1}^N\left[\log\frac{e^{\mathbf u_i^\top\mathbf v_i/\tau}}{\sum_je^{\mathbf u_i^\top\mathbf v_j/\tau}}+\log\frac{e^{\mathbf u_i^\top\mathbf v_i/\tau}}{\sum_je^{\mathbf u_j^\top\mathbf v_i/\tau}}\right]$$
+<p>This is the <b>InfoNCE</b> loss: cross-entropy where the "correct class" is the matching pair and every other item in the batch is a negative. The same loss trains text embedding models for RAG ([[vector-search]]). <b>Zero-shot classification:</b> embed "a photo of a {label}" for each label and pick the one closest to the image.</p>
+<!--FIG:clip_matrix-->
+<pre><code class="language-python">def info_nce(img_emb, txt_emb, tau=0.07):
+    img = F.normalize(img_emb, dim=-1); txt = F.normalize(txt_emb, dim=-1)
+    logits = img @ txt.T / tau                       # (N, N) similarity matrix
+    labels = torch.arange(len(img), device=img.device)
+    return (F.cross_entropy(logits, labels) + F.cross_entropy(logits.T, labels)) / 2</code></pre>
+<h3>Self-supervised vision</h3>
+<p><b>SimCLR</b> (two augmentations of the same image are positives), <b>DINO</b> (student–teacher self-distillation), <b>MAE</b> (mask 75% of patches, reconstruct them). These learn strong features without labels. Foundation models like <b>SAM</b> (promptable segmentation) and vision-language models (an image encoder feeding an LLM) are built on these ideas.</p>

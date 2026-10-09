@@ -1,0 +1,58 @@
+<h3>The threat model comes first</h3>
+<p>Security questions only make sense against a stated <b>threat model</b>: what the attacker wants (cause a specific error, any error, steal data), what they know (white-box: weights and gradients; black-box: only outputs), and what they can change (pixels, words, training data, the prompt). Every defence is only as good as the threat model it was tested against.</p>
+
+<h3>Adversarial examples</h3>
+<p>An adversarial example is an input \(\mathbf x'=\mathbf x+\boldsymbol\delta\) with a perturbation small under some norm, typically \(\|\boldsymbol\delta\|_\infty\le\epsilon\), that changes the model's prediction. For images, \(\epsilon=8/255\) is invisible to people yet can push accuracy of an undefended classifier close to zero.</p>
+<!--FIG:adversarial-->
+<h3>Why they exist: the linear view</h3>
+<p>Take a linear score \(\mathbf w^\top\mathbf x\). Perturb every input dimension by \(\epsilon\,\mathrm{sign}(w_i)\):</p>
+$$\mathbf w^\top(\mathbf x+\boldsymbol\delta)=\mathbf w^\top\mathbf x+\epsilon\sum_i|w_i|=\mathbf w^\top\mathbf x+\epsilon\|\mathbf w\|_1$$
+<p>Each coordinate changes by a tiny \(\epsilon\), but the score changes by \(\epsilon\|\mathbf w\|_1\), which grows with the dimension. With 150,000 pixel values, thousands of imperceptible nudges add up to a large change. Deep networks are piecewise linear enough (ReLUs) that the same effect applies.</p>
+
+<h3>Attacks</h3>
+<ul>
+<li><b>FGSM</b> (fast gradient sign method) takes one step in the direction that increases the loss:
+$$\mathbf x'=\mathbf x+\epsilon\cdot\mathrm{sign}\big(\nabla_{\mathbf x}\mathcal L(f_\theta(\mathbf x),y)\big)$$</li>
+<li><b>PGD</b> (projected gradient descent) repeats smaller steps and projects back into the \(\epsilon\)-ball after each one; it is the standard strong white-box attack for evaluating defences.</li>
+<li><b>Targeted attacks</b> minimize the loss for a chosen wrong label instead of maximizing it for the true one.</li>
+<li><b>Black-box attacks</b> estimate gradients from queries, or craft examples on a substitute model and rely on <b>transferability</b>: adversarial examples often fool other models trained on similar data.</li>
+<li><b>Physical attacks:</b> printed patches, stickers on road signs and patterned glasses that survive changes in viewpoint and lighting.</li>
+<li><b>Text attacks:</b> synonym swaps, typos and invisible Unicode characters that flip classifiers or slip past content filters.</li>
+</ul>
+<pre><code class="language-python">import torch, torch.nn.functional as F
+
+def fgsm(model, x, y, eps=8 / 255):
+    x = x.clone().requires_grad_(True)
+    loss = F.cross_entropy(model(x), y)
+    loss.backward()
+    return (x + eps * x.grad.sign()).clamp(0, 1).detach()
+
+def pgd(model, x, y, eps=8 / 255, alpha=2 / 255, steps=10):
+    x_adv = (x + torch.empty_like(x).uniform_(-eps, eps)).clamp(0, 1)   # random start
+    for _ in range(steps):
+        x_adv.requires_grad_(True)
+        loss = F.cross_entropy(model(x_adv), y)
+        grad, = torch.autograd.grad(loss, x_adv)
+        x_adv = x_adv.detach() + alpha * grad.sign()
+        x_adv = torch.min(torch.max(x_adv, x - eps), x + eps).clamp(0, 1)   # project to the eps-ball
+    return x_adv.detach()</code></pre>
+
+<h3>Defences</h3>
+<p><b>Adversarial training</b> is the defence that has held up best: train on worst-case perturbed inputs, solving a min–max problem.</p>
+$$\min_\theta\ \mathbb E_{(\mathbf x,y)}\Big[\max_{\|\boldsymbol\delta\|_\infty\le\epsilon}\mathcal L\big(f_\theta(\mathbf x+\boldsymbol\delta),y\big)\Big]$$
+<p>The inner max is approximated with PGD. It costs several times more compute and usually lowers clean accuracy somewhat: robustness and accuracy trade off. Other ideas:</p>
+<ul>
+<li><b>Certified defences</b> (randomized smoothing, bound propagation) give a provable guarantee that no perturbation within a radius changes the prediction, for smaller radii.</li>
+<li><b>Input preprocessing</b> (JPEG compression, denoising) and <b>detectors</b> often look effective but are broken by adaptive attacks that know about them. Many published defences fell this way because they hid gradients rather than removing the vulnerability.</li>
+</ul>
+<div class="callout warn"><b>Evaluate against adaptive attacks</b>A defence must be tested by an attacker who knows exactly how it works. Reporting robustness only against an attack that the defence was designed to block is the most common mistake in this field.</div>
+
+<h3>Robustness beyond attacks</h3>
+<p>The same lesson applies to natural shifts: blur, noise, weather, new cameras, new dialects. Models that rely on brittle shortcut features fail on both. Practical robustness work therefore includes stress-testing with corruption benchmarks, slice-based evaluation, and monitoring in production ([[mlops]]).</p>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>A linear model on 10,000 features has \(\|\mathbf w\|_1=50\). How much can an \(\ell_\infty\) perturbation with \(\epsilon=0.01\) change its score?
+<details><summary>Solution</summary><div>Up to \(\epsilon\|\mathbf w\|_1=0.01\times50=0.5\), enough to cross a decision boundary for any example whose score is within 0.5 of it.</div></details></li>
+<li>A paper reports 90% robust accuracy, but only against FGSM. Why be sceptical?
+<details><summary>Solution</summary><div>FGSM is a weak one-step attack; defences can mask its gradient while staying vulnerable to multi-step PGD or adaptive attacks. Robustness claims need strong, adaptive evaluation.</div></details></li>
+</ol></div>

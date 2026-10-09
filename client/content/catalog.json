@@ -1,0 +1,904 @@
+{
+ "tracks": [
+  {
+   "id": "foundations",
+   "title": "Foundations",
+   "blurb": "The language, the math and the tools."
+  },
+  {
+   "id": "core",
+   "title": "Core machine learning",
+   "blurb": "How models learn, from linear regression to Transformers."
+  },
+  {
+   "id": "specialization",
+   "title": "Specializations",
+   "blurb": "Vision, language, LLMs, generation, decision-making and robots."
+  },
+  {
+   "id": "production",
+   "title": "Production",
+   "blurb": "Shipping, securing and scaling AI systems."
+  },
+  {
+   "id": "career",
+   "title": "Career",
+   "blurb": "Turning skills into a job."
+  }
+ ],
+ "courses": [
+  {
+   "id": "python",
+   "short": "Python",
+   "title": "Python for AI",
+   "track": "foundations",
+   "level": "Beginner",
+   "color": "c4",
+   "prereqs": [],
+   "tagline": "The language every AI system is written in.",
+   "description": "A practical Python course aimed at AI work: values and functions, containers, classes, generators, files, environments and concurrency. Start here if you are new to programming or want to fill gaps.",
+   "outcomes": [
+    "Write clean, idiomatic Python with functions, classes and comprehensions",
+    "Pick the right data structure and reason about its cost",
+    "Use generators, decorators and type hints the way ML libraries do",
+    "Manage environments and dependencies, and handle errors and files",
+    "Run thousands of API calls concurrently with asyncio"
+   ],
+   "lessons": [
+    {
+     "id": "py-essentials",
+     "title": "Python Essentials: Values, Control Flow & Functions",
+     "lead": "Everything in AI code starts here: how Python represents data, makes decisions, repeats work and packages logic into functions."
+    },
+    {
+     "id": "py-collections",
+     "title": "Lists, Dicts, Sets & Comprehensions",
+     "lead": "The four built-in containers carry almost all data in ordinary Python. Choosing the right one is often the difference between a script that takes seconds and one that takes hours."
+    },
+    {
+     "id": "py-oop",
+     "title": "Classes, Dataclasses & the Python Data Model",
+     "lead": "PyTorch modules, datasets, tokenizers and API clients are all classes. Understanding how Python objects work makes every framework feel familiar."
+    },
+    {
+     "id": "py-iterators",
+     "title": "Iterators, Generators, Decorators & Type Hints",
+     "lead": "The tools behind data loaders, streaming LLM responses, retry logic and readable code: lazy iteration, functions that wrap functions, and types that document intent."
+    },
+    {
+     "id": "py-io-envs",
+     "title": "Files, Errors, Environments & Packaging",
+     "lead": "Real projects read and write files, fail in interesting ways, and must run on someone else's machine. This lesson covers the plumbing that makes code dependable."
+    },
+    {
+     "id": "py-async",
+     "title": "Concurrency: Threads, Processes & asyncio",
+     "lead": "Calling an LLM API 10,000 times one by one takes hours; doing it concurrently takes minutes. Learn which kind of concurrency fits which kind of work."
+    }
+   ]
+  },
+  {
+   "id": "math",
+   "short": "Math",
+   "title": "Mathematics for AI",
+   "track": "foundations",
+   "level": "Beginner",
+   "color": "c1",
+   "prereqs": [],
+   "tagline": "Linear algebra, calculus, probability and optimization, derived step by step.",
+   "description": "The math that every later course leans on, taught with intuition first and derivations second. You will see where each idea shows up in real models.",
+   "outcomes": [
+    "Work fluently with vectors, matrices, eigenvalues and the SVD",
+    "Derive gradients with the chain rule and matrix calculus",
+    "Reason with probability, Bayes, and maximum likelihood",
+    "Explain cross-entropy, KL divergence and why losses are likelihoods",
+    "Understand gradient descent, Adam, numerical precision and Monte Carlo"
+   ],
+   "lessons": [
+    {
+     "id": "vectors",
+     "title": "Vectors, Norms & Dot Products",
+     "lead": "Every input an AI model sees (an image, a sentence, a user profile) becomes a vector. Geometry on vectors is the native language of ML."
+    },
+    {
+     "id": "matrices",
+     "title": "Matrices & Linear Maps",
+     "lead": "A matrix is a function: it takes a vector in and gives a vector out, linearly. A neural network layer is exactly this, plus a bias and a nonlinearity."
+    },
+    {
+     "id": "eigen-svd",
+     "title": "Eigenvalues, Eigenvectors & SVD",
+     "lead": "Decompositions reveal what a matrix really does: stretch along special directions. They power PCA, LoRA, recommender systems and the analysis of training dynamics."
+    },
+    {
+     "id": "calculus",
+     "title": "Calculus: Derivatives, Gradients & the Chain Rule",
+     "lead": "Learning is nudging parameters in the direction that reduces the loss. Derivatives tell us that direction."
+    },
+    {
+     "id": "matrix-calculus",
+     "title": "Matrix Calculus for ML",
+     "lead": "You need a handful of vector/matrix derivative identities to derive every gradient in this guide. Learn them once."
+    },
+    {
+     "id": "probability",
+     "title": "Probability: Random Variables, PDFs & Expectation",
+     "lead": "Data is noisy and the future is uncertain. Probability gives us a calculus for uncertainty, and most ML models are, at heart, probability distributions."
+    },
+    {
+     "id": "variance-joint",
+     "title": "Variance, Covariance & Joint Distributions",
+     "lead": "Spread, co-movement, and how variables depend on each other."
+    },
+    {
+     "id": "bayes",
+     "title": "Bayes' Theorem",
+     "lead": "How to update beliefs with evidence. It underlies Naive Bayes, MAP estimation, Bayesian deep learning, and how to read any classifier's output correctly."
+    },
+    {
+     "id": "distributions",
+     "title": "The Distributions You Need",
+     "lead": "A short list of distributions covers almost all of ML. Each one corresponds to a loss function or a modelling choice."
+    },
+    {
+     "id": "estimation",
+     "title": "Statistics: MLE, MAP & Where Loss Functions Come From",
+     "lead": "This lesson connects statistics to deep learning. Common loss functions are not arbitrary: they are negative log-likelihoods."
+    },
+    {
+     "id": "info-theory",
+     "title": "Information Theory: Entropy, Cross-Entropy & KL",
+     "lead": "The vocabulary of modern loss functions. Every LLM is trained to minimize a cross-entropy, and KL divergence appears in VAEs, RLHF, distillation and t-SNE."
+    },
+    {
+     "id": "optimization",
+     "title": "Optimization: Gradient Descent to Adam",
+     "lead": "Training a model means solving \\(\\min_\\theta\\mathcal L(\\theta)\\). Here is the toolkit and why each piece exists."
+    },
+    {
+     "id": "numerics",
+     "title": "Numerical Computing: Floating Point & Stability",
+     "lead": "Every model runs on finite-precision numbers. Knowing how floats break explains NaN losses, why bf16 took over training, and why every library implements softmax the \"weird\" way."
+    },
+    {
+     "id": "monte-carlo",
+     "title": "Sampling, Monte Carlo & MCMC",
+     "lead": "When an expectation or an integral can't be computed exactly, we estimate it with random samples. This idea is behind SGD, dropout, VAEs, diffusion sampling, RL and Bayesian inference."
+    }
+   ]
+  },
+  {
+   "id": "data",
+   "short": "Data & code",
+   "title": "Programming & Data",
+   "track": "foundations",
+   "level": "Beginner",
+   "color": "c2",
+   "prereqs": [
+    "python"
+   ],
+   "tagline": "NumPy, pandas, PyTorch, SQL and the engineering habits that make ML code reliable.",
+   "description": "The day-to-day tools of an AI engineer: vectorized numerics, data exploration, leak-free preprocessing, PyTorch, algorithms for interviews, SQL and data pipelines, and testing ML code.",
+   "outcomes": [
+    "Vectorize computations with NumPy broadcasting and einsum",
+    "Explore data with pandas and build leak-free preprocessing pipelines",
+    "Use PyTorch tensors, autograd, modules and data loaders",
+    "Solve common coding-interview problems",
+    "Query data with SQL and structure a testable ML project"
+   ],
+   "lessons": [
+    {
+     "id": "numpy",
+     "title": "Python & NumPy for ML",
+     "lead": "Vectorization turns math on paper into fast code. A Python loop over a million elements is slow; one NumPy operation over the array is around 100× faster."
+    },
+    {
+     "id": "pandas-eda",
+     "title": "pandas & Exploratory Data Analysis",
+     "lead": "Before modelling, understand the data. Most real-world ML wins come from data understanding, not model choice."
+    },
+    {
+     "id": "preprocessing",
+     "title": "Preprocessing, Feature Engineering & Leakage",
+     "lead": "Models see only what you give them, in the scale you give it. Good features beat clever models; a leaky pipeline produces great validation scores and a useless model."
+    },
+    {
+     "id": "pytorch",
+     "title": "PyTorch Fundamentals",
+     "lead": "PyTorch is NumPy on GPUs plus automatic differentiation. Once you understand tensors, autograd and nn.Module, every deep learning model is the same pattern."
+    },
+    {
+     "id": "dsa",
+     "title": "Data Structures & Algorithms for AI Engineers",
+     "lead": "Top-tier interviews still include coding rounds, and production ML code lives or dies on complexity. You need fluency with a core toolkit, not a competitive-programming career."
+    },
+    {
+     "id": "sql-data-eng",
+     "title": "SQL & Data Engineering",
+     "lead": "Most of an AI engineer's data starts in a database or a data lake. Fluent SQL and a mental model of data pipelines make you independent and fast."
+    },
+    {
+     "id": "swe-for-ml",
+     "title": "Software Engineering for ML",
+     "lead": "What separates an AI engineer from someone who trains models in notebooks: code that is tested, reproducible, reviewable and fast."
+    }
+   ]
+  },
+  {
+   "id": "ml",
+   "short": "Classical ML",
+   "title": "Classical Machine Learning",
+   "track": "core",
+   "level": "Intermediate",
+   "color": "c3",
+   "prereqs": [
+    "math",
+    "data"
+   ],
+   "tagline": "From linear models to gradient boosting, plus forecasting, recommenders and experiments.",
+   "description": "The algorithms that still win on tabular data and the ideas every deep learning model builds on: generalization, regularization, evaluation, and how to run experiments that tell the truth.",
+   "outcomes": [
+    "Derive and implement linear and logistic regression",
+    "Train and tune trees, random forests and gradient boosting",
+    "Cluster and reduce dimensionality with k-means, GMMs and PCA",
+    "Choose the right metric and validate without leakage",
+    "Forecast time series, build recommenders and run A/B tests"
+   ],
+   "lessons": [
+    {
+     "id": "ml-framework",
+     "title": "The Learning Framework: Generalization & Bias–Variance",
+     "lead": "ML is not about fitting the training data. It is about performing well on data you haven't seen."
+    },
+    {
+     "id": "linear-regression",
+     "title": "Linear Regression, Ridge & Lasso",
+     "lead": "The simplest model, and the one where you can derive everything by hand."
+    },
+    {
+     "id": "logistic-regression",
+     "title": "Logistic Regression & Softmax",
+     "lead": "Classification with probabilities. The softmax + cross-entropy combination here is the exact output layer of every classifier and every LLM."
+    },
+    {
+     "id": "knn-nb",
+     "title": "k-Nearest Neighbours & Naive Bayes",
+     "lead": "Two simple, strong baselines: one with no training at all, one built straight from Bayes' theorem."
+    },
+    {
+     "id": "svm",
+     "title": "Support Vector Machines & Kernels",
+     "lead": "Find the separating hyperplane with the widest margin, then use the kernel trick to make it nonlinear without ever computing the features."
+    },
+    {
+     "id": "trees-ensembles",
+     "title": "Decision Trees, Random Forests & Gradient Boosting",
+     "lead": "For tabular data, gradient-boosted trees (XGBoost, LightGBM, CatBoost) are still usually the strongest models. Here is the math that makes them work."
+    },
+    {
+     "id": "unsupervised",
+     "title": "Unsupervised Learning: k-Means, GMMs, EM & PCA",
+     "lead": "Finding structure without labels: groups, densities and low-dimensional representations."
+    },
+    {
+     "id": "metrics",
+     "title": "Evaluation Metrics",
+     "lead": "The metric defines what \"good\" means. Choose it before you train."
+    },
+    {
+     "id": "time-series",
+     "title": "Time Series & Forecasting",
+     "lead": "Demand, traffic, energy, prices, sensor data: forecasting is one of the most common ML jobs in industry, and it breaks the i.i.d. assumption that most of Part III relies on."
+    },
+    {
+     "id": "recsys",
+     "title": "Recommender Systems",
+     "lead": "Feeds, stores, streaming, ads and search are recommendation problems. They are among the most valuable ML systems in industry and a favourite topic in system-design interviews."
+    },
+    {
+     "id": "bayesian-ml",
+     "title": "Bayesian ML & Gaussian Processes",
+     "lead": "Point estimates say what the model thinks; Bayesian methods also say how sure it is. Uncertainty matters for medicine, active learning, Bayesian optimization and safe decision-making."
+    },
+    {
+     "id": "hpo",
+     "title": "Hyperparameter Optimization & AutoML",
+     "lead": "Tuning by hand wastes time and compute. Learn which knobs matter and use search algorithms for the rest."
+    },
+    {
+     "id": "causal",
+     "title": "Causal Inference & Experimentation",
+     "lead": "Predictive models learn correlations. Product and policy decisions need causes: \"if we ship this feature, what happens?\" Big tech runs thousands of experiments a year, and AI engineers are expected to read them correctly."
+    }
+   ]
+  },
+  {
+   "id": "dl",
+   "short": "Deep learning",
+   "title": "Deep Learning",
+   "track": "core",
+   "level": "Intermediate",
+   "color": "c1",
+   "prereqs": [
+    "ml"
+   ],
+   "tagline": "Backpropagation to Transformers, built from scratch.",
+   "description": "How neural networks learn, why training works or fails, and the architectures behind modern AI: CNNs, RNNs, attention and the Transformer, graph networks, state space models and self-supervision.",
+   "outcomes": [
+    "Derive backpropagation and build a network in NumPy",
+    "Train deep networks reliably: initialization, normalization, regularization",
+    "Implement CNNs, LSTMs and a GPT-style Transformer in PyTorch",
+    "Explain GNNs, state space models and self-supervised learning",
+    "Compress models with distillation, pruning and quantization"
+   ],
+   "lessons": [
+    {
+     "id": "neural-nets",
+     "title": "Neurons, MLPs & Activation Functions",
+     "lead": "A neural network is a composition of simple functions: linear maps interleaved with nonlinearities."
+    },
+    {
+     "id": "backprop",
+     "title": "Backpropagation, Derived and Built",
+     "lead": "The algorithm that trains every neural network. It is the chain rule, organized so that the full gradient costs about the same as one forward pass."
+    },
+    {
+     "id": "training-deep",
+     "title": "Training Deep Networks: Init, Normalization, Regularization",
+     "lead": "Backprop gives gradients; these techniques make sure the gradients are usable and the model generalizes."
+    },
+    {
+     "id": "pytorch-loop",
+     "title": "The Complete PyTorch Training Loop",
+     "lead": "This template, with small changes, trains almost every model you'll build."
+    },
+    {
+     "id": "cnn",
+     "title": "Convolutional Neural Networks",
+     "lead": "Images have local structure, and the same pattern can appear anywhere. Convolutions build both facts into the architecture."
+    },
+    {
+     "id": "rnn",
+     "title": "Recurrent Networks, LSTMs & GRUs",
+     "lead": "For sequences, carry a hidden state forward through time. Transformers have largely replaced RNNs, but RNNs explain why attention was needed, and state-space models are bringing recurrence back."
+    },
+    {
+     "id": "transformer",
+     "title": "Attention & the Transformer",
+     "lead": "The architecture behind GPT, BERT, ViT, Whisper, and almost every frontier model. Learn this lesson line by line."
+    },
+    {
+     "id": "gnn",
+     "title": "Graph Neural Networks",
+     "lead": "Molecules, social networks, road maps, citation graphs, fraud rings and knowledge graphs are not grids or sequences. GNNs learn from graph structure directly."
+    },
+    {
+     "id": "ssm",
+     "title": "Efficient Sequence Models: Linear Attention & State Space Models",
+     "lead": "Attention costs \\(O(n^2)\\) in sequence length. For very long contexts, audio, genomics and fast inference, researchers revived recurrence in a trainable, parallel form."
+    },
+    {
+     "id": "ssl",
+     "title": "Self-Supervised & Representation Learning",
+     "lead": "Labels are expensive; raw data is nearly free. Self-supervised learning invents a prediction task from the data itself and produces representations that transfer to many downstream tasks. Every foundation model is trained this way."
+    },
+    {
+     "id": "compression",
+     "title": "Model Compression: Pruning, Distillation & Quantization",
+     "lead": "Production models must fit latency, memory and cost budgets, often on phones or a single GPU. Compression keeps most of the accuracy at a fraction of the cost."
+    }
+   ]
+  },
+  {
+   "id": "cv",
+   "short": "Vision",
+   "title": "Computer Vision",
+   "track": "specialization",
+   "level": "Intermediate",
+   "color": "c2",
+   "prereqs": [
+    "dl"
+   ],
+   "tagline": "Classification, detection, segmentation, vision Transformers and 3D.",
+   "description": "Turning pixels into understanding: transfer learning, detectors and segmenters, ViT and CLIP, video, tracking, 3D reconstruction and document AI.",
+   "outcomes": [
+    "Fine-tune pretrained backbones with sensible augmentation",
+    "Explain how detectors and segmenters work and evaluate them",
+    "Use ViT and CLIP, including zero-shot classification",
+    "Understand video models, tracking, NeRF and OCR pipelines"
+   ],
+   "lessons": [
+    {
+     "id": "cv-basics",
+     "title": "Images, Augmentation & Transfer Learning",
+     "lead": "You will rarely train a vision model from scratch. You'll start from a pretrained backbone and adapt it."
+    },
+    {
+     "id": "detection-segmentation",
+     "title": "Object Detection & Segmentation",
+     "lead": "From \"what is in the image\" to \"where exactly is it\"."
+    },
+    {
+     "id": "vit-clip",
+     "title": "Vision Transformers, CLIP & Self-Supervised Vision",
+     "lead": "Transformers took over vision too, and contrastive learning connected images to language."
+    },
+    {
+     "id": "video-3d",
+     "title": "Video, 3D, Tracking & Document Vision",
+     "lead": "Beyond single images: motion, depth, geometry, and the messy real-world task of reading documents."
+    }
+   ]
+  },
+  {
+   "id": "nlp",
+   "short": "NLP & speech",
+   "title": "NLP & Speech",
+   "track": "specialization",
+   "level": "Intermediate",
+   "color": "c3",
+   "prereqs": [
+    "dl"
+   ],
+   "tagline": "Text and speech, from TF-IDF to pretrained Transformers.",
+   "description": "How machines read and listen: classic text models, embeddings, tokenization, BERT-style encoders, speech recognition, information extraction, and the special challenges of Arabic and other languages.",
+   "outcomes": [
+    "Build strong text baselines with TF-IDF and linear models",
+    "Explain word embeddings and subword tokenization",
+    "Fine-tune pretrained encoders for classification and NER",
+    "Process speech with spectrograms, CTC and encoder–decoder models",
+    "Handle Arabic script, dialects and multilingual evaluation"
+   ],
+   "lessons": [
+    {
+     "id": "classic-nlp",
+     "title": "Classic NLP: Bag of Words, TF-IDF & n-gram Models",
+     "lead": "Simple text representations are still strong baselines and power the keyword side of search (BM25, Lesson 8.2)."
+    },
+    {
+     "id": "word-embeddings",
+     "title": "Word Embeddings: word2vec & GloVe",
+     "lead": "\"You shall know a word by the company it keeps.\" Learn dense vectors so that words appearing in similar contexts get similar vectors."
+    },
+    {
+     "id": "tokenization",
+     "title": "Subword Tokenization: BPE & Friends",
+     "lead": "Models see tokens, not characters or words. Tokenization decides vocabulary size, sequence length, cost, and how well rare words and other languages are handled."
+    },
+    {
+     "id": "pretrained-nlp",
+     "title": "Pretrained Transformers: BERT, GPT & T5",
+     "lead": "Pretrain once on huge unlabeled text, then adapt to any task with little labeled data. This is the transfer-learning revolution of NLP."
+    },
+    {
+     "id": "speech",
+     "title": "Speech & Audio",
+     "lead": "Voice assistants, transcription, dubbing, call analytics and audio LLMs all start from a 1-D waveform and the same few transformations."
+    },
+    {
+     "id": "info-extraction",
+     "title": "Information Extraction & Structured Prediction",
+     "lead": "Turning unstructured text into structured records (entities, relations, fields) is one of the most common business uses of NLP: invoices, contracts, CVs, medical notes, support tickets."
+    },
+    {
+     "id": "arabic-nlp",
+     "title": "Arabic & Multilingual NLP",
+     "lead": "Most NLP research is in English, but most of the world is not. Arabic adds rich morphology, optional diacritics, many dialects and two scripts in daily use, and it is a great case study for building multilingual systems."
+    }
+   ]
+  },
+  {
+   "id": "llm",
+   "short": "LLMs",
+   "title": "Large Language Models",
+   "track": "specialization",
+   "level": "Advanced",
+   "color": "c4",
+   "prereqs": [
+    "nlp"
+   ],
+   "tagline": "How LLMs are trained, aligned, served and evaluated.",
+   "description": "The full life of a large language model: pretraining and scaling laws, decoding, fine-tuning with LoRA, alignment with RLHF and DPO, efficient inference, multimodality, reasoning, evaluation, and training your own small model.",
+   "outcomes": [
+    "Explain pretraining, scaling laws and modern architectures",
+    "Control generation with temperature, top-k and top-p",
+    "Fine-tune with LoRA and QLoRA and reason about memory",
+    "Describe RLHF, DPO and RL for reasoning",
+    "Evaluate LLMs and train a small GPT end to end"
+   ],
+   "lessons": [
+    {
+     "id": "llm-pretraining",
+     "title": "How LLMs Are Built: Objective, Data & Scaling",
+     "lead": "An LLM is a decoder-only Transformer trained to predict the next token on a very large amount of text. Capabilities come from scale, data quality, and post-training."
+    },
+    {
+     "id": "decoding",
+     "title": "Decoding: Temperature, Top-k & Top-p",
+     "lead": "The model outputs a distribution over the next token. How you pick from it changes everything about the output."
+    },
+    {
+     "id": "finetuning",
+     "title": "Fine-Tuning, LoRA & Quantization",
+     "lead": "Adapting a large model on one GPU is possible because of two ideas: train a low-rank update instead of the whole matrix, and store weights in fewer bits."
+    },
+    {
+     "id": "alignment",
+     "title": "Alignment: RLHF, DPO & RL for Reasoning",
+     "lead": "Pretraining teaches a model what text looks like. Post-training teaches it which responses people actually want."
+    },
+    {
+     "id": "inference",
+     "title": "Inference Efficiency: KV Cache, FlashAttention & MoE",
+     "lead": "Serving LLMs is a memory-bandwidth problem. These techniques are why chat models respond quickly and affordably."
+    },
+    {
+     "id": "using-llms",
+     "title": "Using LLMs Well: Prompting, Structured Output & Evaluation",
+     "lead": "Most applied AI work today is building reliable systems around existing models."
+    },
+    {
+     "id": "multimodal",
+     "title": "Multimodal Models",
+     "lead": "Modern assistants see images, read documents, hear speech and talk back. Most of them are built by connecting pretrained encoders to an LLM."
+    },
+    {
+     "id": "reasoning",
+     "title": "Reasoning & Test-Time Compute",
+     "lead": "A model can trade more computation at inference time for better answers. This became a central scaling axis next to model size and data."
+    },
+    {
+     "id": "llm-eval-safety",
+     "title": "Evaluation, Safety & Interpretability",
+     "lead": "How do we know a model is good, safe, and why it does what it does? These are open research problems and daily engineering work at AI labs."
+    },
+    {
+     "id": "train-small-llm",
+     "title": "Project: Train a Small LLM End to End",
+     "lead": "Putting Parts IV and VII together: tokenizer, data pipeline, GPT model, training loop, evaluation and sampling. Run it on a single GPU in an afternoon."
+    }
+   ]
+  },
+  {
+   "id": "rag",
+   "short": "RAG & agents",
+   "title": "RAG, Agents & LLMOps",
+   "track": "specialization",
+   "level": "Advanced",
+   "color": "c5",
+   "prereqs": [
+    "llm"
+   ],
+   "tagline": "Connect models to your data and tools, then ship them.",
+   "description": "The applied core of modern AI engineering: vector search, hybrid retrieval and reranking, RAG pipelines and their evaluation, agents and MCP, and running LLM applications in production.",
+   "outcomes": [
+    "Build vector search with the right ANN index",
+    "Combine BM25, dense retrieval and rerankers",
+    "Build and evaluate a RAG pipeline with citations",
+    "Design reliable agents with tools and guardrails",
+    "Control latency and cost in production LLM apps"
+   ],
+   "lessons": [
+    {
+     "id": "vector-search",
+     "title": "Embeddings & Vector Search",
+     "lead": "Semantic search turns \"find documents about X\" into \"find vectors close to X's vector\"."
+    },
+    {
+     "id": "retrieval-ranking",
+     "title": "Retrieval & Ranking: BM25, Hybrid Search, Rerankers",
+     "lead": "Dense vectors capture meaning; keyword search catches exact names, codes and rare terms. The best systems combine them, then rerank."
+    },
+    {
+     "id": "rag-pipeline",
+     "title": "Building a RAG Pipeline",
+     "lead": "Retrieval-augmented generation: find relevant passages, put them in the prompt, and have the model answer from them with citations."
+    },
+    {
+     "id": "rag-eval",
+     "title": "Evaluating Retrieval & RAG",
+     "lead": "Measure retrieval and generation separately: a perfect generator can't fix a retriever that missed the right passage."
+    },
+    {
+     "id": "agents",
+     "title": "Agents & Tool Use",
+     "lead": "An agent is an LLM in a loop: decide on an action, call a tool, observe the result, repeat until done."
+    },
+    {
+     "id": "agents-advanced",
+     "title": "Agent Architectures, MCP & Reliability",
+     "lead": "Moving from a demo agent to one people can depend on: choosing the right pattern, designing tools, connecting systems through standard protocols, and making failures safe."
+    },
+    {
+     "id": "llmops",
+     "title": "LLMOps: Shipping LLM Applications",
+     "lead": "Latency, cost, quality and safety in production. This is the day-to-day job of many AI engineers."
+    }
+   ]
+  },
+  {
+   "id": "gen",
+   "short": "Generative",
+   "title": "Generative Models",
+   "track": "specialization",
+   "level": "Advanced",
+   "color": "c2",
+   "prereqs": [
+    "dl"
+   ],
+   "tagline": "VAEs, GANs, diffusion and flow matching.",
+   "description": "Models that learn the data distribution itself: autoencoders and the ELBO, adversarial training, diffusion and score-based models, normalizing flows, flow matching and token-based generation.",
+   "outcomes": [
+    "Derive the ELBO and the reparameterization trick",
+    "Explain the GAN game and its failure modes",
+    "Implement the diffusion training objective and sampler",
+    "Compare flows, flow matching and autoregressive generation"
+   ],
+   "lessons": [
+    {
+     "id": "vae",
+     "title": "Autoencoders & Variational Autoencoders",
+     "lead": "Compress data to a latent code and reconstruct it. Make the latent space probabilistic and you get a generative model."
+    },
+    {
+     "id": "gan",
+     "title": "Generative Adversarial Networks",
+     "lead": "Two networks in a game: a generator makes fakes, a discriminator tries to spot them. Both improve until fakes look real."
+    },
+    {
+     "id": "diffusion",
+     "title": "Diffusion Models",
+     "lead": "Learn to reverse a gradual noising process. Start from pure noise, denoise step by step, and an image appears. This powers modern image, video and audio generation."
+    },
+    {
+     "id": "flows",
+     "title": "Normalizing Flows, Flow Matching & Token-Based Generation",
+     "lead": "Three more ways to build a generative model: invertible transformations with exact likelihoods, learned velocity fields (behind many recent image and video models), and plain next-token prediction over learned discrete codes."
+    }
+   ]
+  },
+  {
+   "id": "rl",
+   "short": "RL",
+   "title": "Reinforcement Learning",
+   "track": "specialization",
+   "level": "Advanced",
+   "color": "c3",
+   "prereqs": [
+    "dl"
+   ],
+   "tagline": "Learning from rewards: MDPs to PPO and AlphaZero.",
+   "description": "Agents that act and learn from the consequences: Bellman equations, Q-learning, policy gradients, actor–critic and PPO, deep RL, planning with tree search, and imitation learning.",
+   "outcomes": [
+    "Write Bellman equations and run value iteration",
+    "Implement Q-learning and explain DQN",
+    "Derive the policy gradient and the PPO objective",
+    "Understand MCTS, imitation and offline RL"
+   ],
+   "lessons": [
+    {
+     "id": "rl-foundations",
+     "title": "MDPs, Bellman Equations & Q-Learning",
+     "lead": "An agent acts, the world responds with a new state and a reward, and the agent learns to maximize long-term reward."
+    },
+    {
+     "id": "policy-gradient",
+     "title": "Policy Gradients, Actor–Critic & PPO",
+     "lead": "Instead of learning values and acting greedily, directly adjust the policy's parameters to make good actions more likely. This is the family used to fine-tune LLMs."
+    },
+    {
+     "id": "deep-rl",
+     "title": "Deep RL, Planning & Imitation",
+     "lead": "Combining RL with neural networks gave game-playing systems, robotic control and the post-training methods behind modern LLMs. This lesson covers the algorithms you'll meet in papers and libraries."
+    }
+   ]
+  },
+  {
+   "id": "robotics",
+   "short": "Robotics",
+   "title": "Robotics & Embodied AI",
+   "track": "specialization",
+   "level": "Advanced",
+   "color": "c1",
+   "prereqs": [
+    "math",
+    "rl"
+   ],
+   "tagline": "Kinematics, estimation, control, planning and robot learning.",
+   "description": "AI that moves in the physical world. The classical robotics stack (transforms, filters, controllers, planners) and how learning, simulation and foundation models are changing it.",
+   "outcomes": [
+    "Compute forward and inverse kinematics with transforms",
+    "Derive and implement a Kalman filter",
+    "Tune PID controllers and explain LQR and MPC",
+    "Plan paths with A* and RRT",
+    "Explain imitation learning, sim-to-real and vision-language-action models"
+   ],
+   "lessons": [
+    {
+     "id": "robot-kinematics",
+     "title": "Rigid-Body Motion & Kinematics",
+     "lead": "Before a robot can learn anything, it has to know where its parts are. Rotations, homogeneous transforms and kinematics are the coordinate geometry of embodied AI."
+    },
+    {
+     "id": "state-estimation",
+     "title": "State Estimation: Kalman & Particle Filters",
+     "lead": "Sensors are noisy and the world is only partly observed. Filters fuse predictions and measurements into the best estimate of where the robot really is."
+    },
+    {
+     "id": "robot-control",
+     "title": "Feedback Control: PID, LQR & MPC",
+     "lead": "Knowing where you are and where you want to be is not enough: control turns the error between them into motor commands that are fast, stable and safe."
+    },
+    {
+     "id": "motion-planning",
+     "title": "Motion Planning: A*, RRT & Trajectories",
+     "lead": "Planning finds a collision-free path through space, then a smooth trajectory along it. Search and sampling algorithms are the classic tools."
+    },
+    {
+     "id": "robot-learning",
+     "title": "Robot Learning: Imitation, Sim-to-Real & Foundation Models",
+     "lead": "Learning lets robots pick up skills that are hard to program by hand. This lesson connects RL, imitation and large pretrained models to physical machines."
+    }
+   ]
+  },
+  {
+   "id": "ops",
+   "short": "MLOps",
+   "title": "MLOps & Responsible AI",
+   "track": "production",
+   "level": "Intermediate",
+   "color": "c5",
+   "prereqs": [
+    "ml"
+   ],
+   "tagline": "Ship models, monitor them, and make sure they are fair and explainable.",
+   "description": "Everything after training: reproducibility, serving, containers, monitoring and drift, fairness metrics, explainability with SHAP, privacy, and data-centric practices like labelling and active learning.",
+   "outcomes": [
+    "Package and serve a model behind an API with Docker",
+    "Detect data and concept drift",
+    "Measure fairness and explain predictions",
+    "Improve models by improving data"
+   ],
+   "lessons": [
+    {
+     "id": "mlops",
+     "title": "From Notebook to Production",
+     "lead": "Reproducible training, a serving API, containers, and monitoring for when the world changes."
+    },
+    {
+     "id": "responsible-ai",
+     "title": "Fairness, Explainability & Privacy",
+     "lead": "Models affect people. You need tools to check who they fail, why they decide what they decide, and what they leak."
+    },
+    {
+     "id": "data-centric",
+     "title": "Data-Centric AI: Labels, Quality & Synthetic Data",
+     "lead": "Holding the model fixed and improving the data is often the fastest path to better results. Strong AI engineers are deliberate about how data is collected, labelled and cleaned."
+    }
+   ]
+  },
+  {
+   "id": "security",
+   "short": "Security",
+   "title": "AI Security & Safety",
+   "track": "production",
+   "level": "Advanced",
+   "color": "c5",
+   "prereqs": [
+    "dl",
+    "llm"
+   ],
+   "tagline": "Attacks on AI systems and the defences that hold up.",
+   "description": "How models and AI applications get attacked and how to defend them: adversarial examples, data poisoning and backdoors, privacy attacks, prompt injection against agents, and governance practices for shipping responsibly.",
+   "outcomes": [
+    "Generate adversarial examples and explain adversarial training",
+    "Recognize poisoning, backdoors and membership inference",
+    "Defend LLM apps and agents against prompt injection",
+    "Write model cards and run a basic AI risk assessment"
+   ],
+   "lessons": [
+    {
+     "id": "adversarial-examples",
+     "title": "Adversarial Examples & Robustness",
+     "lead": "A perturbation too small to see can flip a confident prediction. Understanding why is the starting point of AI security."
+    },
+    {
+     "id": "poisoning-privacy",
+     "title": "Poisoning, Backdoors & Privacy Attacks",
+     "lead": "Attacks on the training pipeline and on what a model remembers: corrupted data, hidden triggers, membership inference, extraction, and the defences that work."
+    },
+    {
+     "id": "llm-security",
+     "title": "LLM Security: Prompt Injection, Jailbreaks & Agents",
+     "lead": "When a model reads untrusted text and can take actions, every web page and document becomes a possible attacker. This is the most practical security topic for AI engineers today."
+    },
+    {
+     "id": "ai-governance",
+     "title": "AI Governance, Risk & Documentation",
+     "lead": "Shipping AI responsibly means knowing what can go wrong, writing it down, and meeting the rules that apply. This lesson covers the practices teams actually use."
+    }
+   ]
+  },
+  {
+   "id": "systems",
+   "short": "Systems",
+   "title": "Systems & Scale",
+   "track": "production",
+   "level": "Advanced",
+   "color": "c1",
+   "prereqs": [
+    "dl",
+    "ops"
+   ],
+   "tagline": "GPUs, distributed training and ML system design.",
+   "description": "What top AI teams expect beyond modelling: how GPUs execute work, how to train across many GPUs, and how to design complete ML systems under real constraints.",
+   "outcomes": [
+    "Reason about compute-bound vs memory-bound workloads",
+    "Choose between data, tensor, pipeline and sharded parallelism",
+    "Run a structured ML system design interview",
+    "Do back-of-the-envelope capacity estimates"
+   ],
+   "lessons": [
+    {
+     "id": "gpus",
+     "title": "GPUs, Memory & Kernels",
+     "lead": "Deep learning is matrix multiplication at scale. Knowing where time goes on a GPU explains FlashAttention, quantization, batching, and why some \"fast\" models are slow."
+    },
+    {
+     "id": "distributed",
+     "title": "Distributed Training",
+     "lead": "Frontier models are trained on thousands of GPUs. Even fine-tuning a 7B model needs more than one. You should understand every parallelism strategy and its cost."
+    },
+    {
+     "id": "ml-system-design",
+     "title": "ML System Design",
+     "lead": "Senior interviews and real projects both ask: design a system that solves this business problem with ML. The structure of your answer matters as much as the model."
+    },
+    {
+     "id": "case-studies",
+     "title": "System Design Case Studies",
+     "lead": "Five classic designs, condensed. Practise each one out loud in 35–45 minutes using the framework from 12.3."
+    }
+   ]
+  },
+  {
+   "id": "career",
+   "short": "Career",
+   "title": "Career & Interviews",
+   "track": "career",
+   "level": "All levels",
+   "color": "c4",
+   "prereqs": [],
+   "tagline": "The roadmap, the interviews, the portfolio, and how to keep learning.",
+   "description": "How to turn everything you learn here into a job: a week-by-week roadmap, how AI engineering interviews work, what makes a portfolio stand out, and how to read papers efficiently.",
+   "outcomes": [
+    "Plan your study path and checkpoints",
+    "Prepare for coding, ML, system design and behavioural rounds",
+    "Build portfolio projects that hiring managers notice",
+    "Read and reproduce research papers efficiently"
+   ],
+   "lessons": [
+    {
+     "id": "study-plan",
+     "title": "The Roadmap: From Zero to Job-Ready",
+     "lead": "A week-by-week path through every course in this academy, with a project at the end of each phase. Already strong in an area? Skim its lessons, pass the quizzes and move on."
+    },
+    {
+     "id": "interviews",
+     "title": "How Top Companies Interview AI Engineers",
+     "lead": "Loops differ by company and role (research engineer, ML engineer, applied AI engineer), but the building blocks are consistent."
+    },
+    {
+     "id": "portfolio",
+     "title": "Portfolio, Projects & Getting Hired",
+     "lead": "Hiring managers look for evidence that you can take a messy problem to a working, measured system. Three excellent projects beat thirty tutorials."
+    },
+    {
+     "id": "papers",
+     "title": "Reading Papers & Staying Current",
+     "lead": "The field moves monthly. The skill that compounds is reading papers efficiently and reproducing what matters."
+    }
+   ]
+  }
+ ]
+}

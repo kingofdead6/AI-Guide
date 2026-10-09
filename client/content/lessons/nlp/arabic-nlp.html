@@ -1,0 +1,86 @@
+<h3>What makes Arabic different</h3>
+<ul>
+<li><b>Script:</b> written right to left; letters change shape by position and connect; short vowels are written as optional diacritics (<i>tashkeel</i>) that most everyday text omits.</li>
+<li><b>Rich morphology:</b> words are built from (usually three-letter) roots and patterns, plus attached prefixes and suffixes. The root ك ت ب (k-t-b, "writing") gives كتب (he wrote), كاتب (writer), مكتبة (library), كتاب (book). One orthographic word can be a whole phrase: وسيكتبونها ("and they will write it").</li>
+<li><b>Diglossia:</b> Modern Standard Arabic (MSA) is used in news and formal writing; people speak and post in dialects (Maghrebi/Darija, Egyptian, Levantine, Gulf, …) that differ in vocabulary, grammar and spelling, and often have no standard orthography.</li>
+<li><b>Code-switching and Arabizi:</b> North African social media mixes Arabic, French and English, and often writes Arabic in Latin letters with digits for missing sounds (3 for ع, 7 for ح, 9 for ق): "sa7a" (صحة), "3andi".</li>
+<li><b>Ambiguity without diacritics:</b> علم can be ʿilm (knowledge), ʿalam (flag) or ʿallama (he taught). Context does the disambiguation, which is exactly what contextual models are good at.</li>
+</ul>
+
+<h3>Normalization</h3>
+<p>Arabic text from the web is inconsistent: the same word appears with different letter variants, optional diacritics and stretching characters. Normalize before counting, matching or building search indexes, and decide deliberately how much to normalize: aggressive normalization helps retrieval and classic models but loses information a neural model could use.</p>
+<pre><code class="language-python">import re, unicodedata
+
+DIACRITICS = re.compile(r"[ؐ-ًؚ-ٰٟۖ-ۭ]")   # tashkeel and Quranic marks
+TATWEEL = "ـ"                                                          # the stretching character ـ
+
+def normalize_arabic(text: str, letters: bool = True) -&gt; str:
+    text = unicodedata.normalize("NFKC", text)
+    text = DIACRITICS.sub("", text)
+    text = text.replace(TATWEEL, "")
+    if letters:
+        text = re.sub("[إأآا]", "ا", text)    # alef variants -&gt; bare alef
+        text = text.replace("ى", "ي")         # alef maqsura -&gt; ya
+        text = text.replace("ة", "ه")         # ta marbuta -&gt; ha (common for search)
+    text = re.sub(r"[٠-٩]", lambda m: str(ord(m.group()) - 0x0660), text)   # Arabic-Indic digits -&gt; 0-9
+    return re.sub(r"\s+", " ", text).strip()
+
+print(normalize_arabic("الْعَرَبِيَّةُ  جميلـــة ٢٠٢٦"))   # العربيه جميله 2026</code></pre>
+
+<h3>Tokenization and segmentation</h3>
+<p>Whitespace tokens are too coarse for Arabic: "والكتاب" (and the book) is one space-separated token holding three meaningful parts. Options:</p>
+<ul>
+<li><b>Clitic segmentation</b> (و+ال+كتاب) with morphological analyzers such as those in CAMeL Tools or Farasa; helpful for classic models and for search.</li>
+<li><b>Subword tokenization</b> (BPE / SentencePiece, [[tokenization]]) learns frequent pieces automatically. Quality depends on how much Arabic was in the tokenizer's training data.</li>
+</ul>
+<div class="callout warn"><b>The token tax</b>Tokenizers trained mostly on English split Arabic into many more tokens per word than English. More tokens per sentence means higher API cost, slower generation and a shorter effective context window for the same text. Measure tokens-per-word on your own data when you choose a model.</div>
+<pre><code class="language-python">from transformers import AutoTokenizer
+text_ar = "ذهب الطالب إلى المكتبة لقراءة كتاب جديد"
+text_en = "The student went to the library to read a new book"
+for name in ["bert-base-multilingual-cased", "aubmindlab/bert-base-arabertv02"]:
+    tok = AutoTokenizer.from_pretrained(name)
+    print(name, len(tok.tokenize(text_ar)), "Arabic tokens vs", len(tok.tokenize(text_en)), "English tokens")</code></pre>
+
+<h3>Models and resources</h3>
+<ul>
+<li><b>Arabic-specific encoders</b> such as AraBERT, CAMeLBERT and MARBERT (trained heavily on dialectal tweets) are strong for classification, NER and sentiment, especially on dialects.</li>
+<li><b>Multilingual models</b> (XLM-R, multilingual sentence-embedding models, and most large LLMs) handle Arabic with varying quality: test them on your dialect and domain, not on a generic benchmark.</li>
+<li><b>Arabic-centric LLMs</b> exist alongside general multilingual ones; compare cost, licence and quality on your own evaluation set.</li>
+<li>Shared tasks and datasets for dialect identification, sentiment and NER (for example the NADI dialect tasks) are good starting points for evaluation data.</li>
+</ul>
+
+<h3>Building for dialects like Darija</h3>
+<ol>
+<li><b>Collect real data</b> from the setting you serve (support tickets, comments), including Arabizi and French code-switching. Label a few hundred examples carefully before building anything.</li>
+<li><b>Decide on script handling:</b> keep Arabizi as is and let a multilingual model cope, or transliterate it to Arabic script. Evaluate both.</li>
+<li><b>Start with a baseline:</b> character n-gram TF-IDF + logistic regression is surprisingly strong for dialects because character n-grams survive spelling variation.</li>
+<li><b>Then fine-tune</b> a dialect-aware encoder, or prompt an LLM with dialect examples, and compare on the same held-out set.</li>
+<li><b>Evaluate per segment:</b> MSA vs dialect vs Arabizi. An average can hide a model that fails completely on one of them.</li>
+</ol>
+<pre><code class="language-python">from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline
+
+# Character n-grams within word boundaries: robust to spelling variation and Arabizi
+clf = make_pipeline(
+    TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 5), min_df=2, sublinear_tf=True,
+                    preprocessor=lambda t: normalize_arabic(t.lower())),
+    LogisticRegression(max_iter=2000, C=4.0),
+)
+# clf.fit(train_texts, train_labels); clf.score(test_texts, test_labels)</code></pre>
+
+<h3>Multilingual systems in general</h3>
+<ul>
+<li><b>Cross-lingual transfer:</b> a multilingual model fine-tuned on English labels often works zero-shot in other languages, usually worse than with even a little in-language data.</li>
+<li><b>Translate-train vs translate-test:</b> machine-translate your training data into the target language, or translate inputs into English at test time. Both are cheap baselines.</li>
+<li><b>Language identification</b> first, then route to the right model, prompt or tokenizer.</li>
+<li><b>RAG across languages:</b> use a multilingual embedding model so an Arabic question can retrieve a French or English document, and check retrieval quality per language ([[rag-eval]]).</li>
+<li><b>Right-to-left UI:</b> set <code>dir="rtl"</code> (or <code>dir="auto"</code> for user content) and test mixed Arabic/Latin text in your interface.</li>
+</ul>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>Your Arabic search returns nothing for "مكتبه" although documents contain "مكتبة". What fixes it?
+<details><summary>Solution</summary><div>Apply the same normalization to documents and queries (ta marbuta → ha, alef variants, diacritics removed) before indexing and searching, or use a dense multilingual retriever that is robust to such variation.</div></details></li>
+<li>Why do character n-grams work well for Darija?
+<details><summary>Solution</summary><div>Dialect spelling is unstandardized, so the same word appears in many forms. Character n-grams share most pieces across those forms (and across Arabizi variants), so the model still sees overlapping features where word-level features would all be different.</div></details></li>
+</ol></div>

@@ -1,0 +1,16 @@
+<table>
+<tr><th>Distribution</th><th>PMF / PDF</th><th>Mean, variance</th><th>Used for</th></tr>
+<tr><td>Bernoulli\((p)\)</td><td>\(p^x(1-p)^{1-x}\)</td><td>\(p,\ p(1-p)\)</td><td>Binary labels → binary cross-entropy</td></tr>
+<tr><td>Binomial\((n,p)\)</td><td>\(\binom nk p^k(1-p)^{n-k}\)</td><td>\(np,\ np(1-p)\)</td><td>Counts of successes, A/B tests</td></tr>
+<tr><td>Categorical\((\boldsymbol\pi)\)</td><td>\(\prod_k\pi_k^{y_k}\)</td><td>—</td><td>Multi-class labels, next-token prediction → cross-entropy</td></tr>
+<tr><td>Poisson\((\lambda)\)</td><td>\(\lambda^ke^{-\lambda}/k!\)</td><td>\(\lambda,\ \lambda\)</td><td>Event counts per interval</td></tr>
+<tr><td>Uniform\((a,b)\)</td><td>\(1/(b-a)\)</td><td>\(\frac{a+b}2,\ \frac{(b-a)^2}{12}\)</td><td>Initialization, random search</td></tr>
+<tr><td>Exponential\((\lambda)\)</td><td>\(\lambda e^{-\lambda x}\)</td><td>\(1/\lambda,\ 1/\lambda^2\)</td><td>Waiting times</td></tr>
+<tr><td>Gaussian \(\mathcal N(\mu,\sigma^2)\)</td><td>\(\frac{1}{\sqrt{2\pi\sigma^2}}e^{-\frac{(x-\mu)^2}{2\sigma^2}}\)</td><td>\(\mu,\ \sigma^2\)</td><td>Noise → MSE loss; init; VAEs; diffusion</td></tr>
+<tr><td>Laplace\((\mu,b)\)</td><td>\(\frac1{2b}e^{-|x-\mu|/b}\)</td><td>\(\mu,\ 2b^2\)</td><td>Noise → MAE loss; prior → L1</td></tr>
+<tr><td>Beta / Dirichlet</td><td>\(\propto p^{a-1}(1-p)^{b-1}\)</td><td>\(\frac a{a+b}\)</td><td>Priors over probabilities; topic models</td></tr>
+</table>
+<!--FIG:gaussians-->
+<h3>The multivariate Gaussian</h3>
+$$\mathcal N(\mathbf{x}\mid\boldsymbol\mu,\boldsymbol\Sigma)=\frac{1}{(2\pi)^{d/2}|\boldsymbol\Sigma|^{1/2}}\exp\!\Big(-\tfrac12(\mathbf{x}-\boldsymbol\mu)^\top\boldsymbol\Sigma^{-1}(\mathbf{x}-\boldsymbol\mu)\Big)$$
+<p>Contours are ellipses whose axes are the eigenvectors of \(\boldsymbol\Sigma\), with lengths proportional to \(\sqrt{\lambda_i}\). Affine maps keep it Gaussian: if \(\mathbf{x}\sim\mathcal N(\boldsymbol\mu,\boldsymbol\Sigma)\) then \(\mathbf{Ax}+\mathbf{b}\sim\mathcal N(\mathbf{A}\boldsymbol\mu+\mathbf{b},\mathbf{A}\boldsymbol\Sigma\mathbf{A}^\top)\). Sampling uses exactly this: \(\mathbf{x}=\boldsymbol\mu+\mathbf{L}\boldsymbol\epsilon\) with \(\mathbf{LL}^\top=\boldsymbol\Sigma\), \(\boldsymbol\epsilon\sim\mathcal N(0,\mathbf I)\). Hold onto that: it is the reparameterization trick ([[vae]]).</p>

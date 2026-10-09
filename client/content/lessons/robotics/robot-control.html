@@ -1,0 +1,68 @@
+<h3>Feedback in one picture</h3>
+<p>A controller measures the <b>error</b> between where the system is and where it should be, \(e(t)=r(t)-y(t)\), and computes a command \(u(t)\) that shrinks it. Feedback is what lets an imperfect motor on a wobbly arm still hit its target: the controller keeps correcting whatever the model got wrong.</p>
+
+<h3>PID control</h3>
+$$u(t)=K_p\,e(t)+K_i\int_0^t e(\tau)\,d\tau+K_d\,\frac{de(t)}{dt}$$
+<ul>
+<li><b>Proportional:</b> push harder the further you are from the target. Alone it often oscillates and, against constant disturbances like gravity, leaves a <b>steady-state error</b>.</li>
+<li><b>Integral:</b> accumulates past error and keeps pushing until it is exactly zero. Too much causes overshoot and slow oscillation; when the actuator saturates, the integral keeps growing (<b>windup</b>), so clamp it.</li>
+<li><b>Derivative:</b> reacts to how fast the error changes, acting like damping. It amplifies sensor noise, so it is usually low-pass filtered.</li>
+</ul>
+<!--FIG:pid_response-->
+<pre><code class="language-python">class PID:
+    def __init__(self, kp, ki, kd, u_min=-1.0, u_max=1.0):
+        self.kp, self.ki, self.kd = kp, ki, kd
+        self.u_min, self.u_max = u_min, u_max
+        self.integral, self.prev_error = 0.0, None
+
+    def __call__(self, target, measured, dt):
+        e = target - measured
+        d = 0.0 if self.prev_error is None else (e - self.prev_error) / dt
+        self.prev_error = e
+        u = self.kp * e + self.ki * (self.integral + e * dt) + self.kd * d
+        if self.u_min &lt; u &lt; self.u_max:            # anti-windup: integrate only when not saturated
+            self.integral += e * dt
+        return min(max(u, self.u_min), self.u_max)
+
+# Simulate a cart (mass 1, friction 0.6) driven to position 1.0
+pid, x, v, dt = PID(6.0, 2.0, 2.2, -10, 10), 0.0, 0.0, 0.01
+for _ in range(1000):
+    u = pid(1.0, x, dt)
+    v += (u - 0.6 * v) * dt
+    x += v * dt
+print(round(x, 3))       # close to 1.0</code></pre>
+<p><b>Practical tuning:</b> start with \(K_i=K_d=0\); raise \(K_p\) until the response is fast with mild oscillation; add \(K_d\) to damp it; add a small \(K_i\) to remove the remaining offset. Most industrial loops, from drone attitude to motor current, are PID.</p>
+
+<h3>State-space models and stability</h3>
+<p>Many systems are modelled as \(\dot{\mathbf x}=\mathbf A\mathbf x+\mathbf B\mathbf u\) (discrete time: \(\mathbf x_{t+1}=\mathbf A\mathbf x_t+\mathbf B\mathbf u_t\)). With state feedback \(\mathbf u=-\mathbf K\mathbf x\), the closed loop is \(\mathbf x_{t+1}=(\mathbf A-\mathbf B\mathbf K)\mathbf x_t\), which is stable exactly when every eigenvalue of \(\mathbf A-\mathbf B\mathbf K\) has magnitude below 1: the same eigenvalue argument as exploding gradients in [[rnn]].</p>
+
+<h3>LQR: optimal feedback</h3>
+<p>The linear–quadratic regulator chooses \(\mathbf K\) to minimize a cost that trades tracking error against effort:</p>
+$$J=\sum_{t=0}^{\infty}\mathbf x_t^\top\mathbf Q\mathbf x_t+\mathbf u_t^\top\mathbf R\mathbf u_t,\qquad \mathbf K=(\mathbf R+\mathbf B^\top\mathbf P\mathbf B)^{-1}\mathbf B^\top\mathbf P\mathbf A$$
+<p>where \(\mathbf P\) solves the discrete algebraic Riccati equation \(\mathbf P=\mathbf Q+\mathbf A^\top\mathbf P\mathbf A-\mathbf A^\top\mathbf P\mathbf B(\mathbf R+\mathbf B^\top\mathbf P\mathbf B)^{-1}\mathbf B^\top\mathbf P\mathbf A\), found by iterating it to convergence. Large \(\mathbf Q\) means "track aggressively"; large \(\mathbf R\) means "save energy". LQR is the Bellman equation ([[rl-foundations]]) solved in closed form for linear dynamics and quadratic costs.</p>
+<pre><code class="language-python">import numpy as np
+
+def lqr(A, B, Q, R, iters=500):
+    P = Q.copy()
+    for _ in range(iters):                       # value iteration on the Riccati equation
+        K = np.linalg.solve(R + B.T @ P @ B, B.T @ P @ A)
+        P = Q + A.T @ P @ (A - B @ K)
+    return K
+
+dt = 0.05
+A = np.array([[1, dt], [0, 1]]); B = np.array([[0], [dt]])     # double integrator
+K = lqr(A, B, Q=np.diag([10.0, 1.0]), R=np.array([[0.1]]))
+print(K, np.abs(np.linalg.eigvals(A - B @ K)))                 # all magnitudes &lt; 1: stable</code></pre>
+
+<h3>Model predictive control</h3>
+<p>MPC solves a short-horizon optimization at every time step: predict the next \(N\) steps with the model, choose the control sequence minimizing cost subject to constraints (motor limits, obstacles, lane boundaries), apply only the <b>first</b> control, then repeat with the new measurement. It handles constraints naturally and is used in autonomous driving, legged robots and process control. The cost is computation: an optimization problem every few milliseconds.</p>
+
+<h3>Where learning fits</h3>
+<p>Classical controllers are reliable and analysable but need good models. Learning helps where models are hard to write: RL policies for agile legged locomotion trained in simulation, learned dynamics models used inside MPC, and residual policies that learn a correction on top of a classical controller. In practice, hybrid systems are common: a learned high-level policy outputs targets, and low-level PID or impedance controllers track them at high frequency.</p>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>A drone holds altitude with a P controller but always hovers 20 cm low. Which term fixes this and why?
+<details><summary>Solution</summary><div>The integral term. Gravity is a constant disturbance; a P controller needs a nonzero error to produce the thrust that cancels it. The integral accumulates that error until the offset disappears.</div></details></li>
+<li>Is \(x_{t+1}=1.2x_t+u_t\) with \(u_t=-0.5x_t\) stable?
+<details><summary>Solution</summary><div>The closed loop is \(x_{t+1}=0.7x_t\); \(|0.7|\lt1\), so yes, the state decays to zero.</div></details></li>
+</ol></div>

@@ -1,0 +1,182 @@
+@lesson classic-nlp
+Q: In TF-IDF, which words get the highest weight in a document?
+- Words frequent in every document
+* Words frequent in this document but rare across the corpus
+- The longest words
+- Stopwords
+> \(\text{tf}\cdot\log(N/\text{df})\): high term frequency and high inverse document frequency.
+
+Q: A term appears in 10 of 1,000 documents. What is its IDF with natural log, \(\ln(N/\text{df})\)? (two decimals)
+= 4.61 ±0.02
+> \(\ln(100)\approx4.61\).
+
+Q: Perplexity of a language model is…
+* the exponential of the average negative log-likelihood per token
+- the number of parameters
+- the accuracy on next-word prediction
+- the size of the vocabulary
+> Lower perplexity means the model is less surprised by the test text.
+
+Q: TF-IDF with logistic regression is still a strong baseline for text classification.
+= true
+> It is fast, interpretable and often within a few points of fine-tuned models on topic and sentiment tasks.
+
+@lesson word-embeddings
+Q: What problem does negative sampling solve in word2vec?
+- Out-of-vocabulary words
+* The softmax denominator over the whole vocabulary is too expensive
+- Polysemy
+- Overfitting
+> It replaces the full softmax with a few binary "real vs noise" comparisons per example.
+
+Q: Which limitation do static word embeddings have that contextual embeddings fix?
+* One vector per word, so "bank" (river) and "bank" (money) share a vector
+- They are too large
+- They cannot be trained on GPUs
+- They only work for English
+> Contextual models give each occurrence its own vector depending on the sentence.
+
+Q: In embedding space, \(\mathbf v_{\text{king}}-\mathbf v_{\text{man}}+\mathbf v_{\text{woman}}\) lands near which word?
+= queen
+> Relationships such as gender are approximately consistent directions in the space.
+
+@lesson tokenization
+Q: What does each step of byte-pair encoding training do?
+- Splits the longest word in half
+* Merges the most frequent adjacent pair of symbols into a new symbol
+- Removes the rarest word
+- Assigns random IDs
+> Repeating the merge builds a vocabulary of frequent subwords up to the target size.
+
+Q: Why do byte-level tokenizers start from the 256 byte values?
+* Any text in any script can be encoded, so there is no unknown token
+- Bytes are faster to type
+- It makes the vocabulary smaller than 256
+- To remove Unicode
+> Every string is a sequence of bytes, so coverage is guaranteed.
+
+Q: Languages underrepresented in tokenizer training typically need more tokens per word. Which consequences follow? (select all)
+* Higher API cost for the same text
+* Less text fits in the context window
+* Slower generation per word
+- Better accuracy automatically
+> Token count drives cost, context use and latency.
+
+@lesson pretrained-nlp
+Q: Which model family is pretrained with masked language modelling?
+* BERT-style encoders
+- GPT-style decoders
+- n-gram models
+- word2vec
+> BERT hides about 15% of input tokens and predicts them from both sides.
+
+Q: Which is the best fit for named-entity recognition on a new domain with a few thousand labelled sentences?
+- Training a GPT from scratch
+* Fine-tuning a pretrained encoder with a token-classification head
+- TF-IDF on whole documents
+- k-means
+> Token-level heads on contextual embeddings are the standard, data-efficient approach.
+
+Q: A typical learning rate for fine-tuning BERT-sized encoders is around…
+- 1.0
+- 0.1
+* 2e-5
+- 1e-10
+> Small rates preserve the pretrained knowledge; a few epochs usually suffice.
+
+@lesson speech
+Q: What input representation do most speech models use?
+- Raw text
+* Log-mel spectrograms
+- MFCCs only
+- Images of waveforms
+> Short-time Fourier transforms mapped to the mel scale and log-compressed.
+
+Q: What problem does CTC loss solve?
+* The unknown alignment between many audio frames and fewer output characters
+- Background noise
+- Speaker identification
+- Tokenization of text
+> CTC sums the probability of every frame-level path that collapses to the target.
+
+Q: A reference has 10 words; the hypothesis has 1 substitution, 1 deletion and 1 insertion. What is the WER?
+= 0.3 ±0.001
+> \((S+D+I)/N=3/10\).
+
+@lesson info-extraction
+Q: In BIO tagging, what does B-ORG mark?
+* The first token of an organization name
+- Any token inside an organization
+- A token outside any entity
+- The last token of an organization
+> B begins an entity, I continues it, O is outside.
+
+Q: Why add a CRF layer on top of a BERT encoder for NER?
+- To make inference faster
+* To score whole tag sequences and avoid invalid transitions like O → I-ORG
+- To replace the encoder
+- To add more labels
+> Learned transition scores plus Viterbi decoding give consistent sequences.
+
+Q: What is the time complexity of Viterbi decoding for T tokens and K tags?
+- O(T + K)
+* O(T K²)
+- O(K^T)
+- O(T² K)
+> Dynamic programming considers every previous tag for every current tag at each step.
+
+Q: When extracting fields with an LLM, which practices matter? (select all)
+* Validate the output against a JSON schema
+* Measure field-level accuracy on a labelled sample
+* Route low-confidence or invalid cases to a human
+- Trust the output because it looks plausible
+> LLMs can return confident but wrong values.
+
+@lesson arabic-nlp
+Q: Which normalization steps are common for Arabic search? (select all)
+* Removing diacritics (tashkeel)
+* Unifying alef variants (أ إ آ → ا)
+* Removing the tatweel stretching character
+- Deleting every vowel letter
+> These remove spelling variation that carries little meaning for retrieval.
+
+Q: In Arabizi, which digit usually stands for the letter ع?
+= 3
+> Arabizi uses digits that look like Arabic letters: 3 for ع, 7 for ح, 9 for ق.
+
+Q: Why are character n-grams effective for dialects like Darija?
+* Unstandardized spellings of the same word still share many character n-grams
+- Dialects have no words
+- They remove all ambiguity
+- They need no training data
+> Word-level features would see each spelling as unrelated.
+
+Q: An English-centric tokenizer usually splits Arabic into more tokens per word than English.
+= true
+> That raises cost and shortens the effective context; measure it on your data.
+
+@lesson exam
+Q: You need sentence embeddings for semantic search in Arabic, French and English. What should you use?
+- TF-IDF trained on English only
+* A multilingual sentence-embedding model, checked on your own queries per language
+- word2vec trained on English Wikipedia
+- A GPT model's last-token logits
+> Multilingual embedders map meaning across languages into one space; quality varies, so evaluate per language.
+
+Q: Which pairs are correctly matched? (select all)
+* BERT ↔ bidirectional encoder, masked LM
+* GPT ↔ causal decoder, next-token prediction
+* Whisper ↔ encoder–decoder for speech
+- word2vec ↔ contextual embeddings
+> word2vec gives one static vector per word.
+
+Q: A model gets 90% accuracy on MSA test data but 60% on Darija comments. What should you do first?
+* Collect and label in-domain dialect data, then evaluate and fine-tune per segment
+- Report the average and ship
+- Remove the Darija comments
+- Increase the model's temperature
+> Averages hide failing segments; dialect data closes the gap.
+
+Q: What is the WER if the hypothesis has 2 substitutions and 2 deletions against a 20-word reference?
+= 0.2 ±0.001
+> \((2+2+0)/20=0.2\).

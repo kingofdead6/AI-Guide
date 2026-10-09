@@ -1,0 +1,106 @@
+@lesson mlops
+Q: What is the difference between data drift and concept drift?
+* Data drift: input distributions change; concept drift: the relationship between inputs and labels changes
+- They are the same thing
+- Concept drift only affects images
+- Data drift only happens in training
+> Detect data drift on inputs immediately; concept drift needs labels, which often arrive late.
+
+Q: A population stability index above about 0.2 usually indicates…
+- no change
+* a significant distribution shift worth investigating
+- a perfect model
+- an empty dataset
+> PSI compares binned proportions between a reference and the current window.
+
+Q: Which practices make training reproducible? (select all)
+* Versioning code, data and environment
+* Fixing random seeds
+* Logging configs, metrics and artifacts per run
+- Retraining by hand in a notebook without notes
+> You should be able to say exactly which data and code produced a model.
+
+Q: A shadow deployment serves the new model's predictions to users immediately.
+= false
+> In shadow mode the new model runs on live traffic but its outputs are only logged and compared, not served.
+
+@lesson responsible-ai
+Q: Which fairness criterion asks for equal true positive rates across groups?
+- Demographic parity
+* Equal opportunity
+- Calibration
+- Accuracy parity
+> Equalized odds additionally requires equal false positive rates.
+
+Q: When base rates differ between groups, can a classifier satisfy calibration and equalized odds at the same time?
+* In general, no; except in degenerate cases these criteria conflict
+- Yes, always
+- Only with deep learning
+- Only if accuracy is 100%
+> Choosing among fairness criteria is partly a values decision.
+
+Q: SHAP values for one prediction sum to…
+* the prediction minus the baseline (expected) prediction
+- 1
+- 0
+- the number of features
+> They attribute the difference from the baseline across features.
+
+Q: What does DP-SGD do to each example's gradient before adding noise?
+- Squares it
+* Clips it to a maximum norm
+- Removes it
+- Doubles it
+> Clipping bounds each person's influence so calibrated noise can hide it.
+
+@lesson data-centric
+Q: Two annotators agree 80% of the time; agreement by chance would be 50%. What is Cohen's κ?
+= 0.6 ±0.001
+> \(\kappa=(0.8-0.5)/(1-0.5)=0.6\).
+
+Q: What does active learning select for labelling?
+* The examples the current model is least certain about
+- Random examples only
+- The easiest examples
+- Examples already labelled
+> Labelling uncertain examples tends to improve the model fastest per label.
+
+Q: How can you find likely label errors in a dataset?
+* Flag examples where out-of-fold predictions confidently disagree with the given label
+- Delete all examples with long text
+- Train on the test set
+- Use a higher learning rate
+> This is the idea behind confident learning.
+
+Q: Synthetic data should be validated on real data before you trust gains from it.
+= true
+> Generated examples can be easy, repetitive or subtly wrong.
+
+@lesson exam
+Q: A model's accuracy holds steady overall but drops sharply for one region after launch. What should monitoring have included?
+* Per-segment metrics with alerts
+- Only overall accuracy
+- Only latency
+- Nothing; this is unavoidable
+> Aggregates hide failing slices.
+
+Q: Which artifacts belong in a model release? (select all)
+* The model version and the data version it was trained on
+* An evaluation report including subgroup results
+* A model card with intended use and limitations
+- The developer's personal notes only
+> These make the release auditable and safe to roll back.
+
+Q: Your churn model's labels arrive 30 days after prediction. How can you detect problems sooner?
+* Monitor input and prediction distributions for drift in the meantime
+- Wait 30 days
+- Retrain daily on unlabelled data
+- Turn off the model
+> Drift in inputs or predictions is an early warning before labels confirm it.
+
+Q: Inter-annotator κ on your task is 0.3. What does that imply for model accuracy targets?
+* The labels themselves are ambiguous; fix guidelines before chasing high accuracy
+- Models can easily exceed human agreement
+- The model is broken
+- Nothing
+> Disagreeing labels cap measurable performance.

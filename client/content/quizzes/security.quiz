@@ -1,0 +1,132 @@
+@lesson adversarial-examples
+Q: What is the FGSM perturbation?
+* \(\epsilon\cdot\mathrm{sign}(\nabla_{\mathbf x}\mathcal L)\)
+- \(-\epsilon\nabla_\theta\mathcal L\)
+- Random Gaussian noise
+- \(\epsilon\mathbf x\)
+> One step in the input direction that increases the loss, scaled to an \(\ell_\infty\) budget.
+
+Q: A linear model has \(\|\mathbf w\|_1=50\). By how much can an \(\ell_\infty\) perturbation with \(\epsilon=0.01\) change its score?
+= 0.5 ±0.001
+> \(\epsilon\|\mathbf w\|_1=0.5\). Small per-feature changes add up in high dimensions.
+
+Q: Which defence has held up best against strong adaptive attacks?
+* Adversarial training with PGD
+- JPEG compression of inputs
+- Hiding the gradients
+- Adding a detector network
+> Preprocessing and detection defences are frequently broken by attackers who know about them.
+
+Q: Adversarial examples crafted on one model often fool other models trained on similar data.
+= true
+> Transferability enables black-box attacks through substitute models.
+
+@lesson poisoning-privacy
+Q: What makes a backdoor attack hard to notice with ordinary evaluation?
+* The model behaves normally unless a specific trigger appears
+- It lowers accuracy on every input
+- It deletes the training data
+- It only affects training speed
+> Clean-test accuracy stays high, so dedicated scanning and trusted data are needed.
+
+Q: A membership-inference attack reaches 0.52 accuracy. What does that suggest?
+* Little leakage: close to random guessing
+- Severe leakage
+- The model is overfitting heavily
+- The attack is perfect
+> 0.5 is chance level for balanced member/non-member sets.
+
+Q: Which practices reduce training-data memorization and leakage? (select all)
+* Deduplicating training data
+* Differentially private training
+* Removing personal data before training
+- Training many more epochs on the same data
+> Overtraining increases memorization.
+
+Q: In \((\epsilon,\delta)\)-differential privacy, a smaller \(\epsilon\) means…
+* stronger privacy
+- weaker privacy
+- faster training
+- no noise
+> The model's behaviour can depend less on any one person's data.
+
+@lesson llm-security
+Q: An agent summarizes a web page that contains hidden text telling it to email the user's files. What is this?
+* Indirect prompt injection
+- A jailbreak by the user
+- Data poisoning
+- Model extraction
+> The malicious instructions arrive through content the model reads, not from the user.
+
+Q: Which controls belong outside the model? (select all)
+* Tool permission scopes and recipient allowlists
+* Human confirmation for irreversible actions
+* Access control on which documents can be retrieved
+- Asking the model in the system prompt to be careful
+> Prompts help but cannot be the guarantee.
+
+Q: Why is rendering arbitrary markdown images from model output risky?
+* An injected image URL can carry private data to an attacker's server when it loads
+- Images slow down the page
+- Markdown is insecure by design
+- It costs more tokens
+> Image fetching is a classic exfiltration channel.
+
+Q: Model output passed into a SQL query or shell should be treated as untrusted input.
+= true
+> Otherwise prompt injection becomes SQL injection or remote code execution.
+
+@lesson ai-governance
+Q: Which document states a model's intended use, out-of-scope uses, evaluation results by subgroup and known limitations?
+* A model card
+- A README for the API
+- A changelog
+- A license
+> Datasheets do the same for datasets; system cards for whole LLM applications.
+
+Q: Which of these systems typically needs the heaviest controls?
+- A playlist recommender
+- An internal code-search tool
+* A CV-screening model used in hiring
+- A spell checker
+> It affects access to jobs, can encode discrimination, and is commonly treated as high-risk.
+
+Q: The EU AI Act takes a risk-based approach with different obligations for different categories of systems.
+= true
+> Some practices are prohibited, high-risk uses carry heavy obligations, and others have transparency duties.
+
+Q: Which elements belong in a pre-launch risk assessment? (select all)
+* Who is affected, including non-users
+* How harmful each kind of error is
+* Mitigations with owners
+* Go / no-go metrics decided in advance
+> Write it down before building and revisit it before launch.
+
+@lesson exam
+Q: A content filter blocks toxic comments, but attackers bypass it with misspellings and invisible Unicode characters. What is the best response? (select all)
+* Normalize text (Unicode, homoglyphs) before classifying
+* Add adversarial examples to training and evaluation
+* Keep human review for borderline cases
+- Rely on the original filter and ignore the bypasses
+> Attackers adapt; defence needs normalization, adversarial data and humans in the loop.
+
+Q: You download a pretrained model checkpoint from an unknown source. What should you prefer?
+* A safetensors file from a verified source with a checked hash
+- A pickle file from any mirror
+- Running it on your laptop with all credentials loaded
+- Ignoring the file format
+> Pickle-based checkpoints can execute code on load.
+
+Q: Which statement about prompt injection is accurate?
+* No known filter blocks it completely, so systems must limit what a successful injection can do
+- A strong system prompt prevents it entirely
+- It only affects small models
+- It requires access to model weights
+> Defence in depth is the realistic goal.
+
+Q: A team trains with DP-SGD and accuracy drops most for a rare subgroup. Why is this expected?
+* Noise and clipping hurt most where there are few examples to average over
+- DP-SGD ignores subgroups
+- The subgroup has more data
+- DP always improves accuracy
+> Privacy noise is relatively larger for small groups.

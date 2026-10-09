@@ -1,0 +1,71 @@
+<h3>The robotics stack</h3>
+<p>A robot repeatedly answers four questions: <b>where am I</b> (state estimation), <b>where should I go</b> (planning), <b>how do I get there</b> (control), and <b>what is around me</b> (perception). All of them are written in the language of coordinate frames and transforms, which is this lesson's subject.</p>
+
+<h3>Rotations</h3>
+<p>A rotation in 2D by angle \(\theta\) is the orthogonal matrix</p>
+$$\mathbf R(\theta)=\begin{pmatrix}\cos\theta&amp;-\sin\theta\\ \sin\theta&amp;\cos\theta\end{pmatrix},\qquad \mathbf R^\top\mathbf R=\mathbf I,\quad \det\mathbf R=1,\quad \mathbf R(\alpha)\mathbf R(\beta)=\mathbf R(\alpha+\beta)$$
+<p>In 3D, rotation matrices form the group \(SO(3)\): \(3\times3\), orthogonal, determinant 1. Because \(\mathbf R^{-1}=\mathbf R^\top\), undoing a rotation is just a transpose. Other representations you will meet:</p>
+<table>
+<tr><th>Representation</th><th>Numbers</th><th>Pros</th><th>Cons</th></tr>
+<tr><td>Rotation matrix</td><td>9</td><td>Composes by multiplication, no singularities</td><td>Redundant; numerical drift breaks orthogonality</td></tr>
+<tr><td>Euler angles (roll, pitch, yaw)</td><td>3</td><td>Human-readable</td><td>Gimbal lock; order conventions vary</td></tr>
+<tr><td>Axis–angle</td><td>3</td><td>Minimal, intuitive</td><td>Awkward to compose</td></tr>
+<tr><td>Unit quaternion \(q=(w,x,y,z)\)</td><td>4</td><td>Compact, smooth interpolation (slerp), no gimbal lock</td><td>\(q\) and \(-q\) are the same rotation</td></tr>
+</table>
+
+<h3>Homogeneous transforms</h3>
+<p>A pose combines a rotation \(\mathbf R\) and a translation \(\mathbf t\). Writing points with an extra 1 lets one matrix do both:</p>
+$$\mathbf T=\begin{pmatrix}\mathbf R&amp;\mathbf t\\ \mathbf 0^\top&amp;1\end{pmatrix}\in SE(3),\qquad \begin{pmatrix}\mathbf p'\\1\end{pmatrix}=\mathbf T\begin{pmatrix}\mathbf p\\1\end{pmatrix}=\begin{pmatrix}\mathbf R\mathbf p+\mathbf t\\1\end{pmatrix}$$
+$$\mathbf T^{-1}=\begin{pmatrix}\mathbf R^\top&amp;-\mathbf R^\top\mathbf t\\ \mathbf 0^\top&amp;1\end{pmatrix},\qquad {}^{A}\mathbf T_{C}={}^{A}\mathbf T_{B}\,{}^{B}\mathbf T_{C}$$
+<p>The chaining rule is the workhorse. A camera on a robot arm sees an object at \({}^{\text{cam}}\mathbf p\); the arm knows \({}^{\text{base}}\mathbf T_{\text{cam}}\) from its joint angles; so the object in the base frame is \({}^{\text{base}}\mathbf T_{\text{cam}}\,{}^{\text{cam}}\mathbf p\). Systems like ROS 2 keep a whole tree of these frames (the <code>tf</code> tree) and compose them for you.</p>
+
+<h3>Forward kinematics</h3>
+<!--FIG:two_link_arm-->
+<p>Forward kinematics maps joint angles to the end-effector pose. For the two-link planar arm:</p>
+$$x=l_1\cos\theta_1+l_2\cos(\theta_1+\theta_2),\qquad y=l_1\sin\theta_1+l_2\sin(\theta_1+\theta_2)$$
+<p>For a general serial arm, multiply one transform per joint: \(\mathbf T_{\text{ee}}=\mathbf T_1(\theta_1)\,\mathbf T_2(\theta_2)\cdots\mathbf T_n(\theta_n)\). The Denavit–Hartenberg convention is a standard recipe for writing each \(\mathbf T_i\) from four parameters.</p>
+
+<h3>Inverse kinematics</h3>
+<p>Inverse kinematics goes the other way: given a target position, find joint angles. For the two-link arm the law of cosines gives a closed form:</p>
+$$\cos\theta_2=\frac{x^2+y^2-l_1^2-l_2^2}{2l_1l_2},\qquad \theta_1=\operatorname{atan2}(y,x)-\operatorname{atan2}\!\big(l_2\sin\theta_2,\;l_1+l_2\cos\theta_2\big)$$
+<p>There are usually two solutions (elbow up and elbow down, from \(\pm\theta_2\)), and none when the target is out of reach (\(|\cos\theta_2|\gt1\)). Real arms with 6–7 joints rarely have neat closed forms, so IK is solved numerically with the Jacobian.</p>
+
+<h3>The Jacobian and differential kinematics</h3>
+<p>The Jacobian \(\mathbf J(\boldsymbol\theta)=\partial\mathbf x/\partial\boldsymbol\theta\) maps joint velocities to end-effector velocities, \(\dot{\mathbf x}=\mathbf J\dot{\boldsymbol\theta}\). Numerical IK repeatedly takes a step that reduces the position error \(\mathbf e=\mathbf x_{\text{target}}-\mathbf x(\boldsymbol\theta)\):</p>
+$$\Delta\boldsymbol\theta=\mathbf J^\top(\mathbf J\mathbf J^\top+\lambda^2\mathbf I)^{-1}\mathbf e\qquad\text{(damped least squares)}$$
+<p>It is the same idea as Gauss–Newton optimization, with damping \(\lambda\) for stability near <b>singularities</b>: configurations where \(\mathbf J\) loses rank (an outstretched arm cannot move further outward), so some directions need infinite joint speed.</p>
+<pre><code class="language-python">import numpy as np
+L1, L2 = 1.0, 0.8
+
+def fk(th):
+    t1, t2 = th
+    return np.array([L1*np.cos(t1) + L2*np.cos(t1+t2), L1*np.sin(t1) + L2*np.sin(t1+t2)])
+
+def jacobian(th):
+    t1, t2 = th
+    return np.array([[-L1*np.sin(t1) - L2*np.sin(t1+t2), -L2*np.sin(t1+t2)],
+                     [ L1*np.cos(t1) + L2*np.cos(t1+t2),  L2*np.cos(t1+t2)]])
+
+def ik(target, th=np.array([0.3, 0.3]), lam=0.05, iters=200):
+    for _ in range(iters):
+        e = target - fk(th)
+        if np.linalg.norm(e) &lt; 1e-6:
+            break
+        J = jacobian(th)
+        th = th + J.T @ np.linalg.solve(J @ J.T + lam**2 * np.eye(2), e)
+    return th
+
+th = ik(np.array([1.2, 0.9]))
+print(th, fk(th))          # angles that put the hand at (1.2, 0.9)</code></pre>
+
+<h3>Mobile robots</h3>
+<p>A wheeled robot's pose is \((x, y, \theta)\). A differential-drive robot (two powered wheels) with forward speed \(v\) and turn rate \(\omega\) moves as</p>
+$$\dot x=v\cos\theta,\qquad \dot y=v\sin\theta,\qquad \dot\theta=\omega$$
+<p>It cannot move sideways: that is a <b>nonholonomic</b> constraint, and it is why parallel parking needs a planner. Integrating wheel speeds over time (<b>odometry</b>) drifts, which is why we need the state estimation of the next lesson.</p>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>Rotate the point (1, 0) by 90° and then translate by (2, 3). Where does it end up?
+<details><summary>Solution</summary><div>Rotation gives (0, 1); adding the translation gives (2, 4).</div></details></li>
+<li>With \(l_1=l_2=1\), can the arm reach (2.5, 0)?
+<details><summary>Solution</summary><div>No. The reachable region is a disc of radius \(l_1+l_2=2\); \(\cos\theta_2\) would be \((6.25-2)/2=2.125\gt1\).</div></details></li>
+</ol></div>

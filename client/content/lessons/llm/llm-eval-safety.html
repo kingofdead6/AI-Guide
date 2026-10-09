@@ -1,0 +1,30 @@
+<h3>Measuring capability</h3>
+<ul>
+<li><b>Benchmarks</b>: knowledge (multiple choice), math, coding, long-context retrieval, tool use, agentic tasks. Beware <b>contamination</b> (test items leaked into training data) and saturation.</li>
+<li><b>Coding pass@k</b>, estimated without bias from \(n\) samples of which \(c\) pass:
+$$\text{pass@}k=1-\binom{n-c}{k}\Big/\binom{n}{k}$$</li>
+<li><b>Pairwise human preference</b> (arena-style) with Bradley–Terry / Elo ratings, and LLM-as-judge with calibrated rubrics.</li>
+<li>For your own product, the only evaluation that really counts is a test set built from your real use cases ([[using-llms]]).</li>
+</ul>
+<h3>Safety</h3>
+<p>Risks include harmful assistance, hallucination, bias, privacy leakage, <b>jailbreaks</b> (prompts that bypass safety training) and <b>prompt injection</b> (instructions hidden in documents, web pages or tool outputs that hijack an agent). Mitigations stack: safety-focused training (RLHF, constitution-style AI feedback), input/output classifiers, least-privilege tools, human confirmation for consequential actions, red-teaming before release, and monitoring after.</p>
+<h3>Interpretability</h3>
+<ul>
+<li><b>Probing:</b> train a linear classifier on hidden states to test whether information (e.g. sentiment, syntax) is linearly encoded.</li>
+<li><b>Logit lens:</b> apply the output head to intermediate layers to see how the prediction forms layer by layer.</li>
+<li><b>Activation patching:</b> copy activations from one run into another to find which components causally matter for a behaviour.</li>
+<li><b>Sparse autoencoders:</b> neurons are polysemantic, so learn an overcomplete dictionary of sparse "features" from activations:
+$$\mathcal L=\|\mathbf x-\mathbf W_d\,\mathbf f\|_2^2+\lambda\|\mathbf f\|_1,\qquad \mathbf f=\operatorname{ReLU}(\mathbf W_e\mathbf x+\mathbf b_e)$$
+Many learned features turn out to be human-interpretable concepts, and amplifying them can <b>steer</b> behaviour.</li>
+</ul>
+<pre><code class="language-python">from math import comb
+def pass_at_k(n, c, k):
+    return 1.0 if n - c &lt; k else 1 - comb(n - c, k) / comb(n, k)
+print(pass_at_k(n=20, c=3, k=1), pass_at_k(20, 3, 5))   # 0.15, ≈0.60
+
+class SparseAutoencoder(nn.Module):
+    def __init__(self, d_model, n_features):
+        super().__init__(); self.enc = nn.Linear(d_model, n_features); self.dec = nn.Linear(n_features, d_model)
+    def forward(self, x, l1=1e-3):
+        f = torch.relu(self.enc(x)); x_hat = self.dec(f)
+        return F.mse_loss(x_hat, x) + l1 * f.abs().sum(-1).mean(), f</code></pre>

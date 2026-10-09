@@ -1,0 +1,112 @@
+@lesson gpus
+Q: Batch-1 decoding of a 7B model in bf16 on a GPU with 3 TB/s of memory bandwidth: what is the best-case tokens per second? (nearest 10)
+= 214 ±15
+> Each token reads all 14 GB of weights: 3000 GB/s ÷ 14 GB ≈ 214 tokens/s at most.
+
+Q: Which operations are typically memory-bound? (select all)
+* Elementwise additions and activations
+* Layer normalization and softmax
+* Small-batch LLM decoding
+- Large matrix multiplications
+> Large matmuls do many FLOPs per byte and are compute-bound.
+
+Q: What does kernel fusion improve?
+* It reduces memory traffic by doing several operations on data while it is on-chip
+- It increases model accuracy
+- It adds more GPU cores
+- It reduces the number of parameters
+> FlashAttention and torch.compile both rely on fusion.
+
+Q: What is MFU?
+* Achieved useful model FLOP/s divided by the hardware's peak FLOP/s
+- Memory free on the GPU
+- The number of GPUs used
+- Mean forward latency
+> Good large-scale training runs reach roughly 40–60%.
+
+@lesson distributed
+Q: In data parallelism, what is communicated between GPUs every step?
+- The training data
+* Gradients, averaged with an all-reduce
+- The model architecture
+- Nothing
+> Each GPU holds a full model copy and processes a different slice of the batch.
+
+Q: Which ZeRO stage also shards the model weights themselves (equivalent to FSDP)?
+- Stage 1
+- Stage 2
+* Stage 3
+- None
+> Stage 1 shards optimizer states, stage 2 adds gradients, stage 3 adds weights.
+
+Q: A pipeline has 4 stages and 12 micro-batches. What fraction of time is the bubble, \((p-1)/(m+p-1)\)? (three decimals)
+= 0.2 ±0.002
+> \(3/15=0.2\). More micro-batches shrink the bubble.
+
+Q: Why is tensor parallelism usually kept within a single node?
+* It needs very fast links because activations are exchanged every layer
+- It cannot use GPUs
+- It needs no communication
+- It only works for CNNs
+> NVLink-class bandwidth inside a node makes per-layer collectives affordable.
+
+@lesson ml-system-design
+Q: What should come first in an ML system design answer?
+* Clarifying the goal, users, scale and constraints
+- Choosing the neural architecture
+- Writing code
+- Picking a cloud provider
+> The design depends on latency, scale and what success means.
+
+Q: 100 million daily users make 20 requests each. Roughly what is the average QPS? (nearest thousand)
+= 23000 ±1000
+> \(2\times10^9/86{,}400\approx23{,}000\) requests per second; plan for peaks of 2–3×.
+
+Q: Which signals indicate seniority in a design interview? (select all)
+* Starting with a simple baseline before a complex model
+* Explicit trade-offs between latency, quality and cost
+* A plan for monitoring and iteration after launch
+- Naming the biggest model available
+> Interviewers listen for judgement, not buzzwords.
+
+@lesson case-studies
+Q: For payment fraud detection, why choose the threshold by expected cost?
+* Missed fraud and blocked good customers have very different costs
+- Thresholds should always be 0.5
+- To maximize accuracy
+- Because AUC requires it
+> Expected cost (and review capacity) define the right operating point.
+
+Q: In feed recommendation, why optimize for long-term satisfaction rather than clicks alone?
+* Click optimization rewards clickbait and can hurt retention
+- Clicks cannot be measured
+- Satisfaction is easier to compute
+- Clicks are always noise
+> Multi-objective ranking balances engagement with quality signals.
+
+Q: In content moderation, recall targets should be higher for the most severe harm categories.
+= true
+> Missing severe content is far costlier than extra review for less severe categories.
+
+@lesson exam
+Q: Inference for a 13B model is too slow at batch size 1. Which changes raise throughput the most? (select all)
+* Continuous batching of concurrent requests
+* Weight quantization
+* Speculative decoding
+- Adding more CPU RAM
+> Decoding is memory-bound; batching and fewer bytes per weight help directly.
+
+Q: A 7B model needs about 112 GB for training state with Adam. With ZeRO-3 across 8 GPUs, roughly how many GB per GPU (before activations)?
+= 14 ±1
+> 112 / 8 = 14 GB when weights, gradients and optimizer states are all sharded.
+
+Q: What is the arithmetic intensity of adding two fp16 vectors (1 FLOP per element, 6 bytes moved)? (two decimals)
+= 0.17 ±0.01
+> 1/6 ≈ 0.17 FLOP per byte: firmly memory-bound.
+
+Q: In a recommendation system design, where should the heavy model with rich cross features run?
+* In the ranking stage, on a few hundred candidates
+- On every item in the catalogue
+- In the data pipeline only
+- Nowhere
+> Candidate generation narrows the set first.

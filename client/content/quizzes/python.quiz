@@ -1,0 +1,204 @@
+# Python for AI — graded questions
+# Format: "Q:" prompt, "- " wrong option, "* " correct option, "= " answer (number ±tol, true/false, or text | alternatives), "> " explanation.
+
+@lesson py-essentials
+Q: What does `7 // 2` evaluate to in Python?
+= 3
+> `//` is floor division, so 7 // 2 is 3. Plain `/` always returns a float: 7 / 2 is 3.5.
+
+Q: Why is `def add(item, items=[])` a classic bug?
+- Lists cannot be used as default arguments
+* The default list is created once and shared between all calls
+- The list is copied on every call, which is slow
+- Default arguments must come before positional ones
+> Defaults are evaluated when the function is defined, so every call that omits `items` appends to the same list. Use `items=None` and create a new list inside.
+
+Q: Which of these values are treated as false in an `if` statement? (select all)
+* `[]`
+* `0`
+* `""`
+- `"False"`
+- `[0]`
+> Empty containers, zero, the empty string and `None` are falsy. `"False"` is a non-empty string and `[0]` is a non-empty list, so both are truthy.
+
+Q: A Python loop does about \(10^7\) simple operations per second. Roughly how many seconds would a pure-Python loop take to touch \(10^9\) numbers?
+= 100 ±30
+> \(10^9 / 10^7 = 100\) seconds. The same work in a vectorized NumPy call takes around a second or less, which is why heavy maths belongs in libraries.
+
+Q: In `def f(a, *, b=1)`, what does the bare `*` do?
+- Collects extra positional arguments
+* Makes `b` keyword-only
+- Unpacks `a`
+- Marks `b` as optional
+> Parameters after a bare `*` can only be passed by name, as in `f(1, b=2)`, which keeps calls readable.
+
+@lesson py-collections
+Q: Which container gives O(1) average-time membership tests?
+- `list`
+- `tuple`
+* `set`
+- A sorted list
+> Sets (and dict keys) are hash tables, so `x in s` hashes once. A list or tuple must scan every element, which is O(n).
+
+Q: After `a = [1, 2]; b = a; b.append(3)`, what is `a`?
+- `[1, 2]`
+* `[1, 2, 3]`
+- `[3, 1, 2]`
+- An error
+> `b = a` binds a second name to the same list object, so the append is visible through both names. Use `a.copy()` for an independent list.
+
+Q: Which can be used as a dictionary key? (select all)
+* `(1, 2)`
+* `"token"`
+* `42`
+- `[1, 2]`
+- `{"a": 1}`
+> Keys must be hashable, which in practice means immutable: tuples, strings and numbers. Lists and dicts are mutable, so they cannot be keys.
+
+Q: `[[0] * 3] * 3` creates three independent inner lists.
+= false
+> It creates one inner list referenced three times, so changing `grid[0][0]` changes every row. Use `[[0] * 3 for _ in range(3)]`.
+
+Q: What does `Counter("banana").most_common(1)` return?
+* `[('a', 3)]`
+- `[('n', 2)]`
+- `('a', 3)`
+- `3`
+> 'a' appears three times. `most_common(k)` returns a list of the k most frequent (element, count) pairs.
+
+@lesson py-oop
+Q: Which special method lets you write `model(x)` on your own object?
+- `__init__`
+- `__getitem__`
+* `__call__`
+- `__repr__`
+> Calling an instance runs its `__call__` method. PyTorch modules implement `__call__` to run hooks and then your `forward`.
+
+Q: A PyTorch `DataLoader` can batch your custom map-style dataset as long as it implements which two methods?
+* `__len__` and `__getitem__`
+- `__iter__` and `__next__`
+- `__init__` and `__repr__`
+- `forward` and `backward`
+> Map-style datasets only need a length and indexed access; the loader picks indices, fetches items and collates them into batches.
+
+Q: In a dataclass, how do you give a list field an empty default safely?
+- `tags: list = []`
+* `tags: list = field(default_factory=list)`
+- `tags: list = None`
+- `tags = list`
+> `default_factory` creates a fresh list for every instance. A plain `[]` default would be shared, and dataclasses refuse it for that reason.
+
+Q: What is `super().tokenize(text)` used for in a subclass?
+- Calling a function from the `super` module
+* Reusing the parent class's implementation of the method
+- Making the method static
+- Calling the method on every subclass
+> `super()` returns a proxy for the parent class, so the subclass can extend the inherited behaviour instead of rewriting it.
+
+@lesson py-iterators
+Q: What does a function containing `yield` return when called?
+- A list of all yielded values
+* A generator that produces values lazily
+- The first yielded value
+- None
+> Calling it creates a generator object. Values are produced one at a time as the caller iterates, so memory use stays constant.
+
+Q: You call `list(m)` twice on the same `m = map(f, data)`. What does the second call return?
+- The same list again
+* An empty list
+- An error
+- The list reversed
+> Iterators are consumed once. After the first `list(m)` exhausts it, there is nothing left to yield.
+
+Q: Why should a decorator's inner function be wrapped with `functools.wraps(fn)`?
+- To make it run faster
+- To catch exceptions
+* To keep the original function's name and docstring
+- To make it a generator
+> Without `wraps`, the decorated function reports the wrapper's `__name__` and docstring, which confuses logs, debuggers and frameworks.
+
+Q: Python enforces type hints at runtime and raises an error on a mismatch.
+= false
+> Type hints are documentation for tools such as mypy, pyright and editors. Python ignores them at runtime unless a library (like Pydantic) checks them explicitly.
+
+@lesson py-io-envs
+Q: Why should you avoid loading pickle files from untrusted sources?
+- Pickle files are always corrupted
+* Unpickling can execute arbitrary code
+- Pickle only supports lists
+- Pickle files cannot store NumPy arrays
+> The pickle format can encode instructions that run when loaded. Use safe formats (JSON, Parquet, safetensors) for data from others.
+
+Q: What is the purpose of `if __name__ == "__main__":` in a script?
+- It makes the script run faster
+* The block runs only when the file is executed directly, not when it is imported
+- It declares the main class
+- It is required for every Python file
+> When a module is imported, `__name__` is the module name, so the guarded block (usually `main()`) does not run on import.
+
+Q: Where should an API key live?
+- Hard-coded in the source file
+- In the README
+* In an environment variable, loaded from a git-ignored .env file if needed
+- In a comment inside the notebook
+> Anything committed to code or git can leak. Environment variables keep secrets out of the repository.
+
+Q: Which practices make a Python project reproducible on another machine? (select all)
+* A fresh virtual environment per project
+* Pinned dependency versions in a lockfile or requirements file
+- Installing everything into the system Python
+* Recording the Python version
+> Isolated environments plus exact versions mean the server installs the same libraries you tested with.
+
+@lesson py-async
+Q: Which tool fits making 5,000 HTTP calls to an LLM API?
+* asyncio (or a thread pool)
+- A process pool, one process per call
+- A single for-loop
+- NumPy vectorization
+> The work is I/O-bound: the program waits on the network. asyncio keeps many requests in flight on one thread; processes add overhead without helping.
+
+Q: Why do threads not speed up pure-Python number crunching in standard CPython?
+- Threads are disabled by default
+* The global interpreter lock lets only one thread run Python bytecode at a time
+- Python has no threading module
+- Threads only work on GPUs
+> The GIL serializes bytecode execution. Threads still help for I/O and for libraries that release the GIL inside C code.
+
+Q: 300 API calls take 1 second each. With at most 10 in flight at once and no rate limit, about how many seconds does asyncio need?
+= 30 ±3
+> 300 / 10 = 30 batches of concurrent work at about 1 second each.
+
+Q: Inside an `async def` function, calling `time.sleep(5)` is fine because it only pauses that one task.
+= false
+> `time.sleep` blocks the whole event loop, so every task stalls. Use `await asyncio.sleep(5)` instead.
+
+@lesson exam
+Q: Which data structure would you use to count word frequencies in a large corpus?
+- A list of (word, count) tuples searched linearly
+* A `dict` or `collections.Counter`
+- A `set`
+- A tuple
+> Dictionary updates are O(1) on average, and Counter adds conveniences like `most_common`.
+
+Q: A function must stream a 200 GB JSONL file and yield batches of 64 records. Which features do you need? (select all)
+* A generator using `yield`
+* Reading the file line by line inside `with open(...)`
+- `json.load` on the whole file
+- Converting the file to a list first
+> Line-by-line reading plus a generator keeps memory constant regardless of file size.
+
+Q: What does this print? `print(sorted(["bb", "a", "ccc"], key=len)[-1])`
+= ccc
+> Sorting by length gives ['a', 'bb', 'ccc']; index -1 is the last element.
+
+Q: You need to call a flaky API reliably. Which pattern is standard?
+- Catch every exception with a bare `except:` and continue
+* Retry with exponential backoff, a timeout and a cap on attempts
+- Call it in an infinite loop until it succeeds
+- Call it once and hope
+> Backoff spreads retries out, timeouts stop hangs, and a cap avoids infinite loops, all while reporting persistent failures.
+
+Q: `{**a, **b}` merges two dicts; for duplicate keys the value from `b` wins.
+= true
+> Later unpacked mappings overwrite earlier ones.

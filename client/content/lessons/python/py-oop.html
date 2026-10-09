@@ -1,0 +1,136 @@
+<h3>Classes bundle state and behaviour</h3>
+<p>A class defines a new type: the data each object holds (attributes) and what it can do (methods). In ML code you meet classes constantly: <code>nn.Module</code>, <code>Dataset</code>, tokenizers, API clients, config objects.</p>
+<pre><code class="language-python">class RunningMean:
+    """Tracks the mean of a stream of numbers without storing them."""
+
+    def __init__(self):
+        self.n = 0
+        self.mean = 0.0
+
+    def update(self, x: float) -&gt; None:
+        self.n += 1
+        self.mean += (x - self.mean) / self.n     # incremental mean
+
+    def __repr__(self) -&gt; str:                   # what print() shows
+        return f"RunningMean(n={self.n}, mean={self.mean:.4f})"
+
+loss_meter = RunningMean()
+for loss in [0.9, 0.7, 0.5]:
+    loss_meter.update(loss)
+print(loss_meter)        # RunningMean(n=3, mean=0.7000)</code></pre>
+<p><code>self</code> is the object the method is called on: <code>loss_meter.update(0.9)</code> is <code>RunningMean.update(loss_meter, 0.9)</code>.</p>
+
+<h3>Inheritance and composition</h3>
+<pre><code class="language-python">class Tokenizer:
+    def tokenize(self, text: str) -&gt; list[str]:
+        raise NotImplementedError
+
+    def __call__(self, text: str) -&gt; list[str]:   # lets you write tok("...")
+        return self.tokenize(text)
+
+class WhitespaceTokenizer(Tokenizer):
+    def tokenize(self, text):
+        return text.split()
+
+class LowercaseTokenizer(WhitespaceTokenizer):
+    def tokenize(self, text):
+        return super().tokenize(text.lower())     # reuse the parent's logic
+
+tok = LowercaseTokenizer()
+print(tok("The Cat SAT"))    # ['the', 'cat', 'sat']</code></pre>
+<p>Prefer <b>composition</b> (an object that holds other objects) over deep inheritance trees. A PyTorch model is composition: a <code>Transformer</code> holds a list of <code>Block</code>s, each holding attention and MLP modules.</p>
+
+<h3>Dataclasses: classes for data</h3>
+<p>Most "classes" in ML projects are records: configs, examples, results. <code>@dataclass</code> writes <code>__init__</code>, <code>__repr__</code> and <code>__eq__</code> for you.</p>
+<pre><code class="language-python">from dataclasses import dataclass, field, asdict
+
+@dataclass
+class TrainConfig:
+    model: str = "small"
+    lr: float = 3e-4
+    batch_size: int = 32
+    epochs: int = 10
+    tags: list[str] = field(default_factory=list)   # mutable default done right
+
+    def steps_per_epoch(self, n_examples: int) -&gt; int:
+        return -(-n_examples // self.batch_size)    # ceiling division
+
+cfg = TrainConfig(lr=1e-3, tags=["baseline"])
+print(cfg)                   # TrainConfig(model='small', lr=0.001, ...)
+print(asdict(cfg))           # plain dict, ready for JSON or experiment tracking
+
+@dataclass(frozen=True)      # immutable and hashable
+class Example:
+    text: str
+    label: int</code></pre>
+
+<h3>The data model: dunder methods</h3>
+<p>Python's built-in syntax calls special "dunder" (double underscore) methods. Implement them and your objects work with <code>len()</code>, indexing, <code>for</code> loops, <code>+</code> and more. This is exactly how a PyTorch <code>Dataset</code> plugs into a <code>DataLoader</code>.</p>
+<table>
+<tr><th>Syntax</th><th>Calls</th></tr>
+<tr><td><code>len(x)</code></td><td><code>x.__len__()</code></td></tr>
+<tr><td><code>x[i]</code></td><td><code>x.__getitem__(i)</code></td></tr>
+<tr><td><code>for v in x</code></td><td><code>x.__iter__()</code> (or <code>__getitem__</code> from 0)</td></tr>
+<tr><td><code>x(…)</code></td><td><code>x.__call__(…)</code> (how <code>model(inputs)</code> works)</td></tr>
+<tr><td><code>a + b</code>, <code>a @ b</code></td><td><code>a.__add__(b)</code>, <code>a.__matmul__(b)</code></td></tr>
+<tr><td><code>with x:</code></td><td><code>x.__enter__()</code> / <code>x.__exit__()</code></td></tr>
+</table>
+<pre><code class="language-python">class TextDataset:
+    def __init__(self, texts, labels):
+        assert len(texts) == len(labels)
+        self.texts, self.labels = texts, labels
+
+    def __len__(self):
+        return len(self.texts)
+
+    def __getitem__(self, i):
+        return {"text": self.texts[i], "label": self.labels[i]}
+
+ds = TextDataset(["good", "bad", "great"], [1, 0, 1])
+print(len(ds), ds[1])          # 3 {'text': 'bad', 'label': 0}
+for ex in ds:                  # works because __getitem__ raises IndexError at the end
+    print(ex["text"])
+
+class Vec2:
+    def __init__(self, x, y): self.x, self.y = x, y
+    def __add__(self, o): return Vec2(self.x + o.x, self.y + o.y)
+    def __matmul__(self, o): return self.x * o.x + self.y * o.y     # dot product with @
+    def __repr__(self): return f"Vec2({self.x}, {self.y})"
+
+print(Vec2(1, 2) + Vec2(3, 4), Vec2(1, 2) @ Vec2(3, 4))   # Vec2(4, 6) 11</code></pre>
+
+<h3>Class attributes, class methods and static methods</h3>
+<pre><code class="language-python">class Model:
+    registry = {}                      # class attribute: shared by all instances
+
+    def __init__(self, name):
+        self.name = name
+
+    @classmethod
+    def from_config(cls, cfg: dict):   # alternative constructor, like from_pretrained
+        return cls(cfg["name"])
+
+    @staticmethod
+    def param_count(d_in, d_out):      # plain function grouped with the class
+        return d_in * d_out + d_out
+
+m = Model.from_config({"name": "tiny"})
+print(m.name, Model.param_count(784, 10))   # tiny 7850</code></pre>
+<div class="callout mllink"><b>Where you will see this</b><code>AutoModel.from_pretrained(...)</code> is a class method; <code>model(x)</code> calls <code>__call__</code>, which runs hooks then your <code>forward</code>; <code>DataLoader</code> needs only <code>__len__</code> and <code>__getitem__</code> from your dataset.</div>
+
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>Write a dataclass <code>Metrics</code> with fields <code>tp, fp, fn</code> and properties <code>precision</code>, <code>recall</code> and <code>f1</code> that handle division by zero.
+<details><summary>Solution</summary><div><pre><code class="language-python">@dataclass
+class Metrics:
+    tp: int = 0
+    fp: int = 0
+    fn: int = 0
+    @property
+    def precision(self): return self.tp / (self.tp + self.fp) if self.tp + self.fp else 0.0
+    @property
+    def recall(self): return self.tp / (self.tp + self.fn) if self.tp + self.fn else 0.0
+    @property
+    def f1(self):
+        p, r = self.precision, self.recall
+        return 2 * p * r / (p + r) if p + r else 0.0</code></pre></div></details></li>
+</ol></div>

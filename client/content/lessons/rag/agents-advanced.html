@@ -1,0 +1,34 @@
+<h3>Workflows first, agents when needed</h3>
+<table>
+<tr><th>Pattern</th><th>How it works</th><th>Good for</th></tr>
+<tr><td>Prompt chaining</td><td>Fixed sequence of LLM calls, each consuming the last output, with checks between</td><td>Predictable multi-step tasks</td></tr>
+<tr><td>Routing</td><td>Classify the input, send it to a specialised prompt or model</td><td>Mixed traffic, cost control</td></tr>
+<tr><td>Parallelization</td><td>Run sub-tasks or several votes at once, then aggregate</td><td>Speed, robustness</td></tr>
+<tr><td>Orchestrator–workers</td><td>A planner LLM splits the task and delegates to worker calls</td><td>Tasks whose sub-steps aren't known in advance</td></tr>
+<tr><td>Evaluator–optimizer</td><td>One call generates, another critiques, loop until it passes</td><td>Writing, code, translation with clear criteria</td></tr>
+<tr><td>Autonomous agent</td><td>LLM chooses tools in a loop until done ([[agents]])</td><td>Open-ended tasks; highest cost and risk</td></tr>
+</table>
+<h3>Tools and the Model Context Protocol</h3>
+<p>Tools are the agent's interface to the world, so design them like a good API for a new colleague: clear names, precise descriptions, few required arguments, informative errors, and outputs that are concise but complete. The <b>Model Context Protocol (MCP)</b> is an open standard where <b>servers</b> expose tools, resources and prompts, and <b>clients</b> (assistants, IDEs, agent frameworks) connect to them, so one integration works across many AI applications.</p>
+<pre><code class="language-python"># A minimal MCP server with the official Python SDK (check the SDK docs for the current API)
+from mcp.server.fastmcp import FastMCP
+mcp = FastMCP("orders")
+
+@mcp.tool()
+def order_status(order_id: str) -> dict:
+    """Look up the shipping status of an order by its ID (format: ORD-12345)."""
+    return db_lookup(order_id)          # your code; return structured, concise data
+
+if __name__ == "__main__":
+    mcp.run()</code></pre>
+<h3>Memory and planning</h3>
+<p><b>Working memory</b> is the context window: summarize or drop old turns as it fills. <b>Long-term memory</b> is an external store the agent can write facts to and search later (often a RAG index). <b>Planning</b> ranges from implicit (ReAct: think, act, observe) to explicit plans that are revised after each step, plus <b>reflection</b> (critique the last attempt before retrying).</p>
+<h3>Reliability and safety checklist</h3>
+<ul>
+<li>Step, time and cost budgets; stop and report when exceeded.</li>
+<li>Validate every tool call's arguments against its schema; retry with the error message on failure.</li>
+<li>Make actions idempotent or reversible; require human approval for irreversible ones (payments, emails, deletions).</li>
+<li>Sandbox code execution and browsing; give each tool the least privilege it needs.</li>
+<li>Treat tool outputs, retrieved documents and web pages as untrusted data: they can contain prompt injections.</li>
+<li>Log full trajectories; evaluate on end-to-end task success, not single responses. Multi-agent setups multiply cost and failure modes, so add agents only when a single agent with good tools clearly fails.</li>
+</ul>

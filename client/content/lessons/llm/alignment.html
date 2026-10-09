@@ -1,0 +1,15 @@
+<h3>Reward model (Bradley–Terry)</h3>
+<p>Collect pairs where humans preferred response \(y_w\) over \(y_l\) for prompt \(x\). Model the preference as</p>
+$$P(y_w\succ y_l\mid x)=\sigma\big(r_\phi(x,y_w)-r_\phi(x,y_l)\big),\qquad \mathcal L_{RM}=-\log\sigma\big(r_\phi(x,y_w)-r_\phi(x,y_l)\big)$$
+<h3>RLHF with PPO</h3>
+<p>Optimize the policy (the LLM) to maximize reward while staying close to the SFT reference model:</p>
+$$\max_{\pi_\theta}\ \mathbb E_{x,\,y\sim\pi_\theta}\big[r_\phi(x,y)\big]-\beta\,D_{\mathrm{KL}}\big(\pi_\theta(\cdot\mid x)\,\|\,\pi_{\text{ref}}(\cdot\mid x)\big)$$
+<p>The KL term stops <b>reward hacking</b>: drifting into strange outputs that fool the reward model. PPO ([[policy-gradient]]) is the RL algorithm traditionally used.</p>
+<!--FIG:rlhf-->
+<h3>DPO: skip the reward model</h3>
+<p>The KL-regularized objective has a closed-form optimum, \(\pi^*(y\mid x)\propto\pi_{\text{ref}}(y\mid x)\exp(r(x,y)/\beta)\). Solving for \(r\) and plugging it into the Bradley–Terry loss gives a loss directly on the policy:</p>
+$$\mathcal L_{\text{DPO}}=-\log\sigma\!\left(\beta\log\frac{\pi_\theta(y_w\mid x)}{\pi_{\text{ref}}(y_w\mid x)}-\beta\log\frac{\pi_\theta(y_l\mid x)}{\pi_{\text{ref}}(y_l\mid x)}\right)$$
+<p>This is a simple classification-style loss with no sampling and no separate reward model.</p>
+<h3>RL with verifiable rewards</h3>
+<p>For math and code, the reward can be checked automatically (is the answer correct, do the tests pass). Training on such rewards elicits longer step-by-step reasoning. <b>GRPO</b> samples a group of \(G\) answers per prompt and uses group-normalized advantages \(A_i=(r_i-\operatorname{mean}(\mathbf r))/\operatorname{std}(\mathbf r)\) instead of a learned value function. Related ideas: <b>RLAIF</b> and constitution-based training, where AI feedback guided by written principles replaces some human labels.</p>
+<div class="callout intuition"><b>Big picture</b><p>SFT shows the model good examples. Preference methods show it comparisons ("this is better than that"), which are easier for humans to give and carry information about what to avoid. RL on verifiable tasks lets the model discover strategies no one demonstrated.</p></div>

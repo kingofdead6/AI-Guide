@@ -1,0 +1,111 @@
+@lesson study-plan
+Q: Which habits make study stick? (select all)
+* Re-deriving a key result from memory each week
+* Building a checkpoint project at the end of each phase
+* Writing a short README or post explaining each project
+- Reading every lesson twice without doing exercises
+> Active recall and building beat re-reading.
+
+Q: According to the roadmap, which course should a newcomer to programming start with?
+* Python for AI
+- Large Language Models
+- Systems & Scale
+- Generative Models
+> Everything else builds on fluent Python.
+
+Q: Consistency matters more than intensity when following a long study plan.
+= true
+> Regular moderate effort compounds; streaks help build the habit.
+
+@lesson interviews
+Q: What does STAR stand for in behavioural interviews?
+* Situation, Task, Action, Result
+- Skills, Tools, Achievements, References
+- Start, Talk, Answer, Repeat
+- Strategy, Teamwork, Analysis, Results
+> Structure each story this way and quantify the result.
+
+Q: In a coding interview, what should you do before writing code?
+* Restate the problem, ask about constraints and edge cases, and outline a brute-force approach
+- Start coding immediately
+- Ask for the solution
+- Optimize prematurely
+> Communication is graded as much as the final code.
+
+Q: Your training loss isn't decreasing. Which checks come first? (select all)
+* Whether the model can overfit a single small batch
+* Whether the initial loss is about \(\ln C\)
+* Whether inputs and labels are aligned
+- Adding more regularization
+> Rule out bugs before tuning.
+
+Q: Why is ROC-AUC potentially misleading on heavily imbalanced data?
+* The false positive rate divides by a huge number of negatives, so many false alarms still look small
+- ROC-AUC cannot be computed for imbalanced data
+- It is always 0.5
+- It ignores positives
+> Use PR curves to see precision directly.
+
+@lesson portfolio
+Q: Which project attributes impress hiring managers most? (select all)
+* A real problem with real data
+* A baseline and an honest evaluation
+* A deployed demo with a clear write-up
+- Many small tutorial notebooks
+> Three excellent projects beat thirty tutorials.
+
+Q: Which CV bullet is strongest?
+* "Cut p95 latency 40% by quantizing and batching the ranking model"
+- "Worked on machine learning"
+- "Familiar with PyTorch, TensorFlow, JAX, Keras"
+- "Responsible for various AI tasks"
+> Specific impact with numbers beats lists of tools.
+
+Q: Projects in under-served areas (for example Arabic or Darija NLP) can stand out because they are harder to copy.
+= true
+> Differentiation is valuable in a crowded field.
+
+@lesson papers
+Q: In the three-pass method, what do you do in the first pass?
+* Read the title, abstract, figures and conclusion to decide relevance
+- Re-derive every equation
+- Re-implement the code
+- Read the references
+> Five minutes is enough to decide whether to go deeper.
+
+Q: A paper reports a 0.3-point gain without error bars over three seeds. What should you ask? (select all)
+* Is the gain larger than seed-to-seed variance?
+* Were the baselines tuned as carefully?
+* What did the improvement cost in compute?
+- Nothing; all published results are reliable
+> Small gains are often within noise.
+
+Q: Re-implementing the core idea of a paper in a small notebook is where real understanding happens.
+= true
+> Implementation exposes every detail the text glosses over.
+
+@lesson exam
+Q: In an ML system design interview, you are asked to design spam detection. What do you do first?
+* Clarify scale, latency, cost of errors and available labels
+- Propose a Transformer immediately
+- Start writing SQL
+- Discuss GPU types
+> Requirements shape every later choice.
+
+Q: Which statements about the AI engineer interview loop are generally true? (select all)
+* It usually includes coding and ML fundamentals
+* System design matters more for senior roles
+* Project deep-dives test real ownership
+- Only a degree matters
+> Prepare each round deliberately.
+
+Q: What makes a strong answer to "explain a project you are proud of"?
+* The problem, your specific decisions, what failed, and measured results
+- A list of technologies used
+- How long it took
+- Only the final accuracy
+> Interviewers look for judgement and ownership.
+
+Q: Reading papers is more valuable when you reproduce at least one key result.
+= true
+> Reproduction is the best test of understanding.

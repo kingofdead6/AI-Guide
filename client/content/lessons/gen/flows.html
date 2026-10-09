@@ -1,0 +1,33 @@
+<h3>Normalizing flows</h3>
+<p>Map simple noise \(\mathbf z\sim\mathcal N(\mathbf0,\mathbf I)\) to data with an invertible network \(\mathbf x=g(\mathbf z)\), \(\mathbf z=f(\mathbf x)=g^{-1}(\mathbf x)\). The change-of-variables formula gives an exact log-likelihood:</p>
+$$\log p_X(\mathbf x)=\log p_Z\big(f(\mathbf x)\big)+\log\left|\det\frac{\partial f}{\partial\mathbf x}\right|$$
+<p>The determinant must be cheap, so layers are designed with triangular Jacobians. A <b>coupling layer</b> (RealNVP) splits \(\mathbf x=(\mathbf x_1,\mathbf x_2)\) and sets \(\mathbf y_1=\mathbf x_1,\ \mathbf y_2=\mathbf x_2\odot e^{s(\mathbf x_1)}+t(\mathbf x_1)\): trivially invertible, with \(\log|\det|=\sum s(\mathbf x_1)\).</p>
+<h3>Flow matching</h3>
+<p>Instead of stacking discrete invertible layers, learn a time-dependent velocity field \(v_\theta(\mathbf x,t)\) whose ODE \(d\mathbf x/dt=v_\theta\) carries noise at \(t=0\) to data at \(t=1\). With straight-line paths between a noise sample \(\mathbf x_0\) and a data sample \(\mathbf x_1\), the training target is simple:</p>
+$$\mathbf x_t=(1-t)\mathbf x_0+t\,\mathbf x_1,\qquad \mathcal L=\mathbb E_{t,\mathbf x_0,\mathbf x_1}\big\|v_\theta(\mathbf x_t,t)-(\mathbf x_1-\mathbf x_0)\big\|^2$$
+<!--FIG:flow_matching-->
+<p>Like diffusion, it is plain regression and stable to train; sampling integrates the ODE with a few dozen steps (and the straighter the learned paths, the fewer steps you need). Diffusion and flow matching are closely related views of the same family.</p>
+<h3>Token-based generation</h3>
+<p>A <b>VQ-VAE</b> compresses an image or audio clip into a grid of discrete codes from a learned codebook (each encoder vector is snapped to its nearest code; a commitment loss keeps encoder outputs close to codes). A Transformer then models those codes autoregressively, exactly like text. Neural audio codecs do the same for sound, which is how many speech and music generators work. Video models typically generate in a compressed spatio-temporal latent space with Transformer backbones (diffusion Transformers).</p>
+<table>
+<tr><th>Family</th><th>Sample quality</th><th>Sampling speed</th><th>Exact likelihood</th><th>Training</th></tr>
+<tr><td>VAE</td><td>Moderate (blurry)</td><td>Fast</td><td>Lower bound</td><td>Stable</td></tr>
+<tr><td>GAN</td><td>High (sharp)</td><td>Fast</td><td>No</td><td>Unstable</td></tr>
+<tr><td>Normalizing flow</td><td>Moderate</td><td>Fast</td><td>Yes</td><td>Stable, constrained architecture</td></tr>
+<tr><td>Diffusion / flow matching</td><td>Very high</td><td>Slower (many steps; distillation helps)</td><td>Bound / via ODE</td><td>Stable</td></tr>
+<tr><td>Autoregressive tokens</td><td>Very high</td><td>Slow (sequential)</td><td>Yes</td><td>Stable, scales like LLMs</td></tr>
+</table>
+<pre><code class="language-python">def flow_matching_step(v_model, x1, opt):          # x1: batch of data
+    x0 = torch.randn_like(x1)
+    t = torch.rand(x1.shape[0], *[1] * (x1.dim() - 1), device=x1.device)
+    xt = (1 - t) * x0 + t * x1
+    loss = F.mse_loss(v_model(xt, t.flatten()), x1 - x0)
+    opt.zero_grad(); loss.backward(); opt.step(); return loss.item()
+
+@torch.no_grad()
+def sample(v_model, shape, steps=50, device="cuda"):
+    x = torch.randn(shape, device=device)
+    for k in range(steps):                         # Euler integration from t=0 to t=1
+        t = torch.full((shape[0],), k / steps, device=device)
+        x = x + v_model(x, t) / steps
+    return x</code></pre>

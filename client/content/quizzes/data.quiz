@@ -1,0 +1,185 @@
+@lesson numpy
+Q: What shape does broadcasting produce for arrays of shapes (3, 1) and (1, 4)?
+- (3, 1)
+- (1, 4)
+* (3, 4)
+- An error
+> Compare from the right: 1 vs 4 stretches to 4, and 3 vs 1 stretches to 3.
+
+Q: Subtracting `y_hat` of shape `(n, 1)` from `y` of shape `(n,)` gives an array of shape…
+- `(n,)`
+- `(n, 1)`
+* `(n, n)`
+- An error
+> `(n,)` is treated as `(1, n)`, and broadcasting with `(n, 1)` makes `(n, n)`: a silent bug that ruins the loss.
+
+Q: Which einsum computes attention scores `Q @ K^T` for tensors shaped (heads, seq, dim)?
+* `np.einsum("hqd,hkd->hqk", Q, K)`
+- `np.einsum("hqd,hdk->hqk", Q, K)`
+- `np.einsum("hqd,hqd->hq", Q, K)`
+- `np.einsum("qd,kd->", Q, K)`
+> The shared index d is summed; q and k remain, giving a (heads, seq, seq) score matrix.
+
+Q: Why subtract the row maximum before exponentiating in a softmax?
+- It changes the probabilities to be more uniform
+* It prevents overflow without changing the result
+- It makes the gradient zero
+- It is required by NumPy
+> Softmax is invariant to adding a constant to every logit, and shifting by the max keeps every exponent at most 0.
+
+@lesson pandas-eda
+Q: Which pandas call shows the share of missing values per column?
+* `df.isna().mean()`
+- `df.describe()`
+- `df.dropna()`
+- `df.value_counts()`
+> `isna()` gives booleans; the column mean of booleans is the fraction that are True.
+
+Q: A feature is suspiciously predictive and only known after the outcome happens. What is this?
+- A strong feature to keep
+* Target leakage
+- Multicollinearity
+- Class imbalance
+> Using information unavailable at prediction time inflates offline scores and fails in production.
+
+Q: When is a random train/test split invalid? (select all)
+* Forecasting future values from a time series
+* Several rows per patient, and you want to generalize to new patients
+- Independent customer transactions sampled uniformly
+* Data with near-duplicate rows across the split
+> Time series need time-based splits; grouped data needs group splits; duplicates must be removed or kept on one side.
+
+@lesson preprocessing
+Q: Which models need feature scaling to work well? (select all)
+* k-nearest neighbours
+* Logistic regression trained with gradient descent
+- Decision trees
+* SVMs with an RBF kernel
+> Distance- and gradient-based models are sensitive to scale; trees split on thresholds and don't care.
+
+Q: Where should a `StandardScaler` be fitted?
+- On the full dataset before splitting
+* On the training data only, then applied to validation and test
+- On the test data only
+- Separately on each split
+> Fitting on everything leaks test statistics. A pipeline fits transforms only on training folds.
+
+Q: Target encoding must be computed out-of-fold to avoid leakage.
+= true
+> Otherwise each row's own label is part of its encoded feature, which the model can exploit.
+
+Q: For a heavily imbalanced fraud dataset, which metric is usually most informative?
+- Accuracy
+* PR-AUC (or F1 at a chosen threshold)
+- Mean squared error
+- R²
+> Accuracy is dominated by the majority class; precision–recall metrics focus on the rare positives.
+
+@lesson pytorch
+Q: What happens if you forget `optimizer.zero_grad()` in the training loop?
+- Nothing; PyTorch clears gradients automatically
+* Gradients accumulate across steps, so updates use the sum of past gradients
+- The model stops training
+- The loss becomes NaN immediately
+> `.backward()` adds into `.grad`. Accumulation is useful on purpose (gradient accumulation) and a bug by accident.
+
+Q: For `y = x**3 + 2*x` at `x = 2`, what does `x.grad` hold after `y.backward()`?
+= 14
+> \(dy/dx=3x^2+2=14\).
+
+Q: Which two calls should wrap evaluation code? (select all)
+* `model.eval()`
+* `torch.no_grad()`
+- `model.train()`
+- `optimizer.step()`
+> `eval()` switches dropout and batch norm to inference mode; `no_grad()` stops building the autograd graph, saving memory.
+
+@lesson dsa
+Q: What is the time complexity of finding the top-k most frequent words with a hash map plus a heap of size k?
+- O(n²)
+* O(n log k)
+- O(k)
+- O(log n)
+> Counting is O(n); pushing n entries through a size-k heap costs O(n log k).
+
+Q: What is the edit distance between "kitten" and "sitting"?
+= 3
+> Substitute k→s, substitute e→i, insert g.
+
+Q: Which data structure suits an LRU cache?
+- A sorted list
+* A hash map combined with a doubly linked list (OrderedDict)
+- A binary heap
+- A stack
+> The hash map gives O(1) lookup; the linked order lets you move recent items to the end and evict the oldest in O(1).
+
+Q: Reservoir sampling draws a uniform sample of k items from a stream without knowing its length in advance.
+= true
+> Item i is kept with probability k/(i+1), replacing a random reservoir slot, which makes every item equally likely.
+
+@lesson sql-data-eng
+Q: Which SQL feature keeps the latest row per user?
+- `GROUP BY user_id HAVING MAX(updated_at)`
+* `ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY updated_at DESC)` then filter rn = 1
+- `SELECT DISTINCT user_id`
+- `LIMIT 1`
+> Window functions number rows within each partition without collapsing them.
+
+Q: Why is Parquet usually preferred over CSV for large training data?
+* Columnar storage and compression let you read only the columns you need, much faster
+- It is human-readable
+- It cannot store strings
+- It is required by pandas
+> Column pruning and compression cut I/O dramatically for analytical workloads.
+
+Q: What does point-in-time correctness mean for training data?
+- Every row has a timestamp
+* Each example only uses feature values that were known at the moment of prediction
+- Data is refreshed daily
+- All features are computed at training time
+> Joining today's features onto old labels leaks the future; feature stores exist largely to prevent it.
+
+@lesson swe-for-ml
+Q: Which tests catch common ML bugs early? (select all)
+* The model can overfit a single small batch
+* Output shapes and dtypes are as expected
+* Data transforms give the expected result on tiny hand-made inputs
+- The final test accuracy is above 99%
+> Fast, deterministic checks catch wiring bugs; a target accuracy is an evaluation, not a unit test.
+
+Q: Where should hyperparameters like learning rate and batch size live?
+- Hard-coded throughout the training script
+* In a config file or config object, logged with each run
+- In the README
+- In environment variables only
+> Configs make runs reproducible from a command and comparable in an experiment tracker.
+
+Q: Profile before optimizing; in training, the data loader is a common hidden bottleneck.
+= true
+> GPUs often sit idle waiting for data; more workers, pinned memory and pre-processed formats fix it.
+
+@lesson exam
+Q: A model's validation score drops from 0.95 to 0.70 after you move standardization inside the cross-validation pipeline. What does this most likely mean?
+* The original score was inflated by leakage from fitting preprocessing on all data
+- The pipeline is buggy
+- Standardization hurts models
+- Cross-validation is unreliable
+> Large drops after removing leakage are common with target encoding, feature selection or oversampling done before the split.
+
+Q: What is the output shape of `np.ones((8, 1, 5)) + np.ones((3, 1))`?
+- (8, 3, 1)
+* (8, 3, 5)
+- (8, 1, 5)
+- An error
+> Aligning from the right: (8, 1, 5) and (1, 3, 1) broadcast to (8, 3, 5).
+
+Q: Which choice keeps an O(n²) loop over 10⁶ items from running for hours?
+- Adding more print statements
+* A hash-based structure or vectorized operation that avoids the nested loop
+- Running it in a notebook
+- Using a while loop instead of for
+> Algorithmic complexity dominates: 10¹² operations is hours; 10⁶ is milliseconds.
+
+Q: In PyTorch, `loss.backward()` computes gradients and also updates the weights.
+= false
+> `backward()` only fills `.grad`. `optimizer.step()` applies the update.

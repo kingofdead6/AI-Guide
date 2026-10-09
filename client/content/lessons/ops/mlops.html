@@ -1,0 +1,33 @@
+<h3>Reproducibility</h3>
+<p>Version code (git), data (DVC, or immutable dated snapshots), and environment (lockfiles, Docker). Fix random seeds. Log every run's config, metrics and artifacts with an experiment tracker (MLflow, Weights &amp; Biases). Structure projects as importable modules with config files, not one giant notebook.</p>
+<h3>Serving</h3>
+<pre><code class="language-python"># app.py: run with  uvicorn app:app --host 0.0.0.0 --port 8000
+from fastapi import FastAPI
+from pydantic import BaseModel
+import joblib
+app = FastAPI()
+model = joblib.load("model.joblib")                 # load once at startup
+
+class Features(BaseModel):
+    age: float
+    income: float
+    city: str
+
+@app.post("/predict")
+def predict(f: Features):
+    import pandas as pd
+    proba = model.predict_proba(pd.DataFrame([f.model_dump()]))[0, 1]
+    return {"probability": float(proba), "model_version": "2026-10-01"}</code></pre>
+<pre><code class="language-dockerfile">FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]</code></pre>
+<p><b>Batch vs online:</b> score nightly into a table when latency doesn't matter; serve an API when it does. For speed: export to ONNX, quantize, batch requests, and cache. For LLMs, use a dedicated inference server (vLLM, TGI, llama.cpp).</p>
+<h3>Monitoring and drift</h3>
+<ul>
+<li><b>Data drift:</b> input distributions shift. A common score is the population stability index, \(\text{PSI}=\sum_i(a_i-e_i)\ln(a_i/e_i)\) over bins of actual vs expected proportions (rule of thumb: above 0.2 is significant).</li>
+<li><b>Concept drift:</b> the relationship \(p(y\mid\mathbf x)\) changes. Detect it via delayed labels and performance tracking.</li>
+<li>Monitor latency, errors, prediction distributions and business metrics; set alerts; retrain on schedule or on triggers; roll out with shadow deployments, canaries or A/B tests.</li>
+</ul>

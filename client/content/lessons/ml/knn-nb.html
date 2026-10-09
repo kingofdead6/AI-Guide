@@ -1,0 +1,14 @@
+<h3>k-NN</h3>
+<p>Predict by majority vote (or average) of the \(k\) closest training points. Small \(k\): low bias, high variance. Large \(k\): smoother. It needs feature scaling, suffers from the curse of dimensionality, and prediction costs \(O(nd)\) per query unless you use an index (the same ANN indexes as vector databases, [[vector-search]]).</p>
+<h3>Naive Bayes</h3>
+$$p(y\mid\mathbf x)\propto p(y)\prod_{j=1}^dp(x_j\mid y)$$
+<p>The "naive" assumption is that features are conditionally independent given the class. It's usually false, yet the classifier works well for text because it only needs the <i>ranking</i> of classes to be right. For word counts (multinomial NB) with Laplace smoothing:</p>
+$$\hat p(w\mid y)=\frac{\text{count}(w,y)+\alpha}{\sum_{w'}\text{count}(w',y)+\alpha|V|}$$
+<p>Compute in log space: \(\log p(y)+\sum_j\log p(x_j\mid y)\), to avoid underflow.</p>
+<pre><code class="language-python">from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.pipeline import make_pipeline
+spam = make_pipeline(CountVectorizer(), MultinomialNB(alpha=1.0))
+spam.fit(["win money now", "meeting at 3pm", "free prize claim now"], [1, 0, 1])
+print(spam.predict(["claim your free money"]))</code></pre>

@@ -1,0 +1,34 @@
+<!--FIG:parallelism-->
+<h3>Data parallelism</h3>
+<p>Each GPU holds a full model copy, processes a different slice of the batch, and gradients are averaged with an <b>all-reduce</b> before the optimizer step. A ring all-reduce moves about \(2\frac{N-1}{N}\) times the gradient size per GPU, nearly independent of the number of GPUs. Overlap communication with the backward pass (DDP does this automatically).</p>
+<h3>Sharding: ZeRO and FSDP</h3>
+<p>Plain data parallelism replicates weights, gradients and optimizer states on every GPU (16 bytes/parameter with Adam, [[finetuning]]). <b>ZeRO</b> shards them across GPUs: stage 1 shards optimizer states, stage 2 also gradients, stage 3 (= PyTorch <b>FSDP</b>) also the weights, which are gathered layer by layer just in time.</p>
+<!--FIG:zero-->
+<h3>Model parallelism</h3>
+<ul>
+<li><b>Tensor parallelism:</b> split each weight matrix across GPUs (column-split the first FFN matrix, row-split the second, so only one all-reduce per block is needed). Needs very fast links, so it stays within a node (NVLink).</li>
+<li><b>Pipeline parallelism:</b> different layers on different GPUs; micro-batches keep stages busy. With \(p\) stages and \(m\) micro-batches the idle "bubble" fraction is about \((p-1)/(m+p-1)\).</li>
+<li><b>Sequence / context parallelism</b> splits long sequences; <b>expert parallelism</b> places MoE experts on different GPUs.</li>
+<li>Large runs combine them ("3D parallelism"): tensor parallel within a node, pipeline across nodes, data parallel/FSDP over everything.</li>
+</ul>
+<h3>Memory savers and practicalities</h3>
+<p><b>Activation checkpointing</b> stores only some activations and recomputes the rest during backward (~30% more compute for much less memory). <b>Gradient accumulation</b> simulates large batches. Mixed precision everywhere. At scale, hardware fails: checkpoint frequently and make jobs resumable.</p>
+<pre><code class="language-python"># train_ddp.py — launch with:  torchrun --nproc_per_node=4 train_ddp.py
+import os, torch, torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data.distributed import DistributedSampler
+
+dist.init_process_group("nccl")
+rank = int(os.environ["LOCAL_RANK"]); torch.cuda.set_device(rank)
+model = DDP(build_model().cuda(rank), device_ids=[rank])
+sampler = DistributedSampler(dataset)                        # each rank gets a different shard
+loader = torch.utils.data.DataLoader(dataset, batch_size=32, sampler=sampler)
+opt = torch.optim.AdamW(model.parameters(), lr=3e-4)
+for epoch in range(10):
+    sampler.set_epoch(epoch)                                 # reshuffle differently each epoch
+    for x, y in loader:
+        loss = loss_fn(model(x.cuda(rank)), y.cuda(rank))
+        opt.zero_grad(); loss.backward(); opt.step()         # gradients all-reduced during backward
+    if rank == 0: torch.save(model.module.state_dict(), f"ckpt_{epoch}.pt")
+dist.destroy_process_group()
+# For models that don't fit on one GPU: wrap with FSDP instead of DDP.</code></pre>

@@ -1,0 +1,131 @@
+<h3>Iterables and iterators</h3>
+<p>A <code>for</code> loop works on anything <b>iterable</b>. Under the hood it calls <code>iter(x)</code> to get an <b>iterator</b>, then calls <code>next()</code> on it until <code>StopIteration</code>. An iterator produces values one at a time and remembers where it is; it can only be consumed once.</p>
+<pre><code class="language-python">it = iter([10, 20, 30])
+next(it), next(it), next(it)     # 10, 20, 30
+# next(it) now raises StopIteration
+
+squares = map(lambda v: v * v, range(5))   # lazy: nothing computed yet
+print(list(squares))                       # [0, 1, 4, 9, 16]
+print(list(squares))                       # []  (already consumed)</code></pre>
+
+<h3>Generators: lazy sequences</h3>
+<p>A function containing <code>yield</code> becomes a <b>generator</b>. Each <code>yield</code> hands one value to the caller and pauses until the next value is requested. Generators let you stream data that would never fit in memory: a 500 GB text corpus, a stream of LLM tokens, an endless data loader.</p>
+<pre><code class="language-python">def read_jsonl(path):
+    """Yield one record at a time from a JSON-lines file of any size."""
+    import json
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                yield json.loads(line)
+
+def batched(iterable, n):
+    """Group any iterable into lists of size n (the last may be shorter)."""
+    batch = []
+    for item in iterable:
+        batch.append(item)
+        if len(batch) == n:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+
+for batch in batched(range(7), 3):
+    print(batch)            # [0, 1, 2]  [3, 4, 5]  [6]
+
+total = sum(x * x for x in range(1_000_000))   # generator expression: no list in memory</code></pre>
+<p>Pipelines of generators process data in constant memory: <code>batched(clean(read_jsonl(path)), 32)</code> reads, cleans and batches one record at a time.</p>
+<div class="callout mllink"><b>Where you will see this</b>PyTorch <code>IterableDataset</code>, Hugging Face streaming datasets, and streaming LLM APIs (a generator of text chunks) all follow this pattern. <code>yield from other_gen()</code> delegates to another generator.</div>
+
+<h3>itertools and functools</h3>
+<pre><code class="language-python">import itertools as it
+list(it.islice(it.count(), 5))                 # [0, 1, 2, 3, 4]: first 5 of an infinite counter
+list(it.chain([1, 2], [3]))                    # [1, 2, 3]
+list(it.product(["lr=1e-3", "lr=1e-4"], [16, 32]))   # grid search combinations
+for key, group in it.groupby(sorted(["ab", "ac", "b"]), key=lambda s: s[0]):
+    print(key, list(group))                    # a ['ab', 'ac']  b ['b']
+
+from functools import lru_cache, partial, reduce
+@lru_cache(maxsize=None)                       # memoize: compute each n once
+def fib(n): return n if n &lt; 2 else fib(n - 1) + fib(n - 2)
+print(fib(80))
+
+def scale(x, factor): return x * factor
+double = partial(scale, factor=2)              # pre-fill an argument
+print(double(21), reduce(lambda a, b: a * b, [1, 2, 3, 4]))   # 42 24</code></pre>
+
+<h3>Decorators: functions that wrap functions</h3>
+<p>A decorator takes a function and returns a new function that adds behaviour around it: timing, logging, caching, retrying. <code>@decorator</code> above a definition is shorthand for <code>f = decorator(f)</code>.</p>
+<pre><code class="language-python">import time, functools, random
+
+def timed(fn):
+    @functools.wraps(fn)                       # keep the original name and docstring
+    def wrapper(*args, **kwargs):
+        t0 = time.perf_counter()
+        try:
+            return fn(*args, **kwargs)
+        finally:
+            print(f"{fn.__name__} took {time.perf_counter() - t0:.3f}s")
+    return wrapper
+
+def retry(times=3, base_delay=0.5):
+    """Retry with exponential backoff: the standard pattern for flaky API calls."""
+    def deco(fn):
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            for attempt in range(times):
+                try:
+                    return fn(*args, **kwargs)
+                except ConnectionError:
+                    if attempt == times - 1:
+                        raise
+                    time.sleep(base_delay * 2 ** attempt + random.random() * 0.1)
+        return wrapper
+    return deco
+
+@timed
+@retry(times=4)
+def call_model(prompt):
+    ...</code></pre>
+<p>You already use decorators: <code>@torch.no_grad()</code>, <code>@dataclass</code>, <code>@property</code>, <code>@app.post("/predict")</code> in FastAPI.</p>
+
+<h3>Context managers</h3>
+<p><code>with</code> guarantees setup and cleanup, even when an exception is raised: files are closed, locks released, GPU modes restored.</p>
+<pre><code class="language-python">from contextlib import contextmanager
+
+@contextmanager
+def timer(label):
+    t0 = time.perf_counter()
+    yield
+    print(label, f"{time.perf_counter() - t0:.3f}s")
+
+with timer("tokenize"):
+    words = "a b c".split()
+# torch.no_grad(), torch.autocast(...) and open(...) are all context managers</code></pre>
+
+<h3>Type hints</h3>
+<p>Type hints document what a function expects and returns. Python does not enforce them at runtime, but editors and checkers (mypy, pyright) catch whole classes of bugs before you run anything, and frameworks like FastAPI and Pydantic use them to validate data.</p>
+<pre><code class="language-python">from typing import Iterator, Literal, Optional, TypedDict, Callable
+
+def top_k(scores: dict[str, float], k: int = 5) -&gt; list[tuple[str, float]]:
+    return sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:k]
+
+def stream_tokens(text: str) -&gt; Iterator[str]:
+    yield from text.split()
+
+class Message(TypedDict):
+    role: Literal["system", "user", "assistant"]
+    content: str
+
+Metric = Callable[[list[int], list[int]], float]
+def evaluate(metric: Metric, preds: list[int], labels: list[int]) -&gt; float:
+    return metric(preds, labels)
+
+def find(user_id: int) -&gt; Optional[dict]:      # may return None (also written dict | None)
+    ...</code></pre>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>Write a generator <code>sliding_windows(seq, size)</code> that yields every contiguous window of length <code>size</code>.
+<details><summary>Solution</summary><div><code>def sliding_windows(seq, size):<br>&nbsp;&nbsp;&nbsp;&nbsp;for i in range(len(seq) - size + 1):<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;yield seq[i:i + size]</code></div></details></li>
+<li>Why does the decorator use <code>functools.wraps</code>?
+<details><summary>Solution</summary><div>Without it the wrapped function's <code>__name__</code> and docstring become those of <code>wrapper</code>, which breaks logging, debugging and tools that inspect functions.</div></details></li>
+</ol></div>

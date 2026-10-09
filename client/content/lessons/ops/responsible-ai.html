@@ -1,0 +1,17 @@
+<h3>Fairness metrics (group \(A\), prediction \(\hat Y\))</h3>
+<ul>
+<li><b>Demographic parity:</b> \(P(\hat Y=1\mid A=a)\) equal across groups.</li>
+<li><b>Equal opportunity:</b> equal true positive rates across groups.</li>
+<li><b>Equalized odds:</b> equal TPR and FPR across groups.</li>
+</ul>
+<p>These criteria generally can't all hold at once when base rates differ, so choosing among them is a values decision, not only a technical one. Always evaluate performance per subgroup.</p>
+<h3>Explainability</h3>
+<p><b>SHAP</b> attributes a prediction to features using Shapley values from cooperative game theory:</p>
+$$\phi_i=\sum_{S\subseteq F\setminus\{i\}}\frac{|S|!\,(|F|-|S|-1)!}{|F|!}\Big[f(S\cup\{i\})-f(S)\Big]$$
+<p>the average marginal contribution of feature \(i\) over all orderings. Contributions sum to the prediction minus the baseline. Other tools: permutation importance, partial dependence plots, LIME, and for deep nets, gradient-based saliency (integrated gradients) and attention or probing analyses (with care).</p>
+<pre><code class="language-python">import shap
+explainer = shap.TreeExplainer(xgb_model)
+sv = explainer.shap_values(X_te)
+shap.summary_plot(sv, X_te)          # global view of which features drive predictions</code></pre>
+<h3>Privacy and security</h3>
+<p>Models can memorize training data (membership inference, extraction). Mitigations: data minimization, PII removal, access controls, and differential privacy (DP-SGD: clip per-example gradients and add calibrated noise). For LLM apps, defend against prompt injection and data exfiltration by treating all external content as untrusted and limiting what tools can do.</p>

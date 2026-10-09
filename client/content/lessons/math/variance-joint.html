@@ -1,0 +1,20 @@
+<h3>Variance and covariance</h3>
+$$\operatorname{Var}(X)=\mathbb{E}[(X-\mu)^2]=\mathbb{E}[X^2]-\mu^2,\qquad \operatorname{Var}(aX+b)=a^2\operatorname{Var}(X)$$
+$$\operatorname{Cov}(X,Y)=\mathbb{E}[XY]-\mathbb{E}[X]\mathbb{E}[Y],\qquad \rho_{XY}=\frac{\operatorname{Cov}(X,Y)}{\sigma_X\sigma_Y}\in[-1,1]$$
+$$\operatorname{Var}(X+Y)=\operatorname{Var}(X)+\operatorname{Var}(Y)+2\operatorname{Cov}(X,Y)$$
+<p>For a random vector \(\mathbf{x}\), the <b>covariance matrix</b> \(\boldsymbol\Sigma=\mathbb{E}[(\mathbf{x}-\boldsymbol\mu)(\mathbf{x}-\boldsymbol\mu)^\top]\) is symmetric and PSD. Correlation only detects <i>linear</i> relationships; \(\rho=0\) does not imply independence.</p>
+<h3>Joint, marginal, conditional</h3>
+$$p(x)=\int p(x,y)\,dy\quad(\text{marginal}),\qquad p(y\mid x)=\frac{p(x,y)}{p(x)}\quad(\text{conditional})$$
+$$p(x,y)=p(y\mid x)\,p(x)\quad(\text{product rule}),\qquad X\perp Y\iff p(x,y)=p(x)p(y)$$
+<p><b>Law of total expectation:</b> \(\mathbb{E}[Y]=\mathbb{E}\big[\mathbb{E}[Y\mid X]\big]\). The chain rule of probability, \(p(x_1,\dots,x_T)=\prod_t p(x_t\mid x_{\lt t})\), is exactly how language models factor a sentence ([[llm-pretraining]]).</p>
+<div class="callout mllink"><b>Where ML uses it</b>Under squared loss, the best possible predictor is the conditional mean \(f^*(\mathbf{x})=\mathbb{E}[Y\mid\mathbf{x}]\). Regression models try to learn it. Classifiers try to learn \(p(y\mid\mathbf{x})\).</div>
+<pre><code class="language-python">X = np.random.randn(1000, 3)
+X[:, 2] = 0.8 * X[:, 0] + 0.2 * np.random.randn(1000)   # make feature 2 depend on 0
+Sigma = np.cov(X, rowvar=False)        # 3x3 covariance matrix
+R = np.corrcoef(X, rowvar=False)       # correlations, R[0,2] ~ 0.97</code></pre>
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>Compute \(\operatorname{Var}(X)\) for \(X\sim\text{Uniform}(0,1)\).
+<details><summary>Solution</summary><div>\(\tfrac13-\tfrac14=\tfrac1{12}\).</div></details></li>
+<li>Show that the mean of \(n\) i.i.d. variables with variance \(\sigma^2\) has variance \(\sigma^2/n\).
+<details><summary>Solution</summary><div>\(\operatorname{Var}(\tfrac1n\sum X_i)=\tfrac1{n^2}\sum\operatorname{Var}(X_i)=\tfrac{n\sigma^2}{n^2}=\tfrac{\sigma^2}{n}\) (covariances vanish by independence). This is why larger batches give less noisy gradients, and why ensembles reduce variance.</div></details></li>
+</ol></div>

@@ -1,0 +1,21 @@
+$$H(p)=-\sum_xp(x)\log p(x)\qquad\text{(entropy: average surprise)}$$
+$$H(p,q)=-\sum_xp(x)\log q(x)\qquad\text{(cross-entropy: surprise using model }q\text{)}$$
+$$D_{\mathrm{KL}}(p\,\|\,q)=\sum_xp(x)\log\frac{p(x)}{q(x)}=H(p,q)-H(p)\;\ge0$$
+<ul>
+<li>\(-\log p(x)\) is the information (surprise) of outcome \(x\). In base 2 it is measured in bits.</li>
+<li>KL is non-negative (Gibbs' inequality, via Jensen) and zero only when \(p=q\). It is <b>not symmetric</b>: \(D_{\mathrm{KL}}(p\|q)\ne D_{\mathrm{KL}}(q\|p)\).</li>
+<li>Since \(H(p)\) is fixed by the data, <b>minimizing cross-entropy = minimizing KL to the data distribution = maximum likelihood</b>. Three names, one objective.</li>
+<li><b>Mutual information</b> \(I(X;Y)=H(X)-H(X\mid Y)=D_{\mathrm{KL}}(p(x,y)\|p(x)p(y))\) measures how much knowing \(Y\) reduces uncertainty about \(X\). It is used for feature selection and in decision trees as information gain.</li>
+<li><b>Perplexity</b> \(=\exp(H)\): the effective number of equally likely choices. A language model with perplexity 20 is as uncertain as a uniform pick among 20 tokens.</li>
+</ul>
+<!--FIG:entropy_bin-->
+<pre><code class="language-python">def entropy(p):           return -(p * np.log2(p + 1e-12)).sum()
+def cross_entropy(p, q):  return -(p * np.log2(q + 1e-12)).sum()
+def kl(p, q):             return cross_entropy(p, q) - entropy(p)
+
+p = np.array([0.7, 0.2, 0.1]); q = np.array([0.5, 0.3, 0.2])
+print(entropy(p), cross_entropy(p, q), kl(p, q), kl(q, p))   # KL is asymmetric</code></pre>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>Entropy of a fair coin and of a fair die, in bits?
+<details><summary>Solution</summary><div>1 bit and \(\log_2 6\approx2.585\) bits. The uniform distribution maximizes entropy among distributions on a fixed set of outcomes.</div></details></li>
+</ol></div>

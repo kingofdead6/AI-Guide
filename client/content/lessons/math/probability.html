@@ -1,0 +1,17 @@
+<h3>Axioms</h3>
+<p>A probability \(P\) on a sample space \(\Omega\) satisfies \(P(A)\ge0\), \(P(\Omega)=1\), and additivity for disjoint events. Consequences: \(P(A^c)=1-P(A)\) and \(P(A\cup B)=P(A)+P(B)-P(A\cap B)\).</p>
+<h3>Random variables</h3>
+<p>A random variable is a <b>function</b> \(X:\Omega\to\mathbb{R}\) mapping outcomes to numbers. Discrete variables have a <b>PMF</b> \(P(X=x)\). Continuous variables have a <b>PDF</b> \(f_X\), and probability is area under it:</p>
+$$P(a\le X\le b)=\int_a^b f_X(x)\,dx,\qquad \int_{-\infty}^{\infty}f_X(x)\,dx=1,\qquad F_X(x)=P(X\le x),\qquad f_X=F_X'$$
+<p>For continuous \(X\), \(P(X=x)=0\) for every single point, and a density can exceed 1. Only areas are probabilities.</p>
+<h3>Expectation</h3>
+$$\mathbb{E}[X]=\sum_x x\,P(X=x)\quad\text{or}\quad\int x\,f_X(x)\,dx,\qquad \mathbb{E}[g(X)]=\int g(x)f_X(x)\,dx\ \ \text{(LOTUS)}$$
+<ul>
+<li><b>Linearity</b> always holds, even for dependent variables: \(\mathbb{E}[aX+bY]=a\mathbb{E}[X]+b\mathbb{E}[Y]\).</li>
+<li>In general \(\mathbb{E}[g(X)]\ne g(\mathbb{E}[X])\). <b>Jensen's inequality:</b> for convex \(g\), \(g(\mathbb{E}[X])\le\mathbb{E}[g(X)]\). It proves that KL divergence is non-negative and gives the VAE's ELBO.</li>
+</ul>
+<div class="callout mllink"><b>Where ML uses it</b>The training objective is an expectation: the <b>expected risk</b> \(R(\theta)=\mathbb{E}_{(\mathbf{x},y)\sim P}[\mathcal{L}(y,f_\theta(\mathbf{x}))]\). We can't compute it because \(P\) is unknown, so we estimate it with the average over a dataset (empirical risk), and then with the average over a mini-batch (SGD).</div>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>For \(X\sim\text{Uniform}(0,1)\), compute \(\mathbb{E}[X]\) and \(\mathbb{E}[X^2]\).
+<details><summary>Solution</summary><div>\(\int_0^1x\,dx=\tfrac12\) and \(\int_0^1x^2dx=\tfrac13\). Note \(\mathbb{E}[X^2]=\tfrac13\ne(\mathbb{E}[X])^2=\tfrac14\).</div></details></li>
+</ol></div>

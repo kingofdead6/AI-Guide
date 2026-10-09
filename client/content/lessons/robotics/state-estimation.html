@@ -1,0 +1,60 @@
+<h3>Belief, not certainty</h3>
+<p>A robot never knows its true state \(\mathbf x_t\) (position, velocity, orientation). It keeps a <b>belief</b>, a probability distribution over states, and updates it with two kinds of information: a <b>motion model</b> \(p(\mathbf x_t\mid\mathbf x_{t-1},\mathbf u_t)\) that predicts how commands \(\mathbf u_t\) move it, and a <b>measurement model</b> \(p(\mathbf z_t\mid\mathbf x_t)\) that says what sensors should read in each state. The recursive Bayes filter alternates them:</p>
+$$\textbf{predict: }\ \overline{bel}(\mathbf x_t)=\int p(\mathbf x_t\mid\mathbf x_{t-1},\mathbf u_t)\,bel(\mathbf x_{t-1})\,d\mathbf x_{t-1}\qquad \textbf{update: }\ bel(\mathbf x_t)\propto p(\mathbf z_t\mid\mathbf x_t)\,\overline{bel}(\mathbf x_t)$$
+<p>Prediction spreads the belief out (motion adds uncertainty); the update sharpens it (measurements add information). This is [[bayes]] applied over and over in time.</p>
+
+<h3>The Kalman filter</h3>
+<p>If the models are linear and the noise Gaussian, the belief stays Gaussian forever, described by a mean \(\hat{\mathbf x}\) and covariance \(\mathbf P\). With dynamics \(\mathbf x_t=\mathbf A\mathbf x_{t-1}+\mathbf B\mathbf u_t+\mathbf w\), \(\mathbf w\sim\mathcal N(0,\mathbf Q)\), and sensors \(\mathbf z_t=\mathbf H\mathbf x_t+\mathbf v\), \(\mathbf v\sim\mathcal N(0,\mathbf R)\):</p>
+$$\begin{aligned}
+\text{predict:}\quad &amp;\hat{\mathbf x}^-=\mathbf A\hat{\mathbf x}+\mathbf B\mathbf u, &amp;&amp;\mathbf P^-=\mathbf A\mathbf P\mathbf A^\top+\mathbf Q\\
+\text{update:}\quad &amp;\mathbf K=\mathbf P^-\mathbf H^\top(\mathbf H\mathbf P^-\mathbf H^\top+\mathbf R)^{-1}, &amp;&amp;\hat{\mathbf x}=\hat{\mathbf x}^-+\mathbf K(\mathbf z-\mathbf H\hat{\mathbf x}^-),\quad \mathbf P=(\mathbf I-\mathbf K\mathbf H)\mathbf P^-
+\end{aligned}$$
+<p>The <b>Kalman gain</b> \(\mathbf K\) decides how much to trust the measurement versus the prediction. The term \(\mathbf z-\mathbf H\hat{\mathbf x}^-\) is the <b>innovation</b>: the surprise in the measurement.</p>
+<div class="callout intuition"><b>One dimension makes it obvious</b><p>For a scalar state measured directly (\(H=1\)), \(K=\dfrac{P^-}{P^-+R}\). If the prediction is very uncertain (\(P^-\gg R\)) then \(K\approx1\) and we jump to the measurement. If the sensor is very noisy (\(R\gg P^-\)) then \(K\approx0\) and we mostly ignore it. The update is a precision-weighted average of two Gaussians, and the result is always more certain than either: \(P=\dfrac{P^-R}{P^-+R}\).</p></div>
+<!--FIG:kalman_1d-->
+<pre><code class="language-python">import numpy as np
+dt = 1.0
+A = np.array([[1, dt], [0, 1]])        # constant velocity: position += velocity * dt
+H = np.array([[1.0, 0.0]])             # we only measure position
+Q = np.diag([0.02, 0.01])              # process noise: how much the model can be wrong per step
+R = np.array([[9.0]])                  # measurement noise variance (sensor std = 3)
+
+x, P = np.zeros(2), np.diag([10.0, 1.0])
+def kalman_step(x, P, z):
+    x, P = A @ x, A @ P @ A.T + Q                     # predict
+    S = H @ P @ H.T + R
+    K = P @ H.T @ np.linalg.inv(S)                    # gain
+    x = x + K @ (np.atleast_1d(z) - H @ x)            # update with the innovation
+    P = (np.eye(2) - K @ H) @ P
+    return x, P
+
+for z in [0.4, 1.9, 1.2, 3.8, 4.1, 5.6]:
+    x, P = kalman_step(x, P, z)
+print(x, np.sqrt(np.diag(P)))          # position, velocity and their uncertainties</code></pre>
+<p>Tuning \(\mathbf Q\) and \(\mathbf R\) is the practical art: \(\mathbf R\) usually comes from sensor datasheets or measured noise; \(\mathbf Q\) expresses how much you trust the motion model and is tuned so the innovations look like zero-mean noise of the predicted size.</p>
+
+<h3>Nonlinear systems</h3>
+<ul>
+<li><b>Extended Kalman filter (EKF):</b> linearize the motion and measurement functions around the current estimate with their Jacobians, then apply the Kalman equations. The workhorse of GPS/IMU fusion and drones.</li>
+<li><b>Unscented Kalman filter (UKF):</b> push a few carefully chosen "sigma points" through the true nonlinear functions and refit a Gaussian. More accurate for strong nonlinearities, no Jacobians needed.</li>
+<li><b>Particle filter:</b> represent the belief by \(N\) weighted samples. Predict by moving each particle with the noisy motion model; update by weighting each particle with \(p(\mathbf z\mid\mathbf x^{(i)})\); resample in proportion to the weights. It handles multi-modal beliefs ("I am in one of these two identical corridors") that a Gaussian cannot. This is Monte Carlo localization ([[monte-carlo]]).</li>
+</ul>
+<pre><code class="language-python">def particle_filter_step(particles, weights, u, z, move, likelihood, rng):
+    particles = move(particles, u, rng)                    # sample from the motion model
+    weights = weights * likelihood(z, particles)           # weight by the measurement
+    weights /= weights.sum()
+    n_eff = 1.0 / np.sum(weights**2)                       # effective sample size
+    if n_eff &lt; len(particles) / 2:                         # resample when weights degenerate
+        idx = rng.choice(len(particles), size=len(particles), p=weights)
+        particles, weights = particles[idx], np.full(len(particles), 1 / len(particles))
+    return particles, weights</code></pre>
+
+<h3>Sensor fusion and SLAM</h3>
+<p>Real robots fuse wheel odometry, IMUs (accelerometers and gyroscopes, fast but drifting), GPS (absolute but noisy, unavailable indoors), cameras and LiDAR. <b>SLAM</b> (simultaneous localization and mapping) estimates the robot's trajectory and a map of landmarks together. Modern SLAM is mostly formulated as a <b>factor graph</b>: poses and landmarks are variables, odometry and observations are constraints, and the best estimate is a large sparse least-squares problem. Loop closures (recognizing a place seen before) correct the drift accumulated in between.</p>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>Prediction variance is 4, sensor variance is 1. What are the Kalman gain and the posterior variance?
+<details><summary>Solution</summary><div>\(K=4/(4+1)=0.8\) and \(P=4\cdot1/(4+1)=0.8\): we trust the sensor 80% and end up more certain than either source.</div></details></li>
+<li>Why can't a Kalman filter represent "the robot is in corridor A or corridor B"?
+<details><summary>Solution</summary><div>Its belief is a single Gaussian, which has one peak. A bimodal belief needs a mixture of Gaussians or a particle filter.</div></details></li>
+</ol></div>

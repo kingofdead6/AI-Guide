@@ -1,0 +1,33 @@
+<h3>Initialization</h3>
+<p>For \(z=\sum_{j=1}^{n_{in}}w_jx_j\) with independent zero-mean terms, \(\operatorname{Var}(z)=n_{in}\operatorname{Var}(w)\operatorname{Var}(x)\). To keep activations from growing or shrinking layer by layer we want \(n_{in}\operatorname{Var}(w)\approx1\):</p>
+$$\text{Xavier/Glorot (tanh): }\operatorname{Var}(w)=\frac{2}{n_{in}+n_{out}},\qquad \text{He/Kaiming (ReLU): }\operatorname{Var}(w)=\frac{2}{n_{in}}$$
+<p>The factor 2 for ReLU compensates for it zeroing half its inputs.</p>
+<h3>Normalization layers</h3>
+$$\hat x=\frac{x-\mu}{\sqrt{\sigma^2+\epsilon}},\qquad y=\gamma\hat x+\beta$$
+<ul>
+<li><b>BatchNorm:</b> \(\mu,\sigma\) over the batch (per channel). Smooths the loss landscape and allows higher learning rates. Uses running averages at inference. Common in CNNs.</li>
+<li><b>LayerNorm:</b> \(\mu,\sigma\) over the features of each example. Independent of batch size; the standard in Transformers.</li>
+<li><b>RMSNorm:</b> LayerNorm without mean subtraction, \(y=\gamma\,x/\sqrt{\tfrac1d\sum x_i^2+\epsilon}\). Cheaper; used in most modern LLMs.</li>
+</ul>
+<!--FIG:norms-->
+<h3>Regularization</h3>
+<ul>
+<li><b>Weight decay</b> (L2 / AdamW).</li>
+<li><b>Dropout:</b> during training zero each unit with probability \(p\) and scale survivors by \(1/(1-p)\) ("inverted dropout") so expectations match at test time. It acts like training an ensemble of subnetworks.</li>
+<li><b>Data augmentation</b> ([[cv-basics]]), <b>early stopping</b> on validation loss, <b>label smoothing</b> (target \(1-\varepsilon\) for the true class, spreading \(\varepsilon\) over the others).</li>
+</ul>
+<!--FIG:dropout-->
+<h3>Stability and speed</h3>
+<ul>
+<li><b>Gradient clipping:</b> if \(\|\mathbf g\|\gt c\), rescale \(\mathbf g\leftarrow c\,\mathbf g/\|\mathbf g\|\). Standard for RNNs and Transformers.</li>
+<li><b>Mixed precision:</b> compute in fp16/bf16, keep master weights in fp32; roughly 2× faster and half the memory.</li>
+<li><b>Residual connections</b> ([[cnn]]) and normalization are what make 100+ layer networks trainable.</li>
+</ul>
+<!--FIG:loss_curves-->
+<div class="key"><p><b>Debugging recipe that saves days</b></p><ol>
+<li>Check the initial loss: for \(C\) balanced classes it should be about \(\log C\) (2.30 for 10 classes).</li>
+<li><b>Overfit one small batch</b> to near-zero loss. If you can't, there's a bug.</li>
+<li>Sweep learning rates on a log scale (1e-5 … 1e-1); the right one is usually just below where loss explodes.</li>
+<li>Plot train and validation loss, and gradient norms per layer.</li>
+<li>Only then add regularization and scale up.</li>
+</ol></div>

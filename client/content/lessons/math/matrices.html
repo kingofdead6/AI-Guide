@@ -1,0 +1,35 @@
+<h3>Multiplication and shapes</h3>
+$$(\mathbf{AB})_{ij}=\sum_{k}A_{ik}B_{kj},\qquad \underbrace{\mathbf{A}}_{m\times n}\;\underbrace{\mathbf{B}}_{n\times p}=\underbrace{\mathbf{C}}_{m\times p}$$
+<p>Two views of \(\mathbf{Ax}\) that you should keep in mind at all times:</p>
+<ul>
+<li><b>Row view:</b> entry \(i\) is the dot product of row \(i\) with \(\mathbf{x}\).</li>
+<li><b>Column view:</b> \(\mathbf{Ax}=\sum_j x_j\,\mathbf{a}_j\), a linear combination of the columns. So \(\mathbf{Ax}=\mathbf{b}\) is solvable exactly when \(\mathbf{b}\) lies in the <b>column space</b>.</li>
+</ul>
+<h3>Essential facts</h3>
+<ul>
+<li>Not commutative: \(\mathbf{AB}\ne\mathbf{BA}\) in general. Associative: \((\mathbf{AB})\mathbf{C}=\mathbf{A}(\mathbf{BC})\).</li>
+<li>Transpose: \((\mathbf{AB})^\top=\mathbf{B}^\top\mathbf{A}^\top\). Inverse: \((\mathbf{AB})^{-1}=\mathbf{B}^{-1}\mathbf{A}^{-1}\).</li>
+<li><b>Rank</b> = dimension of the column space = number of independent columns. A square matrix is invertible \(\iff\) full rank \(\iff \det\mathbf{A}\ne0\).</li>
+<li>\(|\det\mathbf{A}|\) is the factor by which \(\mathbf{A}\) scales volumes. Zero determinant means some direction is squashed flat.</li>
+<li>Trace \(\operatorname{tr}(\mathbf{A})=\sum_i A_{ii}\), and \(\operatorname{tr}(\mathbf{AB})=\operatorname{tr}(\mathbf{BA})\).</li>
+</ul>
+<table>
+<tr><th>Type</th><th>Definition</th><th>Why it matters</th></tr>
+<tr><td>Symmetric</td><td>\(\mathbf{A}=\mathbf{A}^\top\)</td><td>Covariance matrices, Hessians; real eigenvalues</td></tr>
+<tr><td>Orthogonal</td><td>\(\mathbf{Q}^\top\mathbf{Q}=\mathbf{I}\)</td><td>Rotations/reflections; preserve lengths</td></tr>
+<tr><td>Diagonal</td><td>\(A_{ij}=0\) for \(i\ne j\)</td><td>Independent per-axis scaling</td></tr>
+<tr><td>Positive semi-definite</td><td>\(\mathbf{x}^\top\mathbf{Ax}\ge0\ \forall\mathbf{x}\)</td><td>Covariances, kernels, convexity tests</td></tr>
+</table>
+<div class="callout mllink"><b>Where ML uses it</b>A dense layer on a batch \(\mathbf{X}\in\mathbb{R}^{B\times d_{in}}\) computes \(\mathbf{Y}=\mathbf{XW}^\top+\mathbf{b}\), where PyTorch's <code>nn.Linear</code> stores \(\mathbf{W}\in\mathbb{R}^{d_{out}\times d_{in}}\). Most bugs in deep learning code are shape bugs, so write shapes next to every line.</div>
+<pre><code class="language-python">B, d_in, d_out = 32, 784, 256
+X = np.random.randn(B, d_in)
+W = np.random.randn(d_out, d_in) * 0.01
+b = np.zeros(d_out)
+Y = X @ W.T + b          # (32, 256): one row per example
+print(np.linalg.matrix_rank(W), np.trace(W @ W.T))</code></pre>
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>Prove that \(\mathbf{A}^\top\mathbf{A}\) is positive semi-definite for any matrix \(\mathbf{A}\).
+<details><summary>Solution</summary><div>\(\mathbf{x}^\top\mathbf{A}^\top\mathbf{A}\mathbf{x}=(\mathbf{Ax})^\top(\mathbf{Ax})=\|\mathbf{Ax}\|^2\ge0\).</div></details></li>
+<li>A network maps 784 → 256 → 10 with biases. How many parameters?
+<details><summary>Solution</summary><div>\(784\cdot256+256+256\cdot10+10=200{,}960+2{,}570=203{,}530\).</div></details></li>
+</ol></div>

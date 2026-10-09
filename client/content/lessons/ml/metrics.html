@@ -1,0 +1,27 @@
+<h3>Classification</h3>
+<table>
+<tr><th>Metric</th><th>Formula</th><th>Use when</th></tr>
+<tr><td>Accuracy</td><td>\(\frac{TP+TN}{\text{all}}\)</td><td>Balanced classes, equal error costs</td></tr>
+<tr><td>Precision</td><td>\(\frac{TP}{TP+FP}\)</td><td>False positives are costly (spam filter)</td></tr>
+<tr><td>Recall (TPR)</td><td>\(\frac{TP}{TP+FN}\)</td><td>False negatives are costly (disease screening)</td></tr>
+<tr><td>F1</td><td>\(\frac{2PR}{P+R}\)</td><td>Need one number balancing P and R</td></tr>
+<tr><td>ROC-AUC</td><td>Area under TPR vs FPR</td><td>Ranking quality, threshold-free</td></tr>
+<tr><td>PR-AUC</td><td>Area under precision vs recall</td><td>Heavy class imbalance</td></tr>
+<tr><td>Log loss</td><td>\(-\frac1n\sum\log p(y_i\mid\mathbf x_i)\)</td><td>Probabilities must be calibrated</td></tr>
+</table>
+<!--FIG:confusion-->
+<!--FIG:roc-->
+<p><b>AUC has a clean meaning:</b> the probability that a randomly chosen positive gets a higher score than a randomly chosen negative. For multi-class, <b>macro</b> averaging weights each class equally and <b>micro</b> averaging weights each example equally. A model is <b>calibrated</b> if, among predictions of 0.8, 80% are positive; check with a reliability diagram.</p>
+<h3>Regression</h3>
+$$\text{MAE}=\tfrac1n\sum|y_i-\hat y_i|,\quad \text{RMSE}=\sqrt{\tfrac1n\sum(y_i-\hat y_i)^2},\quad R^2=1-\frac{\sum(y_i-\hat y_i)^2}{\sum(y_i-\bar y)^2}$$
+<p>RMSE punishes large errors more than MAE. \(R^2\) is the fraction of variance explained; it can be negative on test data if the model is worse than predicting the mean.</p>
+<pre><code class="language-python">from sklearn.metrics import (classification_report, confusion_matrix, roc_auc_score,
+                             average_precision_score, mean_absolute_error, r2_score)
+proba = model.predict_proba(X_te)[:, 1]
+pred = (proba >= 0.5).astype(int)          # tune this threshold on validation data
+print(confusion_matrix(y_te, pred)); print(classification_report(y_te, pred))
+print("ROC-AUC", roc_auc_score(y_te, proba), "PR-AUC", average_precision_score(y_te, proba))</code></pre>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>1,000 transactions, 10 are fraud. A model flags 20, catching 8 frauds. Compute precision, recall, F1 and accuracy.
+<details><summary>Solution</summary><div>TP = 8, FP = 12, FN = 2, TN = 978. Precision 0.40, recall 0.80, F1 ≈ 0.533, accuracy 0.986. A model that flags nothing would score 0.99 accuracy, which is why accuracy is misleading here.</div></details></li>
+</ol></div>

@@ -1,0 +1,82 @@
+<h3>Scaled dot-product attention</h3>
+<div class="key">
+$$\operatorname{Attention}(\mathbf Q,\mathbf K,\mathbf V)=\operatorname{softmax}\!\Big(\frac{\mathbf Q\mathbf K^\top}{\sqrt{d_k}}+\mathbf M\Big)\mathbf V$$
+</div>
+<p>For a sequence \(\mathbf X\in\mathbb R^{n\times d}\): \(\mathbf Q=\mathbf X\mathbf W_Q\), \(\mathbf K=\mathbf X\mathbf W_K\), \(\mathbf V=\mathbf X\mathbf W_V\). Each token's <b>query</b> is compared with every token's <b>key</b>; the softmax turns scores into weights; the output is a weighted average of <b>values</b>. It is a soft, differentiable dictionary lookup.</p>
+<!--FIG:attention-->
+<ul>
+<li><b>Why \(\sqrt{d_k}\)?</b> If query and key components are independent with variance 1, \(\mathbf q^\top\mathbf k=\sum_{i=1}^{d_k}q_ik_i\) has variance \(d_k\). Large scores saturate the softmax and its gradients vanish; dividing by \(\sqrt{d_k}\) restores unit variance.</li>
+<li><b>Causal mask</b> \(\mathbf M\): set \(M_{ij}=-\infty\) for \(j\gt i\) so token \(i\) can't see the future. This is what makes a decoder a language model.</li>
+<li><b>Cost:</b> \(\mathbf Q\mathbf K^\top\) is \(n\times n\), so time and memory scale as \(O(n^2d)\). This is the main obstacle for long contexts ([[inference]]).</li>
+</ul>
+<!--FIG:attn_heatmap-->
+<div class="widget" data-widget="attn"></div>
+<h3>Multi-head attention</h3>
+$$\operatorname{MHA}(\mathbf X)=\operatorname{Concat}(\text{head}_1,\dots,\text{head}_h)\mathbf W_O,\qquad \text{head}_i=\operatorname{Attention}(\mathbf X\mathbf W_Q^{i},\mathbf X\mathbf W_K^{i},\mathbf X\mathbf W_V^{i})$$
+<p>Each head has dimension \(d/h\) and can learn a different relation (syntax, coreference, position). Total cost is about the same as one full-width head.</p>
+<!--FIG:multihead-->
+<h3>Positional information</h3>
+<p>Attention treats its input as a set: permute tokens and outputs permute the same way. Order must be injected. The original sinusoidal encoding:</p>
+$$PE_{(pos,2i)}=\sin\!\big(pos/10000^{2i/d}\big),\qquad PE_{(pos,2i+1)}=\cos\!\big(pos/10000^{2i/d}\big)$$
+<!--FIG:posenc-->
+<p>Modern LLMs mostly use <b>RoPE</b> (rotary embeddings): rotate each 2-D pair of query and key components by an angle proportional to position. Then \(\mathbf q_m^\top\mathbf k_n\) depends only on the relative offset \(m-n\).</p>
+<h3>The Transformer block (pre-norm, as in GPT-style models)</h3>
+$$\mathbf X\leftarrow\mathbf X+\operatorname{MHA}(\operatorname{LN}(\mathbf X)),\qquad \mathbf X\leftarrow\mathbf X+\operatorname{FFN}(\operatorname{LN}(\mathbf X)),\qquad \operatorname{FFN}(\mathbf x)=\mathbf W_2\,\phi(\mathbf W_1\mathbf x)$$
+<p>Attention mixes information <i>across</i> tokens; the FFN (hidden size usually \(4d\)) processes each token <i>independently</i> and holds much of the model's stored knowledge. Residuals and normalization make deep stacks trainable. Parameters per layer: about \(4d^2\) (attention) + \(8d^2\) (FFN) \(=12d^2\).</p>
+<!--FIG:transformer_block-->
+<table>
+<tr><th>Variant</th><th>Attention</th><th>Trained with</th><th>Examples</th></tr>
+<tr><td>Encoder-only</td><td>Bidirectional</td><td>Masked language modelling</td><td>BERT, RoBERTa; embeddings, classification</td></tr>
+<tr><td>Decoder-only</td><td>Causal</td><td>Next-token prediction</td><td>GPT-style LLMs</td></tr>
+<tr><td>Encoder–decoder</td><td>Bidirectional + causal + cross-attention</td><td>Seq2seq objectives</td><td>T5, original Transformer, Whisper</td></tr>
+</table>
+<h3>Implementation</h3>
+<pre><code class="language-python">import math
+class CausalSelfAttention(nn.Module):
+    def __init__(self, d, n_heads, max_len=1024):
+        super().__init__()
+        assert d % n_heads == 0
+        self.h, self.dk = n_heads, d // n_heads
+        self.qkv = nn.Linear(d, 3 * d); self.proj = nn.Linear(d, d)
+        self.register_buffer("mask", torch.tril(torch.ones(max_len, max_len)).bool())
+    def forward(self, x):                                   # x: (B, T, d)
+        B, T, d = x.shape
+        q, k, v = self.qkv(x).split(d, dim=-1)
+        q, k, v = (t.view(B, T, self.h, self.dk).transpose(1, 2) for t in (q, k, v))  # (B,h,T,dk)
+        att = (q @ k.transpose(-2, -1)) / math.sqrt(self.dk)                          # (B,h,T,T)
+        att = att.masked_fill(~self.mask[:T, :T], float("-inf")).softmax(dim=-1)
+        y = (att @ v).transpose(1, 2).reshape(B, T, d)
+        return self.proj(y)
+        # In practice: F.scaled_dot_product_attention(q, k, v, is_causal=True) (FlashAttention kernel)
+
+class Block(nn.Module):
+    def __init__(self, d, n_heads):
+        super().__init__()
+        self.ln1, self.ln2 = nn.LayerNorm(d), nn.LayerNorm(d)
+        self.attn = CausalSelfAttention(d, n_heads)
+        self.ffn = nn.Sequential(nn.Linear(d, 4 * d), nn.GELU(), nn.Linear(4 * d, d))
+    def forward(self, x):
+        x = x + self.attn(self.ln1(x))
+        return x + self.ffn(self.ln2(x))
+
+class TinyGPT(nn.Module):
+    def __init__(self, vocab, d=256, n_heads=8, n_layers=6, max_len=256):
+        super().__init__()
+        self.tok = nn.Embedding(vocab, d); self.pos = nn.Embedding(max_len, d)
+        self.blocks = nn.Sequential(*[Block(d, n_heads) for _ in range(n_layers)])
+        self.ln = nn.LayerNorm(d); self.head = nn.Linear(d, vocab, bias=False)
+        self.head.weight = self.tok.weight                  # weight tying
+    def forward(self, idx, targets=None):
+        T = idx.shape[1]
+        x = self.tok(idx) + self.pos(torch.arange(T, device=idx.device))
+        logits = self.head(self.ln(self.blocks(x)))         # (B, T, vocab)
+        loss = None if targets is None else F.cross_entropy(
+            logits.view(-1, logits.size(-1)), targets.view(-1))
+        return logits, loss</code></pre>
+<p>Train <code>TinyGPT</code> on a text file with <code>targets = idx</code> shifted by one position, using the loop from [[pytorch-loop]], and it will learn to produce text in that style. That's a real (small) language model.</p>
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>A model has \(d=4096\), 32 layers and a 32,000-token vocabulary. Estimate its parameter count.
+<details><summary>Solution</summary><div>\(12\cdot4096^2\cdot32\approx6.4\)B for the blocks plus \(32{,}000\cdot4096\approx0.13\)B for embeddings: about 6.6B, roughly a "7B" model.</div></details></li>
+<li>Why doesn't an encoder like BERT use a causal mask?
+<details><summary>Solution</summary><div>It isn't generating left to right. For understanding tasks each token should use context from both sides; BERT's training hides tokens by masking the <i>input</i> instead.</div></details></li>
+</ol></div>

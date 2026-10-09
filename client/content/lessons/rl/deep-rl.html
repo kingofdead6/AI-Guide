@@ -1,0 +1,30 @@
+<h3>Value-based: DQN</h3>
+<p>A network \(Q_\theta(s,a)\) is trained toward a bootstrapped target computed with a slowly-updated copy \(Q_{\theta^-}\):</p>
+$$\mathcal L(\theta)=\mathbb E_{(s,a,r,s')\sim\mathcal D}\Big[\big(r+\gamma\max_{a'}Q_{\theta^-}(s',a')-Q_\theta(s,a)\big)^2\Big]$$
+<p>The <b>replay buffer</b> \(\mathcal D\) breaks correlations between consecutive samples; the <b>target network</b> keeps the regression target from chasing itself. <b>Double DQN</b> picks \(a'\) with the online network but evaluates it with the target network, reducing over-estimation.</p>
+<h3>Actor–critic</h3>
+<p>Learn a policy \(\pi_\theta\) and a value function \(V_\phi\). The TD error \(\delta_t=r_t+\gamma V_\phi(s_{t+1})-V_\phi(s_t)\) is a low-variance advantage estimate; <b>GAE</b> blends multi-step versions, \(\hat A_t=\sum_l(\gamma\lambda)^l\delta_{t+l}\). PPO ([[policy-gradient]]) is the most widely used on-policy actor–critic.</p>
+<h3>Continuous control</h3>
+<p>DDPG and TD3 learn deterministic policies with a Q-critic. <b>SAC</b> maximizes reward plus policy entropy, \(J=\mathbb E\big[\sum_t r_t+\alpha\mathcal H(\pi(\cdot\mid s_t))\big]\), which keeps exploration alive and is very sample-efficient for robotics simulators.</p>
+<h3>Planning: MCTS and AlphaZero</h3>
+<p>With a model of the environment (a game's rules, or a learned world model), <b>Monte Carlo tree search</b> repeatedly selects actions by an upper-confidence rule, expands, evaluates and backs up values:</p>
+$$a^*=\arg\max_a\ \Big[Q(s,a)+c\,P(s,a)\,\frac{\sqrt{N(s)}}{1+N(s,a)}\Big]$$
+<p>AlphaZero uses a network for the prior \(P\) and value, trains it on the improved policies that search produces, and repeats through self-play. Model-based RL more generally learns the dynamics and plans or trains inside the learned model.</p>
+<h3>Imitation and offline RL</h3>
+<p><b>Behaviour cloning</b> is supervised learning on expert (state, action) pairs; simple but errors compound when the agent drifts into unseen states (DAgger fixes this by querying the expert on the agent's own states). <b>Offline RL</b> learns from a fixed dataset without interaction, using conservative methods so the policy doesn't exploit errors in Q-values for unseen actions. SFT of an LLM is behaviour cloning on demonstrations.</p>
+<div class="callout warn"><b>Why RL is hard in practice</b>Reward design (agents exploit loopholes), sample inefficiency, sensitivity to hyperparameters and seeds, and the gap between simulation and the real world. Start from a library implementation, compare against random and simple baselines, and report results over several seeds.</div>
+<pre><code class="language-python"># DQN core update
+def dqn_update(q, q_target, batch, opt, gamma=0.99):
+    s, a, r, s2, done = batch                              # tensors from the replay buffer
+    q_sa = q(s).gather(1, a[:, None]).squeeze(1)
+    with torch.no_grad():
+        a2 = q(s2).argmax(1, keepdim=True)                 # double DQN: online picks...
+        target = r + gamma * (1 - done) * q_target(s2).gather(1, a2).squeeze(1)   # ...target evaluates
+    loss = F.smooth_l1_loss(q_sa, target)
+    opt.zero_grad(); loss.backward(); opt.step()
+    return loss.item()
+# every N steps: q_target.load_state_dict(q.state_dict())
+
+# Reliable implementations to start from:
+# from stable_baselines3 import PPO
+# model = PPO("MlpPolicy", "CartPole-v1", verbose=1); model.learn(total_timesteps=50_000)</code></pre>

@@ -1,0 +1,30 @@
+<h3>Binary</h3>
+$$p(y=1\mid\mathbf x)=\sigma(\mathbf w^\top\mathbf x),\qquad \mathcal L=-\sum_i\big[y_i\log p_i+(1-y_i)\log(1-p_i)\big]$$
+<p><b>Gradient derivation.</b> With \(z_i=\mathbf w^\top\mathbf x_i\) and \(\sigma'=\sigma(1-\sigma)\):</p>
+$$\frac{\partial\mathcal L_i}{\partial z_i}=-\frac{y_i}{p_i}p_i(1-p_i)+\frac{1-y_i}{1-p_i}p_i(1-p_i)=p_i-y_i\;\Rightarrow\;\boxed{\nabla_{\mathbf w}\mathcal L=\mathbf X^\top(\mathbf p-\mathbf y)}$$
+<p>It has the same form as linear regression's gradient: prediction minus target, times inputs. There is no closed form, but the loss is convex, so gradient descent finds the global optimum. The decision boundary \(\mathbf w^\top\mathbf x=0\) is a hyperplane.</p>
+<!--FIG:logistic_boundary-->
+<h3>Multi-class: softmax regression</h3>
+$$p(y=k\mid\mathbf x)=\frac{e^{z_k}}{\sum_je^{z_j}},\quad \mathbf z=\mathbf W\mathbf x,\qquad \mathcal L=-\log p(y\mid\mathbf x)=-z_y+\log\sum_je^{z_j}$$
+$$\frac{\partial\mathcal L}{\partial z_k}=\operatorname{softmax}(\mathbf z)_k-\mathbb 1[k=y]\quad\Longrightarrow\quad\boxed{\nabla_{\mathbf z}\mathcal L=\mathbf p-\mathbf y_{\text{one-hot}}}$$
+<div class="callout warn"><b>Numerical stability</b>Never compute <code>log(softmax(z))</code> naively. Use <b>log-sum-exp</b>: \(\log\sum_je^{z_j}=m+\log\sum_je^{z_j-m}\) with \(m=\max_jz_j\). In PyTorch, pass raw logits to <code>nn.CrossEntropyLoss</code>; it does this internally.</div>
+<pre><code class="language-python">def train_softmax(X, y, K, lr=0.1, epochs=300, lam=1e-3):
+    n, d = X.shape
+    W = np.zeros((d, K)); Y = np.eye(K)[y]                 # one-hot (n, K)
+    for _ in range(epochs):
+        Z = X @ W
+        Z -= Z.max(1, keepdims=True)
+        P = np.exp(Z); P /= P.sum(1, keepdims=True)
+        grad = X.T @ (P - Y) / n + lam * W                  # (d, K)
+        W -= lr * grad
+    return W
+
+from sklearn.datasets import load_iris
+X, y = load_iris(return_X_y=True)
+X = np.c_[np.ones(len(X)), (X - X.mean(0)) / X.std(0)]
+W = train_softmax(X, y, 3)
+print("accuracy:", ((X @ W).argmax(1) == y).mean())</code></pre>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>Why is accuracy alone a bad training objective?
+<details><summary>Solution</summary><div>Accuracy is piecewise constant in \(\mathbf w\): its gradient is zero almost everywhere, so gradient descent can't use it. Cross-entropy is a smooth, convex surrogate that also rewards calibrated confidence.</div></details></li>
+</ol></div>

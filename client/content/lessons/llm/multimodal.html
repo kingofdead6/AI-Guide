@@ -1,0 +1,15 @@
+<!--FIG:multimodal_llm-->
+<h3>Common architectures</h3>
+<ul>
+<li><b>Encoder + projector + LLM</b> (LLaVA-style): a pretrained vision encoder (often CLIP-like) turns an image into patch embeddings; a small MLP projects them into the LLM's embedding space; they are inserted into the sequence as "visual tokens" next to text tokens.</li>
+<li><b>Cross-attention</b> (Flamingo-style): the LLM attends to image features through extra cross-attention layers, keeping the text sequence short.</li>
+<li><b>Native multimodal</b>: images, audio and text are all tokenized (e.g. with discrete codebooks, [[flows]]) and one Transformer is trained on the interleaved stream; it can also <i>generate</i> non-text outputs.</li>
+</ul>
+<h3>Training recipe</h3>
+<ol>
+<li>Alignment: freeze the encoder and LLM, train only the projector on image–caption pairs.</li>
+<li>Visual instruction tuning: unfreeze more and train on (image, question, answer) conversations, documents, charts, OCR-heavy data.</li>
+<li>Preference tuning to reduce hallucinated visual details.</li>
+</ol>
+<h3>Practical notes</h3>
+<p>Images cost tokens: a 336×336 image with 14×14 patches is 576 tokens, and high-resolution "tiling" multiplies that. Typical failure modes: counting, fine spatial relations, small text, and confidently describing objects that aren't there. Evaluate on your own images; for documents, compare against OCR ground truth.</p>

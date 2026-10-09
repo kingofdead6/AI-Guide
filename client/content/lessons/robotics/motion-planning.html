@@ -1,0 +1,58 @@
+<h3>The planning problem</h3>
+<p>Find a path from a start to a goal configuration that avoids collisions, then turn it into a <b>trajectory</b> (positions over time) the controller can follow. The space of all robot configurations is the <b>configuration space</b> (C-space): two joint angles for the arm in [[robot-kinematics]], \((x,y,\theta)\) for a car. Obstacles in the world become forbidden regions of C-space.</p>
+
+<h3>Graph search: Dijkstra and A*</h3>
+<p>Discretize the space into a grid or graph, then search. Dijkstra expands nodes in order of cost-so-far \(g(n)\) and finds the shortest path. <b>A*</b> expands in order of</p>
+$$f(n)=g(n)+h(n)$$
+<p>where \(h(n)\) is a heuristic estimate of the remaining cost. If \(h\) is <b>admissible</b> (never overestimates, like straight-line distance), A* still returns the optimal path while exploring far fewer nodes. With \(h=0\) it reduces to Dijkstra; with a weighted heuristic \(w\,h\), \(w\gt1\), it trades optimality for speed.</p>
+<!--FIG:astar_grid-->
+<pre><code class="language-python">import heapq
+
+def astar(grid, start, goal):
+    """grid[y][x] == 1 means wall. 4-connected moves of cost 1."""
+    h = lambda p: abs(p[0] - goal[0]) + abs(p[1] - goal[1])   # Manhattan: admissible here
+    frontier = [(h(start), 0, start)]
+    came_from, g = {start: None}, {start: 0}
+    while frontier:
+        _, cost, cur = heapq.heappop(frontier)
+        if cur == goal:
+            path = []
+            while cur is not None:
+                path.append(cur); cur = came_from[cur]
+            return path[::-1]
+        if cost &gt; g[cur]:
+            continue                                   # stale queue entry
+        x, y = cur
+        for nxt in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            nx, ny = nxt
+            if 0 &lt;= ny &lt; len(grid) and 0 &lt;= nx &lt; len(grid[0]) and not grid[ny][nx]:
+                new = cost + 1
+                if new &lt; g.get(nxt, float("inf")):
+                    g[nxt], came_from[nxt] = new, cur
+                    heapq.heappush(frontier, (new + h(nxt), new, nxt))
+    return None                                        # no path</code></pre>
+<p>Grids explode in high dimensions: a 7-joint arm discretized at 100 values per joint has \(10^{14}\) cells.</p>
+
+<h3>Sampling-based planning: PRM and RRT</h3>
+<ul>
+<li><b>Probabilistic roadmap (PRM):</b> sample random collision-free configurations, connect nearby ones with collision-free straight segments, then run A* on the resulting graph. Good when you plan many queries in the same environment.</li>
+<li><b>Rapidly-exploring random tree (RRT):</b> grow a tree from the start: sample a random point, find the nearest tree node, step a short distance toward the sample, keep the new node if the step is collision-free. The tree is pulled toward unexplored space and quickly finds <i>a</i> path even in high dimensions.</li>
+<li><b>RRT*</b> also rewires nearby nodes when a cheaper parent exists, so the path converges toward optimal as samples grow.</li>
+</ul>
+<!--FIG:rrt_tree-->
+<p>Sampling planners are <b>probabilistically complete</b>: if a path exists, the probability of finding it approaches 1 as samples increase. Their raw paths are jagged, so they are shortcut and smoothed afterwards.</p>
+
+<h3>From path to trajectory</h3>
+<p>A path is geometry; a trajectory adds timing that respects velocity, acceleration and jerk limits. Common tools: polynomial or spline interpolation through waypoints (cubic and quintic polynomials give smooth position, velocity and acceleration), time-optimal parameterization along a fixed path, and <b>trajectory optimization</b>, which directly minimizes a cost such as</p>
+$$\min_{\mathbf x_{0:T},\,\mathbf u_{0:T}}\ \sum_t\Big(\|\mathbf u_t\|^2+w\,c_{\text{obstacle}}(\mathbf x_t)\Big)\quad\text{s.t.}\quad \mathbf x_{t+1}=f(\mathbf x_t,\mathbf u_t),\ \ \mathbf u_{\min}\le\mathbf u_t\le\mathbf u_{\max}$$
+<p>solved with gradient-based methods (CHOMP, TrajOpt) or sampling-based ones (CEM, MPPI). Run in a receding-horizon loop, this is MPC from [[robot-control]].</p>
+
+<h3>Planning for autonomous vehicles</h3>
+<p>Driving stacks usually layer planners: a <b>route planner</b> (graph search on the road network), a <b>behaviour planner</b> (lane change, yield, stop), and a <b>local motion planner</b> that generates and scores candidate trajectories every 50–100 ms against predicted motion of other agents. Learned components increasingly predict other agents' behaviour or propose trajectories, with classical checks for safety.</p>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>On a 4-connected grid, is Euclidean distance an admissible heuristic? Is it as good as Manhattan distance?
+<details><summary>Solution</summary><div>It is admissible (straight-line distance never exceeds the grid path length) but weaker: Manhattan distance is also admissible and larger, hence closer to the true cost, so A* expands fewer nodes with it.</div></details></li>
+<li>Why do planners for 7-joint arms use RRT rather than a grid?
+<details><summary>Solution</summary><div>A grid grows exponentially with dimension (\(k^7\) cells), while RRT only samples where it explores and checks collisions along short segments, so it scales to high-dimensional configuration spaces.</div></details></li>
+</ol></div>

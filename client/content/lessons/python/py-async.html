@@ -1,0 +1,80 @@
+<h3>Two kinds of slow</h3>
+<p>Before choosing a concurrency tool, ask what your program is waiting for.</p>
+<table>
+<tr><th>Work is…</th><th>Example</th><th>Bottleneck</th><th>Use</th></tr>
+<tr><td><b>I/O-bound</b></td><td>Calling an LLM API, downloading images, querying a database</td><td>Waiting on the network or disk</td><td><code>asyncio</code> or threads</td></tr>
+<tr><td><b>CPU-bound</b></td><td>Tokenizing a corpus in pure Python, feature engineering loops</td><td>The CPU</td><td>Processes (<code>multiprocessing</code>), or a vectorized library</td></tr>
+<tr><td>GPU-bound</td><td>Training, batched inference</td><td>The accelerator</td><td>Bigger batches, better kernels (see [[gpus]])</td></tr>
+</table>
+
+<h3>The GIL</h3>
+<p>In the standard CPython interpreter, the <b>global interpreter lock</b> lets only one thread execute Python bytecode at a time. Threads therefore don't speed up pure-Python computation. They <i>do</i> help with I/O, because a thread waiting on the network releases the lock, and with libraries like NumPy and PyTorch that release it inside their C code. (Recent Python versions offer an experimental free-threaded build without the GIL; most production code still assumes it.)</p>
+
+<h3>Threads for blocking I/O</h3>
+<pre><code class="language-python">from concurrent.futures import ThreadPoolExecutor, as_completed
+import urllib.request
+
+def fetch(url: str) -&gt; int:
+    with urllib.request.urlopen(url, timeout=10) as r:
+        return len(r.read())
+
+urls = [f"https://example.com/?page={i}" for i in range(20)]
+with ThreadPoolExecutor(max_workers=8) as pool:
+    futures = {pool.submit(fetch, u): u for u in urls}
+    for fut in as_completed(futures):
+        print(futures[fut], fut.result())</code></pre>
+
+<h3>Processes for CPU-heavy Python</h3>
+<pre><code class="language-python">from concurrent.futures import ProcessPoolExecutor
+
+def clean(doc: str) -&gt; str:
+    return " ".join(doc.lower().split())
+
+if __name__ == "__main__":                 # required for process pools on Windows/macOS
+    docs = ["  Hello World  "] * 100_000
+    with ProcessPoolExecutor() as pool:    # one worker per CPU core by default
+        cleaned = list(pool.map(clean, docs, chunksize=1_000))</code></pre>
+<p>Each process has its own interpreter and memory, so arguments and results are pickled and copied between them. Send big chunks of work (large <code>chunksize</code>), not millions of tiny calls. PyTorch's <code>DataLoader(num_workers=4)</code> uses exactly this to prepare batches in parallel.</p>
+
+<h3>asyncio: thousands of concurrent requests</h3>
+<p>With <code>async</code>/<code>await</code>, one thread juggles many tasks. When a task awaits a network response, the event loop runs other tasks instead of sitting idle. This is the standard way to call LLM APIs at scale.</p>
+<pre><code class="language-python">import asyncio, random
+
+async def call_llm(prompt: str) -&gt; str:
+    await asyncio.sleep(random.uniform(0.5, 1.5))     # stands in for an HTTP request
+    return f"answer to {prompt!r}"
+
+async def main(prompts: list[str], max_concurrency: int = 16):
+    sem = asyncio.Semaphore(max_concurrency)          # respect the provider's rate limits
+
+    async def one(p):
+        async with sem:
+            for attempt in range(3):
+                try:
+                    return await asyncio.wait_for(call_llm(p), timeout=30)
+                except (asyncio.TimeoutError, ConnectionError):
+                    await asyncio.sleep(2 ** attempt)
+            return None                               # give up after 3 tries
+
+    return await asyncio.gather(*(one(p) for p in prompts))
+
+results = asyncio.run(main([f"question {i}" for i in range(200)]))
+print(sum(r is not None for r in results))</code></pre>
+<div class="callout intuition"><b>The arithmetic</b><p>200 calls at about 1 second each take about 200 seconds one by one. With 16 in flight at a time they take about \(200/16\approx13\) seconds. Real gains are capped by the provider's rate limits, which is why the semaphore matters.</p></div>
+<ul>
+<li>Inside async code, never call blocking functions (<code>time.sleep</code>, <code>requests.get</code>): they freeze the whole event loop. Use async libraries (<code>httpx.AsyncClient</code>, official async SDK clients) or <code>await asyncio.to_thread(blocking_fn, ...)</code>.</li>
+<li>Most LLM provider SDKs ship an async client with the same methods as the sync one.</li>
+<li>Always add timeouts, retries with backoff, and a concurrency limit.</li>
+</ul>
+
+<h3>Choosing quickly</h3>
+<ol>
+<li>Can a library do it vectorized (NumPy, pandas, PyTorch)? Do that first.</li>
+<li>Waiting on networks? <code>asyncio</code> (or a thread pool if the client library is blocking).</li>
+<li>Pure Python crunching? A process pool, or move the hot loop into a compiled library.</li>
+</ol>
+
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>You must embed 50,000 documents through an API that allows 600 requests per minute and takes about 0.5 s per request. Roughly how long does it take sequentially, and what is the fastest you can legally go?
+<details><summary>Solution</summary><div>Sequentially about 50,000 × 0.5 s ≈ 7 hours. The rate limit caps you at 600/min, so at best 50,000 / 600 ≈ 83 minutes. About 5 concurrent requests already reach that limit (600/min ÷ 120/min per worker). Batching several documents per request, if the API allows it, cuts the time further.</div></details></li>
+</ol></div>

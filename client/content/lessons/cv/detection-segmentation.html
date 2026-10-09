@@ -1,0 +1,42 @@
+<table>
+<tr><th>Task</th><th>Output</th><th>Typical models</th></tr>
+<tr><td>Classification</td><td>One label per image</td><td>ResNet, EfficientNet, ViT</td></tr>
+<tr><td>Detection</td><td>Boxes + labels</td><td>YOLO family, Faster R-CNN, DETR</td></tr>
+<tr><td>Semantic segmentation</td><td>Class per pixel</td><td>U-Net, DeepLab, SegFormer</td></tr>
+<tr><td>Instance segmentation</td><td>Mask per object</td><td>Mask R-CNN, YOLO-seg, SAM-based</td></tr>
+</table>
+<h3>IoU and non-maximum suppression</h3>
+$$\operatorname{IoU}(A,B)=\frac{|A\cap B|}{|A\cup B|}$$
+<p>Detectors output many overlapping candidate boxes. <b>NMS</b>: sort by confidence, keep the best, delete others with IoU above a threshold (e.g. 0.5), repeat. A detection counts as correct if IoU with a ground-truth box exceeds a threshold. <b>mAP</b> averages precision over recall levels and classes (often also over IoU thresholds 0.5–0.95).</p>
+<!--FIG:iou_fig-->
+<h3>How detectors work</h3>
+<ul>
+<li><b>Two-stage</b> (Faster R-CNN): a region proposal network suggests boxes, then a head classifies and refines each. Accurate, slower.</li>
+<li><b>One-stage</b> (YOLO, SSD, RetinaNet): predict class scores and box offsets densely over a grid in one pass. Fast; standard for real time. RetinaNet introduced the <b>focal loss</b> \(-(1-p_t)^\gamma\log p_t\), which down-weights easy background examples.</li>
+<li><b>Transformer-based</b> (DETR): predicts a set of boxes directly, matched to ground truth with the Hungarian algorithm, so no NMS.</li>
+<li>Box regression uses losses like L1 / smooth-L1 or IoU-based losses such as GIoU.</li>
+</ul>
+<h3>Segmentation</h3>
+<p><b>U-Net</b>: an encoder downsamples to capture context, a decoder upsamples to recover resolution, and <b>skip connections</b> pass fine details across. Train with per-pixel cross-entropy, often plus <b>Dice loss</b>, which handles small objects and class imbalance:</p>
+$$\text{Dice}=\frac{2|A\cap B|}{|A|+|B|},\qquad \mathcal L_{\text{Dice}}=1-\frac{2\sum_ip_ig_i+\epsilon}{\sum_ip_i+\sum_ig_i+\epsilon}$$
+<!--FIG:unet-->
+<pre><code class="language-python">def iou(a, b):                       # boxes as [x1, y1, x2, y2]
+    ix1, iy1 = max(a[0], b[0]), max(a[1], b[1]); ix2, iy2 = min(a[2], b[2]), min(a[3], b[3])
+    inter = max(0, ix2 - ix1) * max(0, iy2 - iy1)
+    area = lambda r: (r[2] - r[0]) * (r[3] - r[1])
+    return inter / (area(a) + area(b) - inter + 1e-9)
+
+def nms(boxes, scores, thr=0.5):
+    order = np.argsort(scores)[::-1]; keep = []
+    while len(order):
+        i = order[0]; keep.append(i)
+        order = np.array([j for j in order[1:] if iou(boxes[i], boxes[j]) &lt; thr])
+    return keep
+
+# Practical training with the ultralytics package:
+# from ultralytics import YOLO
+# model = YOLO("yolov8n.pt"); model.train(data="my_data.yaml", epochs=50, imgsz=640)</code></pre>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>Boxes [0,0,10,10] and [5,5,15,15]: IoU?
+<details><summary>Solution</summary><div>Intersection 5×5 = 25; union 100 + 100 − 25 = 175; IoU ≈ 0.143.</div></details></li>
+</ol></div>

@@ -1,0 +1,201 @@
+@import 'tailwindcss';
+@import 'katex/dist/katex.min.css';
+@import './styles/content.css';
+@import './styles/motion.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------------------------------------------------ tokens */
+:root {
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --sunk: #eaeef6;
+  --text: #141a2e;
+  --muted: #5a6276;
+  --border: #dde3ee;
+  --border-strong: #c3ccdc;
+  --accent: #2d55e0;
+  --accent-ink: #1d3aa8;
+  --accent-soft: #e8eefd;
+  --ok: #1f8a55;
+  --ok-soft: #e1f3e9;
+  --bad: #c93a35;
+  --bad-soft: #fbe7e6;
+  --warn: #b8650f;
+  --warn-soft: #fcefe2;
+
+  /* figure + widget palette */
+  --c1: #2d55e0;
+  --c2: #d9731f;
+  --c3: #23915a;
+  --c4: #7653d4;
+  --c5: #cf3f3a;
+  --c1s: #e9eefd;
+  --c2s: #fcefe2;
+  --c3s: #e3f4ea;
+  --c4s: #efe9fc;
+  --c5s: #fbe7e6;
+  --fline: #7b7f89;
+  --fstroke: #c9cfdb;
+  --fig-bg: #fafbfe;
+  --code-bg: #10162b;
+  color-scheme: light;
+}
+.dark {
+  --bg: #0d1120;
+  --surface: #141a2c;
+  --sunk: #0a0e1a;
+  --text: #e6e9f2;
+  --muted: #9aa3b8;
+  --border: #262e45;
+  --border-strong: #36405e;
+  --accent: #7d9bff;
+  --accent-ink: #a9bcff;
+  --accent-soft: #1b2547;
+  --ok: #4cc485;
+  --ok-soft: #12291d;
+  --bad: #f07a73;
+  --bad-soft: #351a1b;
+  --warn: #f0a35c;
+  --warn-soft: #34261a;
+
+  --c1: #7d9bff;
+  --c2: #f0a35c;
+  --c3: #52c98c;
+  --c4: #ad93f3;
+  --c5: #f07a73;
+  --c1s: #1c2542;
+  --c2s: #3a2a18;
+  --c3s: #14301f;
+  --c4s: #272040;
+  --c5s: #3a1d1c;
+  --fline: #9196a2;
+  --fstroke: #3b4150;
+  --fig-bg: #111727;
+  --code-bg: #0a0e1a;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sunk: var(--sunk);
+  --color-ink: var(--text);
+  --color-muted: var(--muted);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-c1: var(--c1);
+  --color-c2: var(--c2);
+  --color-c3: var(--c3);
+  --color-c4: var(--c4);
+  --color-c5: var(--c5);
+  --color-c1s: var(--c1s);
+  --color-c2s: var(--c2s);
+  --color-c3s: var(--c3s);
+  --color-c4s: var(--c4s);
+  --color-c5s: var(--c5s);
+}
+
+@theme {
+  --font-sans: 'Archivo', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Source Serif 4', 'Iowan Old Style', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+
+/* ------------------------------------------------------------------ base */
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 80px;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+::selection {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+:focus-visible {
+  outline: 2.5px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.font-wide {
+  font-stretch: 118%;
+}
+.font-narrow {
+  font-stretch: 88%;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* graph-paper texture used behind the learning map */
+.graph-paper {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: -1px -1px;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-pop {
+  animation: pop-in 0.28s ease-out both;
+}
+@keyframes draw {
+  from {
+    stroke-dashoffset: var(--len, 400);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media print {
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  .print-area {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+@page {
+  size: A4 landscape;
+  margin: 8mm;
+}

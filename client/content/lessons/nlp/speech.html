@@ -1,0 +1,23 @@
+<h3>From waveform to features</h3>
+<p>Audio is sampled (16 kHz is standard for speech). The <b>short-time Fourier transform</b> slices it into overlapping windows (~25 ms, hop ~10 ms) and measures the energy at each frequency. Human hearing is roughly logarithmic in pitch, so frequencies are mapped to the <b>mel scale</b> \(m=2595\log_{10}(1+f/700)\) and energies are log-compressed: the <b>log-mel spectrogram</b> is the standard input. (MFCCs, a further cosine transform, were standard before deep learning.)</p>
+<!--FIG:speech-->
+<h3>Speech recognition (ASR)</h3>
+<ul>
+<li><b>CTC loss</b> solves the alignment problem: many audio frames map to few characters, and we don't know which frame is which letter. The model outputs a distribution per frame over characters plus a special <i>blank</i>; any frame-level path that collapses to the target (merge repeats, drop blanks: "hh-e-ll-ll-oo" → "hello") counts, and CTC sums the probability of all such paths with dynamic programming.</li>
+<li><b>Encoder–decoder</b> models (e.g. Whisper) treat ASR like translation: an audio encoder and a text decoder with cross-attention, trained on large weakly labelled multilingual data.</li>
+<li><b>Word error rate:</b> \(\text{WER}=\frac{S+D+I}{N}\) (substitutions, deletions, insertions over reference words), computed with edit distance ([[dsa]]).</li>
+</ul>
+<h3>Speech generation and beyond</h3>
+<p>Text-to-speech: text → acoustic model → mel spectrogram → <b>vocoder</b> → waveform, or end-to-end models over discrete audio tokens from a neural codec. Other tasks: speaker diarization ("who spoke when"), voice activity detection, keyword spotting, emotion recognition. Speech-native LLMs process audio tokens directly for low-latency voice conversation.</p>
+<pre><code class="language-python">import torch, torchaudio
+wave, sr = torchaudio.load("speech.wav")                       # (channels, samples)
+wave = torchaudio.functional.resample(wave, sr, 16000)
+mel = torchaudio.transforms.MelSpectrogram(sample_rate=16000, n_fft=400, hop_length=160, n_mels=80)(wave)
+log_mel = torch.log(mel + 1e-6)                                # (1, 80, frames): model input
+
+ctc = torch.nn.CTCLoss(blank=0)        # log_probs: (T, batch, vocab) from the acoustic model
+# loss = ctc(log_probs, targets, input_lengths, target_lengths)
+
+# from transformers import pipeline
+# asr = pipeline("automatic-speech-recognition", model="openai/whisper-small")
+# print(asr("speech.wav")["text"])</code></pre>

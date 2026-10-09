@@ -1,0 +1,26 @@
+<h3>Search strategies</h3>
+<ul>
+<li><b>Grid search:</b> exhaustive, but wastes trials when only a few hyperparameters matter.</li>
+<li><b>Random search:</b> usually better than grid for the same budget, because every trial tries a new value of the important parameters.</li>
+<li><b>Bayesian optimization:</b> fit a surrogate (a GP, or a tree-structured Parzen estimator) to (config → score) and pick the next config by maximizing an <b>acquisition function</b>, such as expected improvement:
+$$\text{EI}(x)=(\mu(x)-f^*-\xi)\,\Phi(Z)+\sigma(x)\,\varphi(Z),\qquad Z=\frac{\mu(x)-f^*-\xi}{\sigma(x)}$$
+It balances exploiting a high predicted mean with exploring high uncertainty.</li>
+<li><b>Multi-fidelity:</b> successive halving, Hyperband and ASHA start many configs on small budgets and promote only the best. Often the biggest practical win.</li>
+<li><b>Population-based training:</b> evolve hyperparameters during training by copying good runs and perturbing them.</li>
+</ul>
+<h3>Practical priorities</h3>
+<p>For neural networks the learning rate matters most, then batch size, weight decay, warmup and model size. Search learning rates and regularization on a <b>log scale</b>. Tune on a validation split, report on a test split you never touched. Fix the evaluation protocol before tuning, and stop tuning when gains fall within seed-to-seed noise.</p>
+<pre><code class="language-python">import optuna
+from sklearn.model_selection import cross_val_score
+from sklearn.ensemble import HistGradientBoostingClassifier
+
+def objective(trial):
+    params = dict(learning_rate=trial.suggest_float("lr", 1e-3, 0.3, log=True),
+                  max_depth=trial.suggest_int("max_depth", 2, 10),
+                  l2_regularization=trial.suggest_float("l2", 1e-8, 10, log=True),
+                  max_leaf_nodes=trial.suggest_int("leaves", 8, 128, log=True))
+    return cross_val_score(HistGradientBoostingClassifier(**params), X, y, cv=5, scoring="roc_auc").mean()
+
+study = optuna.create_study(direction="maximize", pruner=optuna.pruners.MedianPruner())
+study.optimize(objective, n_trials=60)
+print(study.best_params, study.best_value)</code></pre>

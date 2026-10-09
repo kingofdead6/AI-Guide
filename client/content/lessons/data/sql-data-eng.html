@@ -1,0 +1,53 @@
+<h3>SQL you must be able to write</h3>
+<pre><code class="language-sql">-- Latest row per user (deduplication) with a window function
+WITH ranked AS (
+  SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY updated_at DESC) AS rn
+  FROM profiles
+)
+SELECT * FROM ranked WHERE rn = 1;
+
+-- 7-day rolling average of daily revenue
+SELECT day,
+       SUM(amount) AS revenue,
+       AVG(SUM(amount)) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS rev_7d
+FROM orders GROUP BY day ORDER BY day;
+
+-- Day-1 retention: share of users active the day after signup
+SELECT s.signup_day,
+       COUNT(DISTINCT a.user_id) * 1.0 / COUNT(DISTINCT s.user_id) AS d1_retention
+FROM signups s
+LEFT JOIN activity a ON a.user_id = s.user_id AND a.day = s.signup_day + INTERVAL '1 day'
+GROUP BY s.signup_day;</code></pre>
+<p>Know: <code>JOIN</code> types (inner, left, full, anti-join via <code>LEFT JOIN … WHERE b.id IS NULL</code>), <code>GROUP BY</code> vs <code>HAVING</code>, window functions (<code>ROW_NUMBER</code>, <code>RANK</code>, <code>LAG</code>, <code>LEAD</code>, running sums), CTEs, and how <code>NULL</code> behaves in comparisons and aggregates.</p>
+<h3>Formats and engines</h3>
+<table>
+<tr><th>Tool</th><th>When</th></tr>
+<tr><td>CSV / JSONL</td><td>Interchange, small data, LLM datasets (one JSON object per line)</td></tr>
+<tr><td>Parquet (+ Arrow in memory)</td><td>Columnar and compressed: read only the columns you need. The default for analytics and training data.</td></tr>
+<tr><td>pandas</td><td>Up to a few GB in memory</td></tr>
+<tr><td>Polars / DuckDB</td><td>Fast single-machine analytics, tens to hundreds of GB, SQL over Parquet files</td></tr>
+<tr><td>Spark / Ray / Dask</td><td>Distributed processing on clusters</td></tr>
+<tr><td>Kafka / streaming</td><td>Real-time events and features</td></tr>
+<tr><td>Airflow / Dagster / Prefect</td><td>Orchestrating scheduled pipelines (DAGs of tasks)</td></tr>
+</table>
+<h3>Pipeline principles</h3>
+<ul>
+<li><b>Idempotent</b> steps: re-running a job gives the same result. Partition data by date.</li>
+<li><b>Point-in-time correctness:</b> a training example must only use features known at that moment. Joining today's features onto last year's labels is leakage. Feature stores exist largely to enforce this.</li>
+<li><b>Validate early:</b> schemas, null rates, ranges and distribution checks at ingestion (pandera, Great Expectations).</li>
+<li><b>Lineage and versioning:</b> know exactly which data produced which model.</li>
+</ul>
+<pre><code class="language-python">import duckdb, polars as pl
+# SQL directly over Parquet files, no database server needed
+df = duckdb.sql("""
+    SELECT country, COUNT(*) AS n, AVG(price) AS avg_price
+    FROM 'data/orders/*.parquet'
+    WHERE order_date >= DATE '2025-01-01'
+    GROUP BY country ORDER BY n DESC
+""").df()
+
+# Polars: lazy, multi-threaded dataframe
+out = (pl.scan_parquet("data/orders/*.parquet")
+         .filter(pl.col("price") > 0)
+         .group_by("user_id").agg(pl.col("price").sum().alias("spend"))
+         .collect())</code></pre>

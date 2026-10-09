@@ -1,0 +1,19 @@
+<pre><code class="language-python">import pandas as pd, matplotlib.pyplot as plt, seaborn as sns
+df = pd.read_csv("data.csv")
+df.shape; df.head(); df.info(); df.describe(include="all")
+df.isna().mean().sort_values(ascending=False)          # missing-value share per column
+df["category"].value_counts(normalize=True)
+df.groupby("city")["price"].agg(["mean", "median", "count"])
+df.select_dtypes("number").corr()                      # linear correlations
+sns.histplot(df["price"], log_scale=True); plt.show()
+sns.boxplot(data=df, x="city", y="price"); plt.show()
+df["date"] = pd.to_datetime(df["date"]); df.set_index("date")["price"].resample("M").mean()</code></pre>
+<h3>EDA checklist</h3>
+<ol>
+<li><b>Target:</b> distribution, class balance, skew, outliers.</li>
+<li><b>Missingness:</b> how much, and is it random or informative (e.g., "income missing" correlates with the label)?</li>
+<li><b>Types:</b> numeric vs categorical vs text vs dates; cardinality of categoricals.</li>
+<li><b>Relationships:</b> feature–target plots, correlations, groupby summaries.</li>
+<li><b>Leakage suspects:</b> any feature that is too predictive, or only known after the outcome.</li>
+<li><b>Duplicates and time:</b> repeated rows, drift over time, and whether a random split is even valid.</li>
+</ol>

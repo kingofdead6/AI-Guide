@@ -1,0 +1,55 @@
+<p class="lead">AI looks like a zoo of unrelated techniques. It isn't. Almost everything reduces to a few ideas: represent data as vectors, define a probabilistic model or a loss, and minimize that loss with gradients.</p>
+<h3>How the academy is organized</h3>
+<p>There are sixteen courses in five tracks. Each course is a sequence of lessons; each lesson ends with a short graded quiz; each course ends with a final exam and a certificate.</p>
+<table>
+<tr><th>Track</th><th>Courses</th><th>Start when</th></tr>
+<tr><td>Foundations</td><td>[[course:python]], [[course:math]], [[course:data]]</td><td>Right away. Do Python first if you are new to programming.</td></tr>
+<tr><td>Core machine learning</td><td>[[course:ml]], [[course:dl]]</td><td>After the foundations</td></tr>
+<tr><td>Specializations</td><td>[[course:cv]], [[course:nlp]], [[course:llm]], [[course:rag]], [[course:gen]], [[course:rl]], [[course:robotics]]</td><td>After deep learning; pick the ones you need, in any order that respects their prerequisites</td></tr>
+<tr><td>Production</td><td>[[course:ops]], [[course:security]], [[course:systems]]</td><td>Once you have built and trained models</td></tr>
+<tr><td>Career</td><td>[[course:career]]</td><td>Any time; read the roadmap first</td></tr>
+</table>
+<p>The map on the home page shows every prerequisite. Each course page also lists the courses it builds on, with your progress in them.</p>
+<h3>How to study each lesson</h3>
+<ol>
+<li><b>Read the intuition first</b>, then the equations. For every symbol ask what it means and what shape it has.</li>
+<li><b>Re-derive on paper.</b> Close the page and reproduce the key derivation. If you can't, you don't own it yet.</li>
+<li><b>Play with the boxes marked "Try it".</b> Change one setting at a time and predict what will happen before you look.</li>
+<li><b>Run and modify the code.</b> Copy any code block with its Copy button, change one thing, predict the result, then check.</li>
+<li><b>Try the practice problems</b> inside the lesson before opening their solutions.</li>
+<li><b>Pass the quiz.</b> Answer each question, press Check, and read the explanation whether you were right or wrong. You need 60% to complete the lesson, and you can retry as often as you like.</li>
+<li><b>Do the code exercises</b> when a lesson has them. They run real Python in your browser and test your function automatically.</li>
+</ol>
+<h3>Exams and certificates</h3>
+<ul>
+<li>A course's final exam opens when every lesson in it is complete. It draws up to 20 questions from the whole course, including integrative questions that never appear in lesson quizzes.</li>
+<li>You need 70% to pass. Retakes are unlimited, each with a fresh draw of questions, and your best score counts.</li>
+<li>Passing the exam with every lesson complete earns the course certificate. Earning all sixteen earns the program certificate.</li>
+<li>Certificates record self-paced completion in this academy. They are not academic degrees.</li>
+</ul>
+<h3>Where your progress is saved</h3>
+<p>Everything is saved automatically in this browser: completed lessons, quiz answers, exam results, code, project milestones and certificates. Nothing is sent to a server. To move to another device or protect against clearing your browser data, download a backup from <a href="#/progress">My progress</a> and restore it on the other device.</p>
+<h3>The one equation to keep in mind</h3>
+<div class="callout intuition"><b>Learning as optimization</b>
+$$\theta^*=\arg\min_\theta\; \mathbb{E}_{(\mathbf{x},y)\sim P}\big[\mathcal{L}(y,f_\theta(\mathbf{x}))\big]\;\approx\;\arg\min_\theta\;\frac1n\sum_{i=1}^n\mathcal{L}(y_i,f_\theta(\mathbf{x}_i))$$
+<p>Choose a model \(f_\theta\), a loss \(\mathcal{L}\), and minimize the average loss on data. Linear regression, XGBoost, ResNets and LLMs are all special cases. The courses are about choosing \(f\), choosing \(\mathcal{L}\), and minimizing well.</p></div>
+<h3>Notation</h3>
+<table>
+<tr><th>Symbol</th><th>Meaning</th></tr>
+<tr><td>\(x,\ \mathbf{x},\ \mathbf{X}\)</td><td>scalar, column vector, matrix</td></tr>
+<tr><td>\(\mathbf{X}\in\mathbb{R}^{n\times d}\)</td><td>data matrix: \(n\) examples (rows), \(d\) features (columns)</td></tr>
+<tr><td>\(\theta,\ \mathbf{w},\ \mathbf{W},\ b\)</td><td>parameters, weight vector, weight matrix, bias</td></tr>
+<tr><td>\(\hat y\)</td><td>prediction</td></tr>
+<tr><td>\(p(x),\ p(y\mid x)\)</td><td>probability (density), conditional probability</td></tr>
+<tr><td>\(\mathbb{E}[\cdot],\ \operatorname{Var}[\cdot]\)</td><td>expectation, variance</td></tr>
+<tr><td>\(\nabla_\theta \mathcal{L}\)</td><td>gradient of the loss with respect to \(\theta\)</td></tr>
+<tr><td>\(\odot\)</td><td>element-wise (Hadamard) product</td></tr>
+<tr><td>\(\sigma(z)\)</td><td>sigmoid \(1/(1+e^{-z})\)</td></tr>
+<tr><td>\(\|\mathbf{x}\|_2\)</td><td>Euclidean norm</td></tr>
+<tr><td>\(\log\)</td><td>natural log unless stated</td></tr>
+</table>
+<h3>Setup</h3>
+<pre><code class="language-bash">python -m venv .venv &amp;&amp; source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install numpy pandas matplotlib seaborn scikit-learn scipy jupyter
+pip install torch torchvision            # see pytorch.org for the CUDA build
+pip install transformers datasets sentence-transformers faiss-cpu xgboost gymnasium</code></pre>

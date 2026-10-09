@@ -1,0 +1,72 @@
+<h3>Why learning for robots is hard</h3>
+<p>Text and images are abundant on the internet; robot experience is not. Every data point costs real time on real hardware, mistakes can break things, and the world varies endlessly (lighting, friction, object shapes). The main strategies attack this data problem from different directions.</p>
+<table>
+<tr><th>Approach</th><th>Data source</th><th>Strength</th><th>Weakness</th></tr>
+<tr><td>Reinforcement learning in simulation</td><td>Millions of simulated trials</td><td>Discovers skills nobody demonstrated (agile locomotion)</td><td>The sim-to-real gap; reward design</td></tr>
+<tr><td>Imitation learning</td><td>Human demonstrations (teleoperation)</td><td>Fast to learn manipulation from tens to hundreds of demos</td><td>Compounding errors; limited to what was shown</td></tr>
+<tr><td>Offline RL</td><td>Logged experience</td><td>Reuses existing data</td><td>Cannot correct its own mistakes without interaction</td></tr>
+<tr><td>Foundation models</td><td>Internet-scale vision and language + large robot datasets</td><td>Semantic understanding, generalization to new instructions</td><td>Expensive; precise low-level control remains hard</td></tr>
+</table>
+
+<h3>Imitation learning</h3>
+<p><b>Behaviour cloning</b> trains a policy \(\pi_\theta(\mathbf a\mid\mathbf o)\) by supervised learning on expert observation–action pairs:</p>
+$$\min_\theta\ \mathbb E_{(\mathbf o,\mathbf a)\sim\mathcal D_{\text{expert}}}\big[-\log\pi_\theta(\mathbf a\mid\mathbf o)\big]$$
+<p>Its weakness is <b>covariate shift</b>: a small error takes the robot to states the expert never visited, where the policy is worse, so errors compound (roughly quadratically in the horizon). Fixes:</p>
+<ul>
+<li><b>DAgger:</b> run the learned policy, ask the expert what they would have done in the states it actually reaches, add those labels, retrain.</li>
+<li><b>Action chunking:</b> predict a short sequence of future actions instead of one, which reduces compounding and handles pauses in demonstrations.</li>
+<li><b>Expressive action distributions:</b> human demos are multi-modal (go left or right around an obstacle). Averaging modes with MSE produces the invalid middle. Diffusion policies and discretized action tokens model multiple modes ([[diffusion]]).</li>
+</ul>
+
+<h3>Sim-to-real transfer</h3>
+<p>Simulators (MuJoCo, Isaac, PyBullet, Gazebo) generate unlimited, safe experience, but they never match reality exactly. Techniques to bridge the gap:</p>
+<ul>
+<li><b>Domain randomization:</b> randomize masses, friction, motor strength, latency, textures and lighting during training, so reality looks like just another variation.</li>
+<li><b>System identification:</b> measure real parameters and calibrate the simulator.</li>
+<li><b>Privileged teacher, deployable student:</b> train a teacher policy with access to simulator-only information (exact terrain, contact forces), then distil it into a student that only uses real sensors.</li>
+<li><b>Fine-tuning on real data</b> with a small amount of real-world interaction.</li>
+</ul>
+<p>Learned quadruped and humanoid locomotion controllers trained this way now handle stairs and rough terrain that hand-designed controllers struggled with.</p>
+
+<h3>Foundation models for robotics</h3>
+<ul>
+<li><b>LLMs as planners:</b> a language model breaks "clean up the table" into steps and calls skills (pick, place, open), checked against what the robot can actually do. This is tool use ([[agents]]) where the tools move physical objects.</li>
+<li><b>Vision-language models for perception:</b> open-vocabulary detection and segmentation let a robot find "the red mug" without a dedicated detector ([[vit-clip]]).</li>
+<li><b>Vision-language-action (VLA) models:</b> start from a pretrained vision-language model and fine-tune it to output robot actions (as discrete tokens or through a continuous action head) given camera images and an instruction. Trained on large multi-robot datasets, they generalize better to new objects and instructions than single-task policies.</li>
+<li><b>World models:</b> learned simulators that predict future observations from actions, used for planning or for generating training experience.</li>
+</ul>
+<div class="callout warn"><b>Safety is not optional</b>Physical robots can injure people. Production systems keep learned policies inside safety envelopes: velocity and force limits, emergency stops, collision checking by classical planners, and human oversight during deployment.</div>
+
+<h3>The modern recipe for a manipulation skill</h3>
+<ol>
+<li>Collect 50–500 teleoperated demonstrations of the task, with varied object positions.</li>
+<li>Train a policy that maps camera images (and joint states) to action chunks, using a pretrained vision encoder.</li>
+<li>Evaluate on held-out object placements; measure success rate over many trials, not one video.</li>
+<li>Collect corrective data where it fails (DAgger-style), retrain, repeat.</li>
+<li>Optionally fine-tune with RL in simulation or in the real world for robustness.</li>
+</ol>
+<pre><code class="language-python">import torch, torch.nn as nn
+
+class BCPolicy(nn.Module):
+    """Behaviour cloning: image features + joint state -&gt; a chunk of k future actions."""
+    def __init__(self, vision_dim=512, state_dim=7, action_dim=7, chunk=8):
+        super().__init__()
+        self.chunk, self.action_dim = chunk, action_dim
+        self.net = nn.Sequential(nn.Linear(vision_dim + state_dim, 512), nn.GELU(),
+                                 nn.Linear(512, 512), nn.GELU(),
+                                 nn.Linear(512, chunk * action_dim))
+    def forward(self, vision_feat, state):
+        out = self.net(torch.cat([vision_feat, state], dim=-1))
+        return out.view(-1, self.chunk, self.action_dim)
+
+policy = BCPolicy()
+feats, state = torch.randn(32, 512), torch.randn(32, 7)        # from a frozen image encoder
+target = torch.randn(32, 8, 7)                                  # demonstrated action chunks
+loss = nn.functional.mse_loss(policy(feats, state), target)     # unimodal; use diffusion heads for multimodal demos</code></pre>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>A behaviour-cloned policy works for the first seconds of a task, then drifts and fails. What is happening and what would you try?
+<details><summary>Solution</summary><div>Covariate shift: small errors lead to unfamiliar states where the policy is worse, so errors compound. Try DAgger-style corrective data, action chunking, more varied demonstrations, and a policy class that models multi-modal actions.</div></details></li>
+<li>Why randomize friction and motor strength in simulation?
+<details><summary>Solution</summary><div>So the policy cannot overfit to one exact simulator. If it works across a wide range of physics, the real robot is likely to fall inside that range.</div></details></li>
+</ol></div>

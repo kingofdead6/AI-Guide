@@ -1,0 +1,31 @@
+<h3>Structure of a series</h3>
+<p>A series usually mixes <b>trend</b>, <b>seasonality</b> (daily, weekly, yearly cycles), <b>events</b> (holidays, promotions) and <b>noise</b>. A series is (weakly) <b>stationary</b> if its mean and autocovariance don't change over time; differencing \(y'_t=y_t-y_{t-1}\) often makes it so. The <b>autocorrelation function</b> \(\rho_k=\operatorname{Corr}(y_t,y_{t-k})\) reveals seasonality and memory.</p>
+<h3>Classical models</h3>
+$$\text{AR}(p):\ y_t=c+\sum_{i=1}^p\phi_iy_{t-i}+\varepsilon_t,\qquad \text{MA}(q):\ y_t=\mu+\varepsilon_t+\sum_{j=1}^q\theta_j\varepsilon_{t-j}$$
+<p><b>ARIMA(p, d, q)</b> combines them after differencing \(d\) times; SARIMA adds seasonal terms. <b>Exponential smoothing</b> (\(\hat y_{t+1}=\alpha y_t+(1-\alpha)\hat y_t\), extended by Holt–Winters to trend and season) is a strong, cheap baseline.</p>
+<h3>The ML approach</h3>
+<p>Turn forecasting into supervised learning: features = lags (\(y_{t-1},y_{t-7},y_{t-28}\)), rolling means and standard deviations, calendar features (day of week, holiday), and known-future covariates (price, planned promotions). Train gradient-boosted trees as a <b>global model</b> across many related series. Deep models (N-BEATS, DeepAR, Temporal Fusion Transformer) and pretrained time-series foundation models also exist; always compare them to seasonal-naive and GBDT baselines.</p>
+<!--FIG:timeseries-->
+<h3>Evaluation without leakage</h3>
+<ul>
+<li><b>Backtesting:</b> train on data up to time \(t\), forecast the next \(h\) steps, slide \(t\) forward and repeat (expanding or rolling window). Never shuffle.</li>
+<li>Metrics: MAE, RMSE, <b>MASE</b> (error relative to a seasonal-naive forecast; scale-free), MAPE (undefined near zero, penalizes over-forecasts more).</li>
+<li>Uncertainty: predict quantiles with the <b>pinball loss</b> \(L_\tau(y,\hat y)=\max\big(\tau(y-\hat y),(\tau-1)(y-\hat y)\big)\); \(\tau=0.5\) gives the median.</li>
+</ul>
+<pre><code class="language-python">import pandas as pd, numpy as np
+from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.metrics import mean_absolute_error
+
+df = pd.read_csv("sales.csv", parse_dates=["date"]).set_index("date")   # column: y
+for lag in [1, 7, 14, 28]:
+    df[f"lag_{lag}"] = df["y"].shift(lag)
+df["roll_mean_7"] = df["y"].shift(1).rolling(7).mean()     # shift first: no peeking at today
+df["dow"] = df.index.dayofweek; df["month"] = df.index.month
+df = df.dropna()
+X, y = df.drop(columns="y"), df["y"]
+
+for tr, te in TimeSeriesSplit(n_splits=5, test_size=28).split(X):
+    m = HistGradientBoostingRegressor(max_iter=500, learning_rate=0.05).fit(X.iloc[tr], y.iloc[tr])
+    naive = y.shift(7).iloc[te]                               # seasonal-naive baseline
+    print(mean_absolute_error(y.iloc[te], m.predict(X.iloc[te])), mean_absolute_error(y.iloc[te], naive))</code></pre>

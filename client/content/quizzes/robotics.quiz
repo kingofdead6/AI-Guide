@@ -1,0 +1,144 @@
+@lesson robot-kinematics
+Q: What is the inverse of a rotation matrix \(\mathbf R\)?
+* \(\mathbf R^\top\)
+- \(-\mathbf R\)
+- \(\mathbf R^2\)
+- It has no inverse
+> Rotation matrices are orthogonal, so the transpose undoes the rotation.
+
+Q: A two-link arm has \(l_1=l_2=1\), \(\theta_1=0\), \(\theta_2=90°\). What is the x-coordinate of the hand?
+= 1 ±0.01
+> \(x=\cos0+\cos(90°)=1+0=1\) (and \(y=0+\sin90°=1\)).
+
+Q: Which rotation representation suffers from gimbal lock?
+- Rotation matrices
+* Euler angles
+- Unit quaternions
+- Axis–angle
+> At certain angles two of the three Euler axes align and a degree of freedom is lost.
+
+Q: Why does numerical inverse kinematics often use damped least squares?
+* To stay stable near singularities where the Jacobian loses rank
+- To make the arm move faster
+- To avoid computing forward kinematics
+- Because closed forms are always wrong
+> The damping term \(\lambda^2\mathbf I\) keeps the inverse well-conditioned.
+
+@lesson state-estimation
+Q: The prediction variance is 4 and the sensor variance is 1. What is the 1-D Kalman gain?
+= 0.8 ±0.001
+> \(K=P^-/(P^-+R)=4/5\).
+
+Q: After that update, what is the posterior variance?
+= 0.8 ±0.001
+> \(P=P^-R/(P^-+R)=4/5\): lower than both sources.
+
+Q: Which filter can represent a belief with two separate peaks?
+- Kalman filter
+- Extended Kalman filter
+* Particle filter
+- A single Gaussian
+> Weighted samples can represent any shape of distribution.
+
+Q: In the Kalman filter, the prediction step increases uncertainty and the measurement update decreases it.
+= true
+> Motion adds noise \(\mathbf Q\); measurements add information.
+
+@lesson robot-control
+Q: Which PID term removes steady-state error against a constant disturbance like gravity?
+- Proportional
+* Integral
+- Derivative
+- None
+> The integral accumulates the remaining error until the output cancels the disturbance.
+
+Q: Is \(x_{t+1}=1.2x_t+u_t\) with feedback \(u_t=-0.5x_t\) stable?
+= true
+> The closed loop is \(x_{t+1}=0.7x_t\) and \(|0.7|\lt1\).
+
+Q: What does model predictive control do at every time step?
+* Optimizes a short-horizon control sequence under constraints and applies only the first action
+- Applies a fixed gain forever
+- Trains a neural network
+- Waits for the error to grow
+> Re-planning with each new measurement handles disturbances and constraints.
+
+Q: In LQR, increasing the control cost matrix \(\mathbf R\) makes the controller…
+* gentler, using less effort and tracking more slowly
+- more aggressive
+- unstable
+- ignore the state
+> \(\mathbf R\) penalizes large control inputs.
+
+@lesson motion-planning
+Q: When is A* guaranteed to find the shortest path?
+* When its heuristic never overestimates the remaining cost (admissible)
+- Always, with any heuristic
+- Only on graphs with no obstacles
+- Only with a zero heuristic
+> With \(h=0\) A* becomes Dijkstra, which is also optimal but slower.
+
+Q: Why are sampling-based planners like RRT preferred for 7-joint arms?
+* Grids grow exponentially with dimension, while sampling only explores where it goes
+- RRT always finds the optimal path
+- Grids cannot represent obstacles
+- RRT needs no collision checking
+> RRT is probabilistically complete; RRT* also converges toward optimal.
+
+Q: What does RRT* add to RRT?
+- A heuristic function
+* Rewiring nearby nodes to cheaper parents so paths converge toward optimal
+- A grid
+- A neural network
+> Plain RRT finds feasible but jagged, suboptimal paths.
+
+@lesson robot-learning
+Q: What is domain randomization?
+* Randomizing simulator physics and visuals so a policy works across many variations, including reality
+- Randomly choosing which robot to use
+- Adding noise to rewards
+- Training on random labels
+> If the real world falls inside the training range, the policy transfers.
+
+Q: Why do diffusion policies help imitation learning from human demonstrations?
+* They model multi-modal action distributions instead of averaging modes
+- They are faster than MLPs
+- They need no data
+- They remove the need for cameras
+> Averaging "go left" and "go right" with MSE produces an invalid "go straight".
+
+Q: What does a vision-language-action model output?
+- Captions
+* Robot actions conditioned on images and an instruction
+- Depth maps only
+- Reward values
+> VLAs start from vision-language models and are fine-tuned on robot data.
+
+@lesson exam
+Q: A robot localizes with GPS (noise std 3 m) and wheel odometry that drifts. Which approach fuses them best?
+* A Kalman filter (or EKF) that predicts with odometry and updates with GPS
+- Averaging the two positions
+- Using only GPS
+- Using only odometry
+> The filter weights each source by its uncertainty over time.
+
+Q: Order the classical stack: perception and estimation, planning, control. Which runs at the highest frequency?
+- Route planning
+- Behaviour planning
+* Low-level control
+- Map building
+> Control loops often run at hundreds or thousands of hertz; planners much more slowly.
+
+Q: A learned locomotion policy works perfectly in simulation and falls over on the real robot. Which techniques address this? (select all)
+* Domain randomization
+* System identification of real parameters
+* A privileged teacher distilled into a sensor-only student
+- Training longer in the same simulator settings
+> These are the standard sim-to-real tools.
+
+Q: A drone's altitude oscillates more and more after a gain change. What is the most likely cause?
+* The proportional (or integral) gain is too high, making the loop unstable
+- The derivative gain is too high
+- The sensor is perfect
+- The target is too low
+> Too much gain pushes closed-loop poles outside the stable region.

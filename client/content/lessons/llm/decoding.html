@@ -1,0 +1,28 @@
+$$p_i=\frac{\exp(z_i/T)}{\sum_j\exp(z_j/T)}$$
+<ul>
+<li><b>Temperature \(T\):</b> \(T\to0\) approaches greedy (argmax); \(T=1\) is the model's distribution; \(T\gt1\) flattens it (more random).</li>
+<li><b>Greedy:</b> always take the argmax. Deterministic, but prone to repetition.</li>
+<li><b>Beam search:</b> keep the \(b\) most likely partial sequences. Good for translation, bland for open-ended text.</li>
+<li><b>Top-k:</b> sample only from the \(k\) most likely tokens.</li>
+<li><b>Top-p (nucleus):</b> sample from the smallest set whose cumulative probability is at least \(p\). It adapts: few candidates when the model is confident, many when it isn't.</li>
+<li>Repetition and frequency penalties, stop sequences, and constrained (grammar/JSON-schema) decoding are common extras.</li>
+</ul>
+<div class="widget" data-widget="sampling"></div>
+<pre><code class="language-python">@torch.no_grad()
+def generate(model, idx, max_new=100, T=0.8, top_k=None, top_p=0.95):
+    for _ in range(max_new):
+        logits, _ = model(idx[:, -256:])            # crop to context window
+        logits = logits[:, -1, :] / max(T, 1e-5)
+        if top_k is not None:
+            v, _ = torch.topk(logits, top_k)
+            logits[logits &lt; v[:, [-1]]] = float("-inf")
+        probs = logits.softmax(-1)
+        if top_p is not None:
+            sp, si = probs.sort(descending=True)
+            cum = sp.cumsum(-1)
+            sp[(cum - sp) > top_p] = 0                  # drop tokens beyond the nucleus
+            probs = torch.zeros_like(probs).scatter(-1, si, sp)
+            probs /= probs.sum(-1, keepdim=True)
+        nxt = torch.multinomial(probs, 1)
+        idx = torch.cat([idx, nxt], dim=1)
+    return idx</code></pre>

@@ -1,0 +1,28 @@
+<h3>BM25</h3>
+$$\text{score}(D,Q)=\sum_{q\in Q}\text{IDF}(q)\cdot\frac{f(q,D)\,(k_1+1)}{f(q,D)+k_1\left(1-b+b\,\frac{|D|}{\text{avgdl}}\right)},\qquad \text{IDF}(q)=\ln\!\Big(\frac{N-n_q+0.5}{n_q+0.5}+1\Big)$$
+<p>\(f(q,D)\) is the term frequency, \(|D|\) the document length, \(n_q\) the number of documents containing \(q\). \(k_1\) (≈1.2–2) makes term frequency saturate, and \(b\) (≈0.75) normalizes for length. It is TF-IDF with diminishing returns, and still a very strong baseline.</p>
+<h3>Hybrid search with Reciprocal Rank Fusion</h3>
+<p>Run BM25 and dense search separately, then merge by rank, which avoids comparing incompatible score scales:</p>
+$$\text{RRF}(d)=\sum_{r\in\text{rankers}}\frac{1}{k+\text{rank}_r(d)},\qquad k\approx60$$
+<h3>Bi-encoders vs cross-encoders</h3>
+<p>A <b>bi-encoder</b> embeds query and document separately: fast, pre-computable, used for retrieval. A <b>cross-encoder</b> reads query and document together through one Transformer and outputs a relevance score: much more accurate, but must run per pair. Standard pattern: retrieve 50–100 candidates cheaply, rerank with a cross-encoder, keep the top 5–10.</p>
+<!--FIG:retrieval_funnel-->
+<h3>Query-side improvements</h3>
+<p>Query rewriting (fix typos, expand acronyms, resolve "it" from chat history), multi-query (generate several phrasings and fuse results), HyDE (embed a hypothetical answer instead of the question), and metadata filters (date, source, language, user permissions).</p>
+<pre><code class="language-python">from rank_bm25 import BM25Okapi
+from sentence_transformers import CrossEncoder
+bm25 = BM25Okapi([d.lower().split() for d in docs])
+bm25_rank = np.argsort(-bm25.get_scores("sleepy cats".split()))
+dense_rank = ids[0]
+
+def rrf(rankings, k=60):
+    scores = {}
+    for ranking in rankings:
+        for r, doc_id in enumerate(ranking):
+            scores[doc_id] = scores.get(doc_id, 0) + 1 / (k + r + 1)
+    return sorted(scores, key=scores.get, reverse=True)
+candidates = rrf([bm25_rank, dense_rank])
+
+reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+pair_scores = reranker.predict([("sleepy cats", docs[i]) for i in candidates])
+final = [candidates[i] for i in np.argsort(-pair_scores)]</code></pre>

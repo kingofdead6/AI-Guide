@@ -1,0 +1,355 @@
+@lesson ml-framework
+Q: Training error is low and validation error is much higher. What is the model doing?
+- Underfitting
+* Overfitting
+- Converging normally
+- Suffering from label noise only
+> A large generalization gap is the signature of high variance; regularize, simplify or add data.
+
+Q: In the bias–variance decomposition, which term can no model remove?
+- Bias²
+- Variance
+* The irreducible noise \(\sigma^2\)
+- None; all can be removed with enough data
+> Noise in the targets limits any predictor, however good.
+
+Q: Which actions mainly reduce variance? (select all)
+* Adding more training data
+* Stronger regularization
+* Averaging an ensemble of models
+- Using a more flexible model
+> Flexibility lowers bias but raises variance; the others reduce variance.
+
+Q: What is the difference between a parameter and a hyperparameter?
+* Parameters are learned from data; hyperparameters are chosen before or around training
+- They are the same thing
+- Hyperparameters are learned; parameters are fixed
+- Parameters only exist in neural networks
+> Weights are parameters; tree depth, learning rate and regularization strength are hyperparameters tuned on validation data.
+
+@lesson linear-regression
+Q: What is the closed-form least-squares solution?
+- \(\hat{\mathbf w}=\mathbf X^\top\mathbf y\)
+* \(\hat{\mathbf w}=(\mathbf X^\top\mathbf X)^{-1}\mathbf X^\top\mathbf y\)
+- \(\hat{\mathbf w}=\mathbf X^{-1}\mathbf y\)
+- \(\hat{\mathbf w}=(\mathbf X\mathbf X^\top)^{-1}\mathbf y\)
+> Setting the gradient \(-2\mathbf X^\top(\mathbf y-\mathbf X\mathbf w)\) to zero gives the normal equations.
+
+Q: Why does lasso (L1) produce exactly-zero weights while ridge (L2) does not?
+* The L1 constraint region has corners on the axes where the optimum often lands
+- L1 uses a larger penalty
+- L2 is not convex
+- Lasso has a closed form
+> The diamond-shaped L1 ball touches the loss contours at a corner, setting some coordinates to zero: automatic feature selection.
+
+Q: The least-squares residual vector is orthogonal to every column of \(\mathbf X\).
+= true
+> The normal equations say exactly \(\mathbf X^\top(\mathbf y-\mathbf X\hat{\mathbf w})=\mathbf 0\).
+
+Q: Linear regression can fit a parabola if you add \(x^2\) as a feature.
+= true
+> It is linear in the weights, not in the inputs, so nonlinear features give nonlinear fits.
+
+@lesson logistic-regression
+Q: What is the gradient of the softmax cross-entropy loss with respect to the logits \(\mathbf z\)?
+- \(\mathbf y-\mathbf p\)
+* \(\mathbf p-\mathbf y\)
+- \(\mathbf p(1-\mathbf p)\)
+- \(-\log\mathbf p\)
+> Prediction minus one-hot target: the same simple form as linear regression's gradient.
+
+Q: Why don't we train classifiers by directly maximizing accuracy?
+* Accuracy is piecewise constant, so its gradient is zero almost everywhere
+- Accuracy is always 100% on training data
+- Accuracy is not defined for two classes
+- It would be too slow to compute
+> Cross-entropy is a smooth, convex surrogate that also rewards calibrated confidence.
+
+Q: In PyTorch, `nn.CrossEntropyLoss` expects…
+- probabilities after softmax
+* raw logits
+- log-probabilities after log-softmax
+- one-hot vectors as predictions
+> It applies a numerically stable log-softmax internally; feeding softmax outputs double-applies it.
+
+Q: Logistic regression's decision boundary \(\mathbf w^\top\mathbf x=0\) is…
+* a hyperplane
+- a circle
+- a parabola
+- any shape
+> The model is linear in its inputs, so the 0.5-probability boundary is linear.
+
+@lesson knn-nb
+Q: What is the "naive" assumption in Naive Bayes?
+- All classes are equally likely
+* Features are conditionally independent given the class
+- Features are Gaussian
+- There are only two features
+> It lets \(p(\mathbf x\mid y)\) factor into a product of one-dimensional terms.
+
+Q: Why compute Naive Bayes scores as sums of logs?
+* To avoid numerical underflow from multiplying many small probabilities
+- Logs make the model more accurate
+- To make the scores positive
+- It is required for Laplace smoothing
+> A product of hundreds of probabilities underflows to 0 in floating point; a sum of logs does not.
+
+Q: Increasing \(k\) in k-NN generally…
+- increases variance
+* gives smoother decision boundaries with lower variance and higher bias
+- makes training slower
+- has no effect
+> Averaging over more neighbours smooths predictions. k-NN has no training step; prediction cost grows instead.
+
+@lesson svm
+Q: Which training points determine an SVM's decision boundary?
+- All of them equally
+* The support vectors, on or inside the margin
+- The points farthest from the boundary
+- A random subset
+> In the dual solution only points with \(\alpha_i\gt0\) contribute: the support vectors.
+
+Q: What is the margin width of a hard-margin SVM in terms of \(\mathbf w\)?
+- \(\|\mathbf w\|\)
+- \(1/\|\mathbf w\|\)
+* \(2/\|\mathbf w\|\)
+- \(\|\mathbf w\|^2\)
+> The distance from the hyperplane to each margin is \(1/\|\mathbf w\|\), so the full width is \(2/\|\mathbf w\|\).
+
+Q: The kernel trick lets an SVM work in a high-dimensional feature space without computing the features explicitly.
+= true
+> Predictions only need dot products, which a kernel \(K(\mathbf x,\mathbf x')=\phi(\mathbf x)^\top\phi(\mathbf x')\) supplies directly.
+
+Q: Increasing the soft-margin parameter \(C\)…
+* penalizes margin violations more, lowering bias and raising variance
+- widens the margin
+- adds more support vectors always
+- makes the kernel linear
+> Large \(C\) fits the training data more tightly; small \(C\) allows more violations for a wider margin.
+
+@lesson trees-ensembles
+Q: A node contains 6 positives and 4 negatives. What is its Gini impurity?
+= 0.48 ±0.001
+> \(1-(0.6^2+0.4^2)=1-0.52=0.48\).
+
+Q: How does a random forest reduce the correlation between its trees?
+- By training each tree on the same data
+* By bootstrap sampling and considering a random subset of features at each split
+- By pruning every tree to depth 1
+- By sharing splits between trees
+> Lower correlation \(\rho\) makes the \(\rho\sigma^2\) term of the ensemble variance smaller.
+
+Q: In gradient boosting with squared loss, each new tree is fit to…
+- the original targets
+* the residuals of the current model
+- random noise
+- the predictions of the previous tree
+> The pseudo-residuals \(-\partial\mathcal L/\partial F\) equal \(y-F\) for squared loss: gradient descent in function space.
+
+Q: Lowering the boosting learning rate (shrinkage) usually requires more trees but generalizes better.
+= true
+> Smaller steps reduce overfitting to each tree; early stopping on validation picks the number of trees.
+
+@lesson unsupervised
+Q: PCA's first principal component is…
+* the eigenvector of the covariance matrix with the largest eigenvalue
+- the feature with the largest mean
+- the first column of the data
+- the direction of smallest variance
+> Maximizing \(\mathbf u^\top\boldsymbol\Sigma\mathbf u\) subject to \(\|\mathbf u\|=1\) gives \(\boldsymbol\Sigma\mathbf u=\lambda\mathbf u\) with the largest \(\lambda\).
+
+Q: Which statements about k-means are true? (select all)
+* Each iteration cannot increase the objective
+* It can converge to a local optimum, so restarts help
+- It always finds the global optimum
+* It is a hard-assignment limit of a Gaussian mixture with equal spherical covariances
+> Lloyd's algorithm is monotone but local; k-means++ initialization and several restarts are standard.
+
+Q: Distances between far-apart clusters in a t-SNE plot reliably show how different those clusters are.
+= false
+> t-SNE preserves local neighbourhoods; global distances and cluster sizes are not meaningful.
+
+Q: In EM for Gaussian mixtures, what does the E-step compute?
+- New means and covariances
+* Responsibilities: soft assignments of points to components
+- The number of clusters
+- Gradients of the likelihood
+> The M-step then re-estimates parameters from those responsibilities.
+
+@lesson metrics
+Q: 1,000 transactions contain 10 frauds. A model flags 20 and catches 8. What is its precision?
+= 0.4 ±0.001
+> 8 true positives out of 20 flagged.
+
+Q: For the same model, what is its recall?
+= 0.8 ±0.001
+> 8 of the 10 frauds were caught.
+
+Q: ROC-AUC equals the probability that…
+* a random positive is scored higher than a random negative
+- a random prediction is correct
+- the model is calibrated
+- precision exceeds recall
+> This ranking interpretation makes AUC threshold-free.
+
+Q: A model is calibrated when…
+- its accuracy is above 90%
+* among predictions of 0.8, about 80% are positive
+- its ROC-AUC is 1
+- it outputs only 0 or 1
+> Calibration is about trusting the probabilities themselves; check it with a reliability diagram.
+
+@lesson time-series
+Q: How should you validate a forecasting model?
+- Random k-fold cross-validation
+* Backtesting: train on the past, test on the following window, then roll forward
+- Leave-one-out
+- Test on the training period
+> Shuffling lets the model peek at the future, which inflates scores.
+
+Q: Why compute rolling-mean features on `y.shift(1)` rather than on `y`?
+* So today's feature does not include today's target value
+- To make it faster
+- Because pandas requires it
+- To remove seasonality
+> Without the shift, the target leaks into its own feature.
+
+Q: MASE compares a model's error with that of a seasonal-naive forecast. A MASE of 0.8 means…
+- the model is 80% accurate
+* the model's error is 20% lower than the naive forecast's
+- the model is worse than naive
+- the error is 0.8 units
+> MASE below 1 beats the naive baseline; above 1 loses to it.
+
+Q: Which loss trains a model to predict the 90th percentile?
+- MSE
+* The pinball (quantile) loss with \(\tau=0.9\)
+- Cross-entropy
+- Hinge
+> The asymmetric pinball loss makes under-prediction 9 times costlier than over-prediction at \(\tau=0.9\).
+
+@lesson recsys
+Q: Why do large recommenders use a multi-stage funnel?
+* A heavy ranking model is too slow to score every item, so cheap retrieval narrows candidates first
+- To make recommendations random
+- Because users want fewer items
+- To avoid using embeddings
+> Candidate generation (two-tower + ANN) trims millions of items to hundreds, which a rich ranker can afford.
+
+Q: The BPR loss for implicit feedback trains the model to…
+- predict star ratings exactly
+* rank an observed item above a sampled unobserved one
+- maximize item popularity
+- cluster users
+> \(-\log\sigma(\hat r_{ui}-\hat r_{uj})\) optimizes pairwise ranking.
+
+Q: Which problems are specific to recommenders? (select all)
+* Cold start for new users and items
+* Feedback loops: the model learns only from what it showed
+* Position bias in clicks
+- Vanishing gradients
+> Each requires dedicated handling: content features, exploration, and debiasing.
+
+@lesson bayesian-ml
+Q: Bayesian linear regression's posterior mean equals which estimator?
+- Ordinary least squares
+* Ridge regression with \(\lambda=\alpha/\beta\)
+- Lasso
+- k-NN regression
+> A Gaussian prior on weights gives the ridge solution; the posterior adds a variance on top.
+
+Q: Which uncertainty shrinks as you collect more data?
+- Aleatoric
+* Epistemic
+- Both equally
+- Neither
+> Epistemic uncertainty comes from lack of data; aleatoric is noise in the data itself.
+
+Q: Exact Gaussian process regression scales as…
+- \(O(n)\)
+- \(O(n\log n)\)
+* \(O(n^3)\)
+- \(O(1)\)
+> Inverting the \(n\times n\) kernel matrix costs cubic time, which is why sparse approximations exist.
+
+Q: Deep ensembles estimate uncertainty from the disagreement between independently trained networks.
+= true
+> Train several seeds; where they disagree, the prediction is uncertain. Simple and effective in practice.
+
+@lesson hpo
+Q: Why does random search usually beat grid search for the same budget?
+* Each random trial tries a new value of every hyperparameter, including the few that matter
+- Random numbers are faster to compute
+- Grid search cannot handle integers
+- Random search uses gradients
+> With a grid, most trials repeat the same values of the important parameter.
+
+Q: Learning rates and regularization strengths should be searched on a log scale.
+= true
+> Their effect spans orders of magnitude, so 1e-4 vs 1e-3 matters as much as 1e-2 vs 1e-1.
+
+Q: What does Hyperband / successive halving do?
+- Trains every configuration to completion
+* Starts many configurations on small budgets and promotes only the best to larger ones
+- Halves the learning rate every epoch
+- Removes half of the features
+> Multi-fidelity search spends compute on promising configurations.
+
+@lesson causal
+Q: Users of feature X retain 20% better. Why can't you conclude X causes retention?
+* Engaged users may both adopt X and retain better: a confounder
+- Retention can't be measured
+- 20% is too small
+- Correlation always implies causation
+> Only a randomized experiment, or careful adjustment for confounders, identifies the causal effect.
+
+Q: Roughly how many users per group detect a 1-point lift from a 10% conversion rate at 5% significance and 80% power? (nearest thousand)
+= 14000 ±1000
+> \(n\approx7.85\cdot2\cdot0.09/0.01^2\approx14{,}100\).
+
+Q: Stopping an A/B test the first time the p-value drops below 0.05 inflates the false-positive rate.
+= true
+> Repeated peeking gives many chances to cross the threshold by luck; use a fixed horizon or sequential tests.
+
+Q: What does CUPED do?
+- Doubles the sample size
+* Reduces metric variance using each user's pre-experiment data
+- Removes outliers
+- Randomizes users
+> Lower variance means smaller samples detect the same effect.
+
+@lesson exam
+Q: You need a strong first model for a tabular churn dataset with 200k rows, mixed feature types and missing values. What do you start with?
+- A deep MLP
+* Gradient-boosted trees, after a logistic-regression baseline
+- k-NN
+- A Gaussian process
+> GBDTs handle mixed types, missing values and interactions with little tuning; a linear baseline tells you how much they add.
+
+Q: Your fraud model's ROC-AUC is 0.97 but analysts say most flagged cases are legitimate. What explains it?
+* With rare positives, even a low false-positive rate produces many false alarms, so precision is low
+- ROC-AUC is computed wrongly
+- The model is underfitting
+- There is too little data
+> Look at precision–recall and tune the threshold for the review capacity.
+
+Q: Which techniques give probability estimates you can use for decisions? (select all)
+* Logistic regression
+* Calibrated gradient boosting (e.g. isotonic or Platt scaling)
+- A raw SVM margin
+* A Gaussian process classifier
+> SVM margins are scores, not probabilities, unless calibrated.
+
+Q: A model trained on randomly split time-series data scores far better offline than in production. Most likely cause?
+- The production server is slower
+* Leakage of future information through the random split
+- Too much regularization
+- The metric changed
+> Use time-based backtesting so the model never sees the future during validation.
+
+Q: In gradient boosting, decreasing the learning rate from 0.3 to 0.03 should be paired with…
+* more trees, chosen by early stopping
+- fewer trees
+- deeper trees only
+- no other change
+> Smaller steps need more of them to reach the same fit.

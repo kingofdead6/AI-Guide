@@ -1,0 +1,25 @@
+<h3>Retrieval metrics (need labelled relevant passages per query)</h3>
+$$\text{Recall@}k=\frac{|\text{relevant}\cap\text{top-}k|}{|\text{relevant}|},\qquad \text{MRR}=\frac1{|Q|}\sum_{q}\frac1{\text{rank of first relevant}_q}$$
+$$\text{DCG@}k=\sum_{i=1}^k\frac{2^{rel_i}-1}{\log_2(i+1)},\qquad \text{nDCG@}k=\frac{\text{DCG@}k}{\text{IDCG@}k}$$
+<h3>Generation metrics</h3>
+<ul>
+<li><b>Faithfulness / groundedness:</b> is every claim supported by the retrieved context?</li>
+<li><b>Answer relevance:</b> does it address the question?</li>
+<li><b>Context precision:</b> how much of the retrieved context was useful?</li>
+<li><b>Correctness</b> against a reference answer, when you have one.</li>
+</ul>
+<p>Usually scored by an LLM judge with a rubric (frameworks like Ragas implement these), calibrated against a sample of human judgments.</p>
+<table>
+<tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
+<tr><td>Right doc exists, not retrieved</td><td>Vocabulary mismatch, bad chunking</td><td>Hybrid search, contextual chunks, query rewriting</td></tr>
+<tr><td>Retrieved but answer wrong</td><td>Too much noise in context</td><td>Reranking, fewer but better chunks</td></tr>
+<tr><td>Confident made-up answer</td><td>Model ignores "only use sources"</td><td>Stronger instructions, citation checks, refusal examples</td></tr>
+<tr><td>Fails on "compare A and B"</td><td>Needs multiple retrievals</td><td>Query decomposition, agentic retrieval</td></tr>
+</table>
+<pre><code class="language-python">def recall_at_k(results, relevant, k):     # results: ranked ids; relevant: set of ids
+    return len(set(results[:k]) &amp; relevant) / len(relevant)
+def mrr(all_results, all_relevant):
+    total = 0.0
+    for res, rel in zip(all_results, all_relevant):
+        total += next((1 / (i + 1) for i, d in enumerate(res) if d in rel), 0.0)
+    return total / len(all_results)</code></pre>

@@ -1,0 +1,48 @@
+<h3>Convexity</h3>
+<p>\(f\) is convex if \(f(\lambda\mathbf x+(1-\lambda)\mathbf y)\le\lambda f(\mathbf x)+(1-\lambda)f(\mathbf y)\), equivalently (if twice differentiable) \(\mathbf H\succeq0\). Every local minimum of a convex function is global. Linear and logistic regression and SVMs are convex. Neural networks are not, yet gradient methods still work remarkably well on them.</p>
+<h3>Gradient descent</h3>
+$$\theta_{t+1}=\theta_t-\eta\,\nabla\mathcal L(\theta_t)$$
+<!--FIG:gd_lr-->
+<div class="callout intuition"><b>Why the learning rate has a ceiling</b><p>On a quadratic \(\mathcal L=\tfrac12\theta^\top\mathbf H\theta\), the update is \(\theta_{t+1}=(\mathbf I-\eta\mathbf H)\theta_t\). Along eigenvector \(i\) the error is multiplied by \(1-\eta\lambda_i\) each step, so GD converges iff \(0\lt\eta\lt2/\lambda_{\max}\). The slowest direction shrinks by \(1-\eta\lambda_{\min}\). With \(\eta\approx1/\lambda_{\max}\) that is \(1-1/\kappa\): ill-conditioned problems (large \(\kappa\)) are slow. This is why you standardize features and why normalization layers and adaptive optimizers help.</p></div>
+<!--FIG:contour_gd-->
+<h3>Stochastic and mini-batch GD</h3>
+<p>Use the gradient on a random batch \(\mathcal B\): \(\mathbf g=\frac1{|\mathcal B|}\sum_{i\in\mathcal B}\nabla\mathcal L_i\). It is an unbiased estimate of the full gradient with variance \(\propto1/|\mathcal B|\). The noise is cheap and even helps escape sharp minima.</p>
+<h3>Momentum, RMSProp, Adam</h3>
+$$\text{Momentum:}\quad \mathbf v_t=\beta\mathbf v_{t-1}+\mathbf g_t,\qquad\theta_{t+1}=\theta_t-\eta\mathbf v_t$$
+<p>Momentum averages gradients so oscillations cancel and consistent directions accelerate. Adam adds a per-parameter step size based on the gradient's recent magnitude:</p>
+$$\begin{aligned}
+\mathbf m_t&amp;=\beta_1\mathbf m_{t-1}+(1-\beta_1)\mathbf g_t &amp;&amp;\text{(1st moment)}\\
+\mathbf v_t&amp;=\beta_2\mathbf v_{t-1}+(1-\beta_2)\mathbf g_t^2 &amp;&amp;\text{(2nd moment)}\\
+\hat{\mathbf m}_t&amp;=\mathbf m_t/(1-\beta_1^t),\quad \hat{\mathbf v}_t=\mathbf v_t/(1-\beta_2^t) &amp;&amp;\text{(bias correction)}\\
+\theta_{t+1}&amp;=\theta_t-\eta\,\hat{\mathbf m}_t/(\sqrt{\hat{\mathbf v}_t}+\epsilon)
+\end{aligned}$$
+<p>Typical defaults: \(\beta_1=0.9,\ \beta_2=0.999,\ \epsilon=10^{-8}\). <b>AdamW</b> applies weight decay directly, \(\theta\leftarrow\theta-\eta\lambda\theta\), instead of adding it to the gradient. It is the standard optimizer for Transformers.</p>
+<div class="widget" data-widget="opt"></div>
+<h3>Learning-rate schedules</h3>
+<p><b>Warmup</b> increases \(\eta\) linearly for the first steps (Adam's moment estimates are unreliable early). <b>Cosine decay</b> then lowers it smoothly:</p>
+$$\eta_t=\eta_{\min}+\tfrac12(\eta_{\max}-\eta_{\min})\Big(1+\cos\frac{\pi t}{T}\Big)$$
+<!--FIG:lr_schedule-->
+<h3>Constrained optimization: Lagrange multipliers</h3>
+<p>To minimize \(f(\mathbf x)\) subject to \(g(\mathbf x)=0\), solve \(\nabla f=\lambda\nabla g\): at the optimum the gradients are parallel. Formally, find stationary points of \(\mathcal L(\mathbf x,\lambda)=f(\mathbf x)-\lambda g(\mathbf x)\). With inequality constraints this generalizes to the <b>KKT conditions</b>, which give SVM their support vectors ([[svm]]). PCA is derived this way too ([[unsupervised]]).</p>
+<pre><code class="language-python"># GD vs momentum vs Adam on an ill-conditioned quadratic (kappa = 100)
+H = np.diag([1.0, 100.0]); grad = lambda th: H @ th
+def run(opt, steps=200, lr=0.009):
+    th, m, v = np.array([1.0, 1.0]), np.zeros(2), np.zeros(2)
+    for t in range(1, steps + 1):
+        g = grad(th)
+        if opt == "gd":
+            th = th - lr * g
+        elif opt == "momentum":
+            m = 0.9 * m + g; th = th - lr * m
+        else:  # adam
+            m = 0.9 * m + 0.1 * g; v = 0.999 * v + 0.001 * g**2
+            mh, vh = m / (1 - 0.9**t), v / (1 - 0.999**t)
+            th = th - 0.05 * mh / (np.sqrt(vh) + 1e-8)
+    return 0.5 * th @ H @ th
+for o in ["gd", "momentum", "adam"]: print(o, run(o))</code></pre>
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>For \(\mathcal L(\theta)=3\theta^2\), what is the largest learning rate for which GD converges?
+<details><summary>Solution</summary><div>\(\mathcal L''=6=\lambda\), so \(\eta\lt2/6=1/3\). At \(\eta=1/6\) it converges in one step.</div></details></li>
+<li>Why does Adam need bias correction?
+<details><summary>Solution</summary><div>\(\mathbf m_0=\mathbf v_0=\mathbf 0\), so early averages are biased toward zero. For constant gradient \(g\), \(\mathbb E[\mathbf m_t]=(1-\beta_1^t)g\); dividing by \(1-\beta_1^t\) removes the bias.</div></details></li>
+</ol></div>

@@ -1,0 +1,47 @@
+<h3>The convolution operation</h3>
+<p>Deep learning "convolution" is technically cross-correlation. For input \(\mathbf I\) with \(C_{in}\) channels and a kernel \(\mathbf K\) of size \(k\times k\):</p>
+$$\mathbf O_{c}(i,j)=b_c+\sum_{c'=1}^{C_{in}}\sum_{m=0}^{k-1}\sum_{n=0}^{k-1}\mathbf K_{c,c'}(m,n)\,\mathbf I_{c'}(i\cdot s+m,\;j\cdot s+n)$$
+<!--FIG:conv_op-->
+<div class="key">
+$$\text{Output size}=\Big\lfloor\frac{W-K+2P}{S}\Big\rfloor+1,\qquad \text{Parameters}=k\cdot k\cdot C_{in}\cdot C_{out}+C_{out}$$
+</div>
+<ul>
+<li><b>Weight sharing:</b> one small kernel slides over the whole image, so far fewer parameters than a dense layer.</li>
+<li><b>Translation equivariance:</b> shift the input and the feature map shifts the same way.</li>
+<li><b>Receptive field</b> grows with depth: each layer sees a larger region of the original image.</li>
+<li><b>Pooling</b> (max/average) downsamples and adds a little translation invariance. Strided convolutions do the same job with learned weights.</li>
+<li><b>1×1 convolutions</b> mix channels cheaply. <b>Depthwise-separable</b> convolutions (MobileNet) split spatial and channel mixing, cutting compute by about \(k^2\).</li>
+</ul>
+<!--FIG:maxpool-->
+<!--FIG:cnn_pipeline-->
+<div class="widget" data-widget="conv"></div>
+<h3>Residual connections (ResNet)</h3>
+$$\mathbf y=\mathcal F(\mathbf x)+\mathbf x\quad\Rightarrow\quad\frac{\partial\mathcal L}{\partial\mathbf x}=\frac{\partial\mathcal L}{\partial\mathbf y}\Big(\frac{\partial\mathcal F}{\partial\mathbf x}+\mathbf I\Big)$$
+<p>The identity term gives gradients a direct path backward, so very deep networks train. Each block only has to learn a residual correction, which is easy to set to zero when not needed. Residuals are also the backbone of every Transformer.</p>
+<!--FIG:resblock-->
+<p><b>Architecture timeline:</b> LeNet (1998) → AlexNet (2012, ReLU + GPUs) → VGG (stacked 3×3) → GoogLeNet/Inception → ResNet (2015, residuals) → EfficientNet (compound scaling) → ConvNeXt (CNNs modernized with Transformer-era tricks).</p>
+<pre><code class="language-python">class ConvBlock(nn.Module):
+    def __init__(self, c_in, c_out):
+        super().__init__()
+        self.conv1 = nn.Conv2d(c_in, c_out, 3, padding=1, bias=False); self.bn1 = nn.BatchNorm2d(c_out)
+        self.conv2 = nn.Conv2d(c_out, c_out, 3, padding=1, bias=False); self.bn2 = nn.BatchNorm2d(c_out)
+        self.skip = nn.Conv2d(c_in, c_out, 1, bias=False) if c_in != c_out else nn.Identity()
+    def forward(self, x):
+        h = F.relu(self.bn1(self.conv1(x)))
+        h = self.bn2(self.conv2(h))
+        return F.relu(h + self.skip(x))              # residual connection
+
+class SmallResNet(nn.Module):
+    def __init__(self, n_classes=10):
+        super().__init__()
+        self.net = nn.Sequential(ConvBlock(1, 32), nn.MaxPool2d(2),     # 28 -> 14
+                                 ConvBlock(32, 64), nn.MaxPool2d(2),    # 14 -> 7
+                                 ConvBlock(64, 128), nn.AdaptiveAvgPool2d(1), nn.Flatten(),
+                                 nn.Linear(128, n_classes))
+    def forward(self, x): return self.net(x)</code></pre>
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>Input 224×224×3, conv with 64 filters of 7×7, stride 2, padding 3. Output size and parameter count?
+<details><summary>Solution</summary><div>\(\lfloor(224-7+6)/2\rfloor+1=112\), so 112×112×64. Parameters \(7\cdot7\cdot3\cdot64+64=9{,}472\). (This is ResNet's first layer.)</div></details></li>
+<li>What is the receptive field of three stacked 3×3 convolutions (stride 1)?
+<details><summary>Solution</summary><div>7×7: each layer adds 2. Three 3×3 layers see the same region as one 7×7 with \(27C^2\) instead of \(49C^2\) weights and more nonlinearities, which is VGG's insight.</div></details></li>
+</ol></div>

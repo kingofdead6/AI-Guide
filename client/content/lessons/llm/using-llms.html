@@ -1,0 +1,38 @@
+<h3>Prompting that works</h3>
+<ul>
+<li>Be explicit about the task, audience, constraints and output format. Give context the model can't guess.</li>
+<li>Show a few examples (few-shot), including tricky edge cases.</li>
+<li>Ask for reasoning before the final answer on hard problems, or use a reasoning-capable model.</li>
+<li>Separate instructions from data with clear delimiters (e.g. XML-style tags), and treat retrieved or user-supplied text as data, never as instructions, to resist prompt injection.</li>
+<li>Request structured output (JSON matching a schema) and validate it in code.</li>
+</ul>
+<h3>Evaluation is the real work</h3>
+<ol>
+<li>Build a test set of realistic inputs with expected outputs or grading criteria (start with 50–200).</li>
+<li>Score with exact checks where possible (string match, unit tests, schema validation).</li>
+<li>Use LLM-as-judge with a clear rubric for open-ended outputs, and spot-check the judge against human ratings; judges have biases (length, position, self-preference).</li>
+<li>Re-run the suite on every prompt or model change. Track cost and latency alongside quality.</li>
+</ol>
+<pre><code class="language-python">import json
+def llm(prompt: str) -> str:
+    """Call your provider's chat API here and return the text."""
+    raise NotImplementedError
+
+SCHEMA_HINT = '{"sentiment": "positive|negative|neutral", "confidence": 0-1, "reason": str}'
+def classify(review: str) -> dict:
+    prompt = (f"Classify the sentiment of the review inside &lt;review&gt; tags.\n"
+              f"Return only JSON in this shape: {SCHEMA_HINT}\n"
+              f"&lt;review&gt;{review}&lt;/review&gt;")
+    for _ in range(3):                                  # retry on malformed output
+        try:
+            out = json.loads(llm(prompt))
+            assert out["sentiment"] in {"positive", "negative", "neutral"}
+            return out
+        except (json.JSONDecodeError, KeyError, AssertionError):
+            continue
+    raise ValueError("model did not return valid JSON")
+
+def evaluate(cases):                                    # cases: [(text, expected_label)]
+    hits = sum(classify(t)["sentiment"] == y for t, y in cases)
+    return hits / len(cases)</code></pre>
+<div class="callout warn"><b>Hallucination</b>LLMs generate plausible text, not verified facts. Ground answers in retrieved sources ([[course:rag]]), ask for citations and check them, let the model say "I don't know", and verify anything high-stakes.</div>

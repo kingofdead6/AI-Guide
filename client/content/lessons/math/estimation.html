@@ -1,0 +1,40 @@
+<h3>Maximum likelihood</h3>
+<p>Given i.i.d. data \(\mathcal D=\{x_1,\dots,x_n\}\) and a model \(p(x\mid\theta)\):</p>
+$$\hat\theta_{\text{MLE}}=\arg\max_\theta\prod_{i=1}^np(x_i\mid\theta)=\arg\min_\theta\;-\sum_{i=1}^n\log p(x_i\mid\theta)$$
+<p>Taking the log turns a product of tiny numbers into a sum; that is numerically stable and easy to differentiate.</p>
+<h3>Derivation: Gaussian MLE</h3>
+$$\ell(\mu,\sigma^2)=-\frac n2\log(2\pi\sigma^2)-\frac1{2\sigma^2}\sum_i(x_i-\mu)^2$$
+$$\frac{\partial\ell}{\partial\mu}=\frac1{\sigma^2}\sum_i(x_i-\mu)=0\Rightarrow\hat\mu=\bar x,\qquad \frac{\partial\ell}{\partial\sigma^2}=0\Rightarrow\hat\sigma^2=\frac1n\sum_i(x_i-\bar x)^2$$
+<p>\(\mathbb E[\hat\sigma^2]=\frac{n-1}{n}\sigma^2\), so the MLE of the variance is biased. Dividing by \(n-1\) (Bessel's correction) fixes it.</p>
+<div class="key">
+<p><b>The big insight: losses are likelihoods.</b></p>
+<table>
+<tr><th>Assume the target is…</th><th>Negative log-likelihood becomes</th></tr>
+<tr><td>\(y\sim\mathcal N(f_\theta(\mathbf x),\sigma^2)\)</td><td>Mean squared error</td></tr>
+<tr><td>\(y\sim\text{Laplace}(f_\theta(\mathbf x),b)\)</td><td>Mean absolute error</td></tr>
+<tr><td>\(y\sim\text{Bernoulli}(\sigma(f_\theta(\mathbf x)))\)</td><td>Binary cross-entropy</td></tr>
+<tr><td>\(y\sim\text{Categorical}(\operatorname{softmax}(f_\theta(\mathbf x)))\)</td><td>Cross-entropy (classifiers, LLMs)</td></tr>
+</table>
+</div>
+<h3>MAP estimation and regularization</h3>
+$$\hat\theta_{\text{MAP}}=\arg\max_\theta\;\log p(\mathcal D\mid\theta)+\log p(\theta)$$
+<p>With a Gaussian prior \(\theta\sim\mathcal N(0,\tau^2\mathbf I)\), \(-\log p(\theta)=\frac{1}{2\tau^2}\|\theta\|_2^2+\text{const}\): <b>L2 regularization (ridge, weight decay)</b>. A Laplace prior gives <b>L1 (lasso)</b>. Regularization is a prior belief that parameters are small.</p>
+<h3>Estimators, LLN and CLT</h3>
+<ul>
+<li>An estimator's error decomposes as \(\text{MSE}(\hat\theta)=\text{Bias}(\hat\theta)^2+\operatorname{Var}(\hat\theta)\).</li>
+<li><b>Law of large numbers:</b> \(\bar X_n\to\mu\) as \(n\to\infty\). This justifies replacing the expected risk with the empirical average.</li>
+<li><b>Central limit theorem:</b> \(\sqrt n(\bar X_n-\mu)\to\mathcal N(0,\sigma^2)\). Hence the 95% confidence interval \(\bar x\pm1.96\,s/\sqrt n\).</li>
+</ul>
+<h3>Hypothesis testing (A/B tests, model comparison)</h3>
+<p>State a null hypothesis \(H_0\) (no difference), compute a test statistic, and get the <b>p-value</b>: the probability of a result at least this extreme if \(H_0\) were true. A small p-value is evidence against \(H_0\); it is <i>not</i> the probability \(H_0\) is true. For comparing two conversion rates, the two-proportion z-test uses \(z=(\hat p_1-\hat p_2)/\sqrt{\hat p(1-\hat p)(1/n_1+1/n_2)}\), where \(\hat p\) is the pooled rate.</p>
+<pre><code class="language-python">from scipy import stats
+data = np.random.normal(loc=5.0, scale=2.0, size=500)
+mu_hat, sigma_hat = data.mean(), data.std()        # MLE (ddof=0)
+ci = stats.t.interval(0.95, df=len(data)-1, loc=mu_hat, scale=stats.sem(data))
+t, p = stats.ttest_1samp(data, popmean=5.0)        # H0: mean = 5</code></pre>
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>Derive the MLE of a Bernoulli parameter from \(k\) successes in \(n\) trials.
+<details><summary>Solution</summary><div>\(\ell(p)=k\log p+(n-k)\log(1-p)\). Setting \(\ell'(p)=\frac kp-\frac{n-k}{1-p}=0\) gives \(\hat p=k/n\).</div></details></li>
+<li>Show that maximizing a Gaussian likelihood with fixed \(\sigma\) is the same as minimizing MSE.
+<details><summary>Solution</summary><div>\(-\log p(y_i\mid\mathbf x_i)=\frac{(y_i-f(\mathbf x_i))^2}{2\sigma^2}+\text{const}\). Summing and dropping constants leaves \(\sum_i(y_i-f(\mathbf x_i))^2\).</div></details></li>
+</ol></div>

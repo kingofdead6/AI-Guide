@@ -1,0 +1,18 @@
+<h3>Pipeline</h3>
+<p>Normalize (lowercase, Unicode normalization, and for Arabic, normalizing letter variants and removing diacritics where appropriate) → tokenize → optionally remove stopwords and stem or lemmatize → vectorize.</p>
+<h3>Bag of words and TF-IDF</h3>
+<p>A document becomes a vector of word counts (word order lost). TF-IDF reweights so words frequent in this document but rare across the corpus count most:</p>
+$$\text{tfidf}(t,d)=\text{tf}(t,d)\cdot\log\frac{N}{\text{df}(t)}$$
+<p>where \(N\) is the number of documents and \(\text{df}(t)\) the number containing term \(t\). Libraries add smoothing (scikit-learn uses \(\log\frac{1+N}{1+\text{df}}+1\)).</p>
+<h3>n-gram language models</h3>
+$$P(w_t\mid w_{t-n+1:t-1})\approx\frac{\text{count}(w_{t-n+1:t})}{\text{count}(w_{t-n+1:t-1})},\qquad \text{PPL}=\exp\Big(-\frac1N\sum_{i=1}^N\log P(w_i\mid\text{context})\Big)$$
+<p>Counts are sparse, so smoothing is required (add-one, Kneser–Ney). Neural language models replaced counts with learned representations that generalize to unseen contexts, but perplexity remains the standard intrinsic metric.</p>
+<h3>Classic tasks</h3>
+<p>Text classification (sentiment, topic, spam), named-entity recognition, part-of-speech tagging, question answering, summarization, translation. Today most are solved by fine-tuning pretrained Transformers (6.4) or prompting LLMs ([[course:llm]]).</p>
+<pre><code class="language-python">from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline
+clf = make_pipeline(TfidfVectorizer(ngram_range=(1, 2), min_df=2, sublinear_tf=True),
+                    LogisticRegression(max_iter=2000, C=4.0))
+clf.fit(train_texts, train_labels)       # strong baseline for any text classification task
+print(clf.score(test_texts, test_labels))</code></pre>

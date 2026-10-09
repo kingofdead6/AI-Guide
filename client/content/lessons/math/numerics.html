@@ -1,0 +1,41 @@
+<h3>How a float is stored</h3>
+$$x=(-1)^{s}\times(1.m)_2\times2^{\,e-\text{bias}}$$
+<p>A sign bit, an exponent (sets the <b>range</b>) and a mantissa (sets the <b>precision</b>). Between consecutive powers of two there are only \(2^{\#\text{mantissa bits}}\) representable values, so absolute gaps grow with magnitude.</p>
+<table>
+<tr><th>Format</th><th>Exp / mantissa bits</th><th>Machine ε</th><th>Max value</th><th>Typical use</th></tr>
+<tr><td>fp32</td><td>8 / 23</td><td>\(\approx1.2\times10^{-7}\)</td><td>\(\approx3.4\times10^{38}\)</td><td>master weights, optimizer states, reductions</td></tr>
+<tr><td>fp16</td><td>5 / 10</td><td>\(\approx9.8\times10^{-4}\)</td><td>65,504</td><td>inference; training needs loss scaling</td></tr>
+<tr><td>bf16</td><td>8 / 7</td><td>\(\approx7.8\times10^{-3}\)</td><td>\(\approx3.4\times10^{38}\)</td><td>default for training large models</td></tr>
+<tr><td>fp8 (E4M3 / E5M2)</td><td>4/3 or 5/2</td><td>coarse</td><td>448 / 57,344</td><td>matmuls on recent accelerators, with per-tensor scaling</td></tr>
+<tr><td>int8 / int4</td><td>integers + scale</td><td>—</td><td>—</td><td>quantized inference ([[finetuning]])</td></tr>
+</table>
+<div class="callout intuition"><b>Why bf16 won</b><p>bf16 keeps fp32's 8 exponent bits, so it has the same range: gradients rarely overflow or underflow. It gives up precision instead, which neural networks tolerate well. fp16 has more precision but a tiny range, so small gradients underflow to zero unless you multiply the loss by a large scale factor before backprop and divide afterwards (<b>loss scaling</b>).</p></div>
+<h3>Classic failure modes</h3>
+<ul>
+<li><b>Overflow:</b> \(e^{100}\) is infinite in fp32; \(e^{12}\) already overflows fp16.</li>
+<li><b>Underflow:</b> a product of many probabilities becomes exactly 0. Work in log space.</li>
+<li><b>Catastrophic cancellation:</b> subtracting nearly equal numbers loses most significant digits, e.g. computing variance as \(\mathbb E[X^2]-\mathbb E[X]^2\) on large values.</li>
+<li><b>Swamping:</b> adding a tiny number to a huge one does nothing (\(1+10^{-8}=1\) in fp32). This is why sums and matmul accumulations are done in fp32 even when inputs are bf16.</li>
+</ul>
+<h3>Stable formulas to know by heart</h3>
+$$\log\sum_i e^{z_i}=m+\log\sum_ie^{z_i-m},\qquad \operatorname{softplus}(x)=\log(1+e^x)=\max(x,0)+\log\!\big(1+e^{-|x|}\big)$$
+$$\log\sigma(x)=-\operatorname{softplus}(-x),\qquad \text{BCE from logits: }\ \max(z,0)-zy+\log\!\big(1+e^{-|z|}\big)$$
+<p>Use <code>log1p</code>/<code>expm1</code> for values near zero, Welford's algorithm for running variance, and never invert a matrix to solve a system: use <code>solve</code>, Cholesky (for symmetric positive definite matrices) or QR/<code>lstsq</code>.</p>
+<pre><code class="language-python">import numpy as np, torch
+print(0.1 + 0.2 == 0.3, abs(0.1 + 0.2 - 0.3) &lt; 1e-12)      # False True: compare with tolerances
+print(np.float16(60000) * np.float16(2))                     # inf: fp16 overflow
+print(np.float32(1) + np.float32(1e-8) == np.float32(1))     # True: swamping
+print(torch.tensor(1/3, dtype=torch.bfloat16).item())        # 0.333984375: only ~3 significant digits
+
+def stable_sigmoid(x):
+    return np.where(x >= 0, 1 / (1 + np.exp(-x)), np.exp(x) / (1 + np.exp(x)))
+
+def logsumexp(z):
+    m = z.max(); return m + np.log(np.exp(z - m).sum())
+print(logsumexp(np.array([1000.0, 1000.0])))                # 1000.693..., naive version gives inf</code></pre>
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>Your fp16 training run shows loss = NaN after a few hundred steps. List three likely causes and fixes.
+<details><summary>Solution</summary><div>(1) Overflow in activations or logits: switch to bf16 or clamp/normalize. (2) Gradient underflow then a division by zero: enable dynamic loss scaling (<code>torch.amp.GradScaler</code>). (3) An unstable operation such as <code>log(softmax(x))</code> or <code>log(0)</code>: use fused, stable functions like <code>F.cross_entropy</code> on logits. Also lower the learning rate and add gradient clipping.</div></details></li>
+<li>Why accumulate a bf16 matrix multiplication in fp32?
+<details><summary>Solution</summary><div>A dot product of length 4096 adds thousands of terms. With only 8 bits of mantissa, once the running sum is large, each new small term is mostly rounded away (swamping). Accumulating in fp32 keeps the sum accurate, then the result is rounded once.</div></details></li>
+</ol></div>

@@ -1,0 +1,39 @@
+<p class="lead">If you can explain where each of these comes from, you understand the core of modern AI.</p>
+<table>
+<tr><th>Topic</th><th>Equation</th></tr>
+<tr><td>Learning objective</td><td>\(\theta^*=\arg\min_\theta\frac1n\sum_i\mathcal L(y_i,f_\theta(\mathbf x_i))\)</td></tr>
+<tr><td>Gradient descent</td><td>\(\theta\leftarrow\theta-\eta\nabla_\theta\mathcal L\), stable if \(\eta\lt2/\lambda_{\max}\)</td></tr>
+<tr><td>Adam</td><td>\(\theta\leftarrow\theta-\eta\,\hat{\mathbf m}/(\sqrt{\hat{\mathbf v}}+\epsilon)\)</td></tr>
+<tr><td>Monte Carlo</td><td>\(\mathbb E[f]\approx\frac1N\sum f(x_i)\), error \(\propto1/\sqrt N\)</td></tr>
+<tr><td>Bayes</td><td>\(p(\theta\mid\mathcal D)\propto p(\mathcal D\mid\theta)p(\theta)\)</td></tr>
+<tr><td>MLE / MAP</td><td>\(\max\sum\log p(x_i\mid\theta)\ [+\log p(\theta)]\)</td></tr>
+<tr><td>Cross-entropy, KL</td><td>\(H(p,q)=-\sum p\log q,\ \ D_{\mathrm{KL}}=H(p,q)-H(p)\)</td></tr>
+<tr><td>Bias–variance</td><td>\(\mathbb E[(y-\hat f)^2]=\sigma^2+\text{Bias}^2+\text{Var}\)</td></tr>
+<tr><td>Ridge</td><td>\(\hat{\mathbf w}=(\mathbf X^\top\mathbf X+\lambda\mathbf I)^{-1}\mathbf X^\top\mathbf y\)</td></tr>
+<tr><td>Logistic / softmax gradient</td><td>\(\nabla_{\mathbf z}\mathcal L=\mathbf p-\mathbf y\)</td></tr>
+<tr><td>SVM</td><td>\(\min\frac12\|\mathbf w\|^2+C\sum\max(0,1-y_if(\mathbf x_i))\)</td></tr>
+<tr><td>Gradient boosting</td><td>\(F_m=F_{m-1}+\nu h_m,\ h_m\approx-\partial\mathcal L/\partial F\)</td></tr>
+<tr><td>PCA</td><td>\(\boldsymbol\Sigma\mathbf u=\lambda\mathbf u\)</td></tr>
+<tr><td>GP posterior mean</td><td>\(\mu_*=\mathbf k_*^\top(\mathbf K+\sigma_n^2\mathbf I)^{-1}\mathbf y\)</td></tr>
+<tr><td>A/B sample size</td><td>\(n\approx2(z_{1-\alpha/2}+z_{1-\beta})^2\sigma^2/\delta^2\)</td></tr>
+<tr><td>Backprop (dense layer)</td><td>\(\partial\mathcal L/\partial\mathbf W=\boldsymbol\delta\mathbf x^\top,\ \ \boldsymbol\delta_{\text{prev}}=(\mathbf W^\top\boldsymbol\delta)\odot\phi'(\mathbf z)\)</td></tr>
+<tr><td>He init</td><td>\(\operatorname{Var}(w)=2/n_{in}\)</td></tr>
+<tr><td>Conv output size</td><td>\(\lfloor(W-K+2P)/S\rfloor+1\)</td></tr>
+<tr><td>Residual</td><td>\(\mathbf y=\mathcal F(\mathbf x)+\mathbf x\)</td></tr>
+<tr><td>Attention</td><td>\(\operatorname{softmax}(\mathbf{QK}^\top/\sqrt{d_k}+\mathbf M)\mathbf V\)</td></tr>
+<tr><td>GCN</td><td>\(\mathbf H'=\sigma(\tilde{\mathbf D}^{-1/2}\tilde{\mathbf A}\tilde{\mathbf D}^{-1/2}\mathbf H\mathbf W)\)</td></tr>
+<tr><td>Language model</td><td>\(\mathcal L=-\sum_t\log p_\theta(x_t\mid x_{\lt t})\)</td></tr>
+<tr><td>Training compute</td><td>\(C\approx6ND\)</td></tr>
+<tr><td>LoRA</td><td>\(\mathbf W=\mathbf W_0+\frac\alpha r\mathbf{BA}\)</td></tr>
+<tr><td>DPO</td><td>\(-\log\sigma\big(\beta\log\frac{\pi_\theta(y_w)}{\pi_{\text{ref}}(y_w)}-\beta\log\frac{\pi_\theta(y_l)}{\pi_{\text{ref}}(y_l)}\big)\)</td></tr>
+<tr><td>Distillation</td><td>\(\alpha T^2 D_{\mathrm{KL}}(p_T^{(T)}\|p_S^{(T)})+(1-\alpha)\text{CE}\)</td></tr>
+<tr><td>InfoNCE</td><td>\(-\log\frac{e^{s(q,k^+)/\tau}}{\sum_je^{s(q,k_j)/\tau}}\)</td></tr>
+<tr><td>BM25 saturation</td><td>\(\frac{f(k_1+1)}{f+k_1(1-b+b|D|/\text{avgdl})}\)</td></tr>
+<tr><td>pass@k</td><td>\(1-\binom{n-c}{k}/\binom nk\)</td></tr>
+<tr><td>ELBO</td><td>\(\mathbb E_q[\log p(\mathbf x\mid\mathbf z)]-D_{\mathrm{KL}}(q(\mathbf z\mid\mathbf x)\|p(\mathbf z))\)</td></tr>
+<tr><td>Diffusion</td><td>\(\mathbf x_t=\sqrt{\bar\alpha_t}\mathbf x_0+\sqrt{1-\bar\alpha_t}\boldsymbol\epsilon,\ \ \mathcal L=\|\boldsymbol\epsilon-\boldsymbol\epsilon_\theta(\mathbf x_t,t)\|^2\)</td></tr>
+<tr><td>Flow matching</td><td>\(\mathcal L=\|v_\theta(\mathbf x_t,t)-(\mathbf x_1-\mathbf x_0)\|^2\)</td></tr>
+<tr><td>Q-learning</td><td>\(Q\leftarrow Q+\alpha[r+\gamma\max_{a'}Q(s',a')-Q]\)</td></tr>
+<tr><td>Policy gradient</td><td>\(\nabla J=\mathbb E[\sum_t\nabla\log\pi_\theta(a_t\mid s_t)A_t]\)</td></tr>
+<tr><td>Arithmetic intensity</td><td>FLOPs ÷ bytes moved; compare to peak FLOP/s ÷ bandwidth</td></tr>
+</table>

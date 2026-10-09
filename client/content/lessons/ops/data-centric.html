@@ -1,0 +1,29 @@
+<h3>Labelling</h3>
+<ul>
+<li>Write <b>labelling guidelines</b> with definitions, edge cases and examples; revise them as disagreements surface.</li>
+<li>Measure agreement between annotators with <b>Cohen's κ</b>, which corrects for chance:
+$$\kappa=\frac{p_o-p_e}{1-p_e}$$
+(\(p_o\) observed agreement, \(p_e\) agreement expected by chance). Low κ means the task or guidelines are ambiguous, and no model will beat that ceiling.</li>
+<li>Have several people label a "gold" set used for evaluation, and spot-check production labels.</li>
+</ul>
+<h3>Finding and fixing bad data</h3>
+<p>Label noise is common (often a few percent even in benchmark datasets). Find suspicious examples by training with cross-validation and flagging items where the out-of-fold prediction confidently disagrees with the label (the idea behind <b>confident learning</b>). Also: deduplicate (exact and near-duplicate), remove leakage between splits, filter low-quality text, strip personal data, and check class balance per segment.</p>
+<h3>Getting more signal per label</h3>
+<ul>
+<li><b>Active learning:</b> label the examples the model is least sure about (highest entropy, smallest margin) instead of random ones.</li>
+<li><b>Weak supervision:</b> combine noisy heuristic labelling functions (keywords, rules, other models) into probabilistic labels.</li>
+<li><b>LLM-assisted labelling:</b> let an LLM pre-label, humans review; measure LLM–human agreement first.</li>
+<li><b>Synthetic data:</b> generate examples with LLMs or simulators to cover rare cases, then filter hard for quality and diversity. Validate on real data only.</li>
+<li><b>Augmentation</b> that respects label invariances ([[cv-basics]]).</li>
+</ul>
+<h3>Document your datasets</h3>
+<p>Record source, collection date, licence, consent, preprocessing, known biases and intended use ("datasheets for datasets"). Your future self and your compliance team will need it.</p>
+<pre><code class="language-python">from sklearn.metrics import cohen_kappa_score
+a = ["spam", "ham", "spam", "spam", "ham", "ham", "spam", "ham"]
+b = ["spam", "ham", "ham",  "spam", "ham", "ham", "spam", "spam"]
+print(cohen_kappa_score(a, b))                    # 0.5: moderate agreement
+
+def uncertainty_sample(model, X_pool, k=100):     # active learning by entropy
+    p = model.predict_proba(X_pool)
+    entropy = -(p * np.log(p + 1e-12)).sum(1)
+    return np.argsort(-entropy)[:k]               # indices to send for labelling</code></pre>

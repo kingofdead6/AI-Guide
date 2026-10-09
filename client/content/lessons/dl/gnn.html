@@ -1,0 +1,22 @@
+<h3>Graphs as matrices</h3>
+<p>A graph with \(n\) nodes has an adjacency matrix \(\mathbf A\) (\(A_{ij}=1\) if nodes are connected), a degree matrix \(\mathbf D=\operatorname{diag}(\sum_jA_{ij})\) and node features \(\mathbf X\in\mathbb R^{n\times d}\).</p>
+<h3>Message passing</h3>
+<p>Every GNN layer lets each node gather information from its neighbours:</p>
+$$\mathbf h_v^{(l+1)}=\phi\Big(\mathbf h_v^{(l)},\ \bigoplus_{u\in\mathcal N(v)}\psi\big(\mathbf h_u^{(l)},\mathbf h_v^{(l)},\mathbf e_{uv}\big)\Big)$$
+<!--FIG:gnn-->
+<p>The aggregator \(\bigoplus\) (sum, mean, max) is permutation-invariant, so the result doesn't depend on node ordering. Classic layers:</p>
+<ul>
+<li><b>GCN:</b> \(\mathbf H'=\sigma\big(\tilde{\mathbf D}^{-1/2}\tilde{\mathbf A}\tilde{\mathbf D}^{-1/2}\mathbf H\mathbf W\big)\) with \(\tilde{\mathbf A}=\mathbf A+\mathbf I\) (self-loops): a normalized neighbourhood average followed by a linear map.</li>
+<li><b>GraphSAGE:</b> concatenate a node's own vector with an aggregate of sampled neighbours; scales to huge graphs.</li>
+<li><b>GAT:</b> learn attention weights \(\alpha_{uv}\) over neighbours, like a Transformer restricted to graph edges. (A Transformer is a GNN on a fully connected graph.)</li>
+</ul>
+<p><b>Tasks:</b> node classification (fraud accounts), link prediction (recommendations, drug–target), graph classification (molecule toxicity; pool node vectors into one). <b>Pitfalls:</b> deep GNNs <b>over-smooth</b> (all nodes become similar), and information from far away gets squashed through bottleneck nodes, so most GNNs use 2–4 layers.</p>
+<pre><code class="language-python">class GCNLayer(nn.Module):
+    def __init__(self, d_in, d_out):
+        super().__init__(); self.lin = nn.Linear(d_in, d_out)
+    def forward(self, H, A):                          # A: dense (n, n) adjacency
+        A_hat = A + torch.eye(A.shape[0], device=A.device)
+        d = A_hat.sum(1).pow(-0.5)
+        A_norm = d[:, None] * A_hat * d[None, :]      # D^-1/2 (A+I) D^-1/2
+        return torch.relu(A_norm @ self.lin(H))
+# For real workloads use PyTorch Geometric or DGL (sparse ops, mini-batch neighbour sampling).</code></pre>

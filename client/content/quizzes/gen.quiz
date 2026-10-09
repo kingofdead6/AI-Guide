@@ -1,0 +1,121 @@
+@lesson vae
+Q: What are the two terms of the VAE's ELBO?
+* A reconstruction term and a KL term between the encoder distribution and the prior
+- A classification loss and weight decay
+- Two adversarial losses
+- Cross-entropy and accuracy
+> \(\mathbb E_q[\log p(\mathbf x\mid\mathbf z)]-D_{\mathrm{KL}}(q(\mathbf z\mid\mathbf x)\|p(\mathbf z))\).
+
+Q: Why is the reparameterization trick needed?
+* Sampling is not differentiable, but \(\mathbf z=\boldsymbol\mu+\boldsymbol\sigma\odot\boldsymbol\epsilon\) moves the randomness into an input
+- To make the decoder smaller
+- To avoid using a prior
+- To speed up inference
+> Gradients can then flow through \(\boldsymbol\mu\) and \(\boldsymbol\sigma\).
+
+Q: The ELBO is always less than or equal to \(\log p(\mathbf x)\).
+= true
+> The gap is \(D_{\mathrm{KL}}(q(\mathbf z\mid\mathbf x)\|p(\mathbf z\mid\mathbf x))\ge0\).
+
+Q: What is the KL term for a 1-D encoder output \(\mu=0, \sigma=1\) against the prior \(\mathcal N(0,1)\)?
+= 0
+> The distributions are identical, so the KL divergence is zero.
+
+@lesson gan
+Q: For a fixed generator, the optimal discriminator outputs…
+* \(p_{\text{data}}(\mathbf x)/(p_{\text{data}}(\mathbf x)+p_g(\mathbf x))\)
+- 0.5 everywhere
+- \(p_g(\mathbf x)\)
+- 1 for every input
+> When \(p_g=p_{\text{data}}\) this equals 0.5 everywhere.
+
+Q: What is mode collapse?
+- The discriminator stops learning
+* The generator produces only a few kinds of output
+- The loss becomes NaN
+- The data has too many classes
+> It fools the discriminator with a narrow set of samples instead of covering the data distribution.
+
+Q: Why use the non-saturating generator loss \(-\log D(G(\mathbf z))\)?
+* It gives strong gradients early in training, when the discriminator easily rejects fakes
+- It removes the need for a discriminator
+- It is cheaper to compute
+- It guarantees convergence
+> The original minimax loss saturates and gives vanishing gradients at the start.
+
+@lesson diffusion
+Q: Which closed form lets diffusion training jump directly to any noise level?
+* \(\mathbf x_t=\sqrt{\bar\alpha_t}\mathbf x_0+\sqrt{1-\bar\alpha_t}\boldsymbol\epsilon\)
+- \(\mathbf x_t=\mathbf x_0+t\)
+- \(\mathbf x_t=\bar\alpha_t\mathbf x_0\)
+- \(\mathbf x_t=\boldsymbol\epsilon\)
+> Composing Gaussian steps gives one Gaussian, so no need to simulate every step during training.
+
+Q: What does the network learn to predict in the standard DDPM objective?
+- The clean image directly
+* The noise that was added
+- The timestep
+- The class label
+> Training is plain MSE regression on the noise, which is stable.
+
+Q: What does a classifier-free guidance weight \(w\gt1\) do?
+* Pushes samples to follow the prompt more strongly, at some cost in diversity
+- Makes sampling faster
+- Removes the need for text conditioning
+- Adds more noise
+> It extrapolates from the unconditional to the conditional prediction.
+
+Q: Latent diffusion runs the diffusion process in the compressed latent space of an autoencoder.
+= true
+> Working on smaller latents makes high-resolution generation affordable.
+
+@lesson flows
+Q: What makes normalizing flows' likelihood exact?
+* Invertible transformations and the change-of-variables formula with a tractable Jacobian determinant
+- An adversarial discriminator
+- A variational lower bound
+- Sampling many times
+> Coupling layers keep the determinant cheap.
+
+Q: In flow matching with straight paths, what is the regression target for \(v_\theta(\mathbf x_t,t)\)?
+- \(\mathbf x_0\)
+- \(\mathbf x_1\)
+* \(\mathbf x_1-\mathbf x_0\)
+- \(t\)
+> On the straight line \(\mathbf x_t=(1-t)\mathbf x_0+t\mathbf x_1\) the velocity is constant.
+
+Q: How do token-based image generators work?
+* A VQ-VAE turns images into discrete codes, and a Transformer models the codes like text
+- They predict pixels with a GAN
+- They sample from a Gaussian process
+- They use k-means on pixels
+> The same autoregressive recipe as language modelling.
+
+@lesson exam
+Q: Which family offers fast sampling and sharp images but unstable training?
+- VAEs
+* GANs
+- Diffusion models
+- Normalizing flows
+> Adversarial training is powerful but prone to collapse and oscillation.
+
+Q: Which models train with a simple MSE regression objective? (select all)
+* DDPM noise prediction
+* Flow matching
+- GANs
+- Autoregressive token models
+> Token models use cross-entropy; GANs use an adversarial game.
+
+Q: A VAE's samples look blurry. Which is a common explanation?
+* A Gaussian decoder with MSE-like reconstruction averages over plausible outputs
+- The KL term is too small
+- The encoder has no parameters
+- VAEs cannot generate images
+> Averaging uncertain details produces blur; diffusion and GAN decoders avoid it.
+
+Q: What does Euler integration of a learned velocity field from \(t=0\) to \(t=1\) do in flow matching?
+* Transports noise samples to data samples
+- Trains the model
+- Computes the likelihood exactly
+- Adds noise to data
+> Sampling is solving the ODE \(d\mathbf x/dt=v_\theta\).

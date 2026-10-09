@@ -1,0 +1,92 @@
+@lesson rl-foundations
+Q: With rewards \(r_1=1, r_2=1, r_3=1\) and \(\gamma=0.9\), what is the return \(G_0\)?
+= 2.71 ±0.005
+> \(1+0.9+0.81=2.71\).
+
+Q: What is the term in brackets in the Q-learning update \(Q\leftarrow Q+\alpha[r+\gamma\max_{a'}Q(s',a')-Q]\)?
+* The temporal-difference error
+- The policy gradient
+- The advantage of the best action
+- The learning rate
+> It measures how much better or worse the outcome was than predicted.
+
+Q: Why do agents use ε-greedy action selection?
+* To keep exploring actions that may be better than the current best estimate
+- To make training deterministic
+- To reduce memory
+- To avoid rewards
+> Without exploration, early estimates can lock the agent into a poor policy.
+
+Q: Value iteration requires a known model of the environment's transitions and rewards.
+= true
+> It sweeps the Bellman optimality equation over all states; Q-learning learns from samples instead.
+
+@lesson policy-gradient
+Q: Why do environment transition probabilities drop out of the policy gradient?
+* They do not depend on the policy parameters \(\theta\)
+- They are always 1
+- They are estimated separately
+- Because rewards are zero
+> Only the \(\log\pi_\theta(a_t\mid s_t)\) terms of the trajectory log-probability depend on \(\theta\).
+
+Q: What does subtracting a baseline \(V(s_t)\) from the return do?
+* Reduces variance while keeping the gradient unbiased
+- Makes the gradient biased but faster
+- Removes exploration
+- Doubles the learning rate
+> The advantage \(G_t-V(s_t)\) asks how much better than expected an action was.
+
+Q: What does PPO's clipping prevent?
+- Exploration
+* Policy updates that move the probability ratio too far in one step
+- Negative rewards
+- Using a value function
+> Clipping \(r_t(\theta)\) to \([1-\epsilon,1+\epsilon]\) keeps updates conservative.
+
+@lesson deep-rl
+Q: Which two tricks stabilized DQN? (select all)
+* An experience replay buffer
+* A slowly updated target network
+- A causal mask
+- Dropout on the Q-values
+> Replay breaks correlations; the target network stops the regression target from chasing itself.
+
+Q: Why does behaviour cloning suffer from compounding errors?
+* Small mistakes lead to states the expert never visited, where the policy is worse
+- The expert is always wrong
+- It has no loss function
+- It uses rewards
+> DAgger fixes this by labelling the states the learner actually reaches.
+
+Q: In MCTS-based systems like AlphaZero, what guides which moves to explore?
+* A neural network's prior and value estimates combined with visit counts
+- Random choice only
+- Human annotations
+- The final score only
+> The upper-confidence rule balances promising moves and under-explored ones.
+
+@lesson exam
+Q: In RLHF, which part plays the role of the environment's reward?
+* A reward model (or verifier), with a KL penalty to the reference policy
+- The tokenizer
+- The pretraining loss
+- The learning-rate scheduler
+> The policy is the LLM, actions are tokens, and the episode is a full response.
+
+Q: An agent learns to exploit a bug in the simulator for huge reward instead of doing the task. What is this called?
+- Overfitting
+* Reward hacking (specification gaming)
+- Mode collapse
+- Covariate shift
+> The agent optimizes the reward as written, not as intended.
+
+Q: Which method can learn from a fixed dataset without any environment interaction? (select all)
+* Behaviour cloning
+* Offline RL with conservative value estimates
+- On-policy PPO
+- Online ε-greedy Q-learning
+> On-policy and online methods must collect fresh experience.
+
+Q: A discount factor of \(\gamma=0\) makes the agent care only about the immediate reward.
+= true
+> All future rewards are multiplied by zero.

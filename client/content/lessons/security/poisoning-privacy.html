@@ -1,0 +1,56 @@
+<h3>Attacks on the training pipeline</h3>
+<p>Models learn whatever the data teaches. If an attacker can influence training data, through scraped web pages, user feedback, public datasets or third-party labels, they can influence the model.</p>
+<ul>
+<li><b>Data poisoning</b> inserts or modifies training examples to degrade accuracy overall or on a target class.</li>
+<li><b>Backdoors (trojans)</b> teach the model a hidden rule: behave normally, except when a <b>trigger</b> appears (a small patch, a rare word, a specific phrase), then output the attacker's choice. Clean-data accuracy stays high, so ordinary evaluation does not notice.</li>
+<li><b>Supply-chain attacks</b> hide malicious behaviour in a downloaded pretrained model or in its file format. Loading a pickle-based checkpoint can execute arbitrary code; prefer formats like safetensors and trusted sources.</li>
+</ul>
+<p>Web-scale training data makes poisoning practical: research has shown that controlling a very small fraction of a large scraped dataset (for example by buying expired domains that datasets still link to) can be enough to plant behaviour.</p>
+<h4>Defences</h4>
+<ul>
+<li>Provenance: know where data comes from; pin dataset versions with hashes; restrict who can write to training sources.</li>
+<li>Data filtering and deduplication; outlier detection on embeddings and per-example loss.</li>
+<li>Robust training methods that limit the influence of any small set of examples.</li>
+<li>Backdoor scanning: look for small input patterns that flip many predictions, and test with held-out trusted data.</li>
+<li>For models you download: verify checksums, use safe serialization formats, and sandbox evaluation.</li>
+</ul>
+
+<h3>Privacy attacks: what models remember</h3>
+<ul>
+<li><b>Membership inference:</b> decide whether a specific record was in the training set. Overfit models are more confident (lower loss) on training examples, so a simple attack thresholds the loss. Knowing that a person's record was in a hospital's training set can itself be sensitive.</li>
+<li><b>Training-data extraction:</b> language models can reproduce rare memorized strings (emails, phone numbers, keys) when prompted the right way. Duplicated data is memorized much more.</li>
+<li><b>Model inversion and attribute inference:</b> reconstruct representative inputs or sensitive attributes from model outputs.</li>
+<li><b>Model extraction:</b> query a paid API enough times to train a copy, stealing the model's functionality.</li>
+</ul>
+<pre><code class="language-python">import numpy as np
+
+def loss_threshold_mia(losses_members, losses_nonmembers):
+    """Best accuracy of 'member if loss &lt; t' over all thresholds t.
+    0.5 = no leakage; close to 1.0 = the model reveals who was in the training set."""
+    scores = np.r_[losses_members, losses_nonmembers]
+    labels = np.r_[np.ones(len(losses_members)), np.zeros(len(losses_nonmembers))]
+    best = 0.5
+    for t in np.unique(scores):
+        pred = scores &lt;= t
+        best = max(best, (pred == labels).mean())
+    return best</code></pre>
+
+<h3>Differential privacy</h3>
+<p>A randomized training algorithm \(M\) is \((\epsilon,\delta)\)-<b>differentially private</b> if for any two datasets \(D, D'\) differing in one person's record and any set of outcomes \(S\):</p>
+$$P[M(D)\in S]\le e^{\epsilon}\,P[M(D')\in S]+\delta$$
+<p>In words: the model would be almost the same whether or not your data was included, so it cannot reveal much about you. Smaller \(\epsilon\) means stronger privacy. <b>DP-SGD</b> achieves it by (1) clipping each example's gradient to norm \(C\), bounding any individual's influence, and (2) adding Gaussian noise with standard deviation proportional to \(C\) to the summed gradient. A privacy accountant tracks the total \(\epsilon\) spent over all training steps.</p>
+<pre><code class="language-python">def dp_sgd_step(per_example_grads, clip=1.0, noise_multiplier=1.1, lr=0.1, rng=np.random.default_rng(0)):
+    """per_example_grads: (batch, n_params). Returns the parameter update."""
+    norms = np.linalg.norm(per_example_grads, axis=1, keepdims=True)
+    clipped = per_example_grads * np.minimum(1.0, clip / (norms + 1e-12))     # bound each person's influence
+    noisy_sum = clipped.sum(0) + rng.normal(0, noise_multiplier * clip, size=clipped.shape[1])
+    return -lr * noisy_sum / len(per_example_grads)
+# Libraries such as Opacus (PyTorch) compute per-example gradients and the privacy budget for you.</code></pre>
+<p>The cost is accuracy: noise hurts most on small datasets and rare subgroups. Other privacy tools: <b>federated learning</b> (train on devices, share only updates, often combined with DP and secure aggregation), data minimization, PII scrubbing before training, and deduplication to reduce memorization.</p>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>A membership-inference attack reaches 0.52 accuracy on one model and 0.75 on another. What does that tell you?
+<details><summary>Solution</summary><div>The first barely leaks membership (close to the 0.5 chance level). The second leaks a lot, which usually signals overfitting; regularization, more data, deduplication or DP training would reduce it.</div></details></li>
+<li>Why does DP-SGD clip per-example gradients before adding noise?
+<details><summary>Solution</summary><div>Clipping bounds how much any one example can change the update (its sensitivity). Noise calibrated to that bound then hides each individual's contribution; without clipping, one outlier could have unbounded influence and no finite noise would hide it.</div></details></li>
+</ol></div>

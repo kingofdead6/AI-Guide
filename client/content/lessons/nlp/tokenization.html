@@ -1,0 +1,35 @@
+<p>Word-level vocabularies explode and can't handle unseen words; character-level sequences are very long. <b>Subwords</b> sit in between: common words are single tokens, rare words split into pieces ("unbelievably" → "un", "believ", "ably").</p>
+<h3>Byte-Pair Encoding</h3>
+<ol>
+<li>Start with a vocabulary of single characters (or all 256 bytes, so any text is representable).</li>
+<li>Count all adjacent symbol pairs in the corpus.</li>
+<li>Merge the most frequent pair into a new symbol; record the merge.</li>
+<li>Repeat until the vocabulary reaches the target size (e.g. 32k–200k).</li>
+</ol>
+<p>To tokenize new text, apply the learned merges in order. <b>WordPiece</b> (BERT) picks merges by likelihood gain; <b>Unigram</b> (SentencePiece) starts large and prunes. In English a token averages about ¾ of a word. Languages underrepresented in tokenizer training, often including Arabic, need more tokens per word, which makes them more expensive and shortens the effective context.</p>
+<pre><code class="language-python">from collections import Counter
+def learn_bpe(words, n_merges):
+    vocab = Counter(tuple(w) + ("&lt;/w&gt;",) for w in words)       # words as symbol tuples
+    merges = []
+    for _ in range(n_merges):
+        pairs = Counter()
+        for sym, f in vocab.items():
+            for a, b in zip(sym, sym[1:]): pairs[(a, b)] += f
+        if not pairs: break
+        best = max(pairs, key=pairs.get); merges.append(best)
+        new_vocab = Counter()
+        for sym, f in vocab.items():
+            out, i = [], 0
+            while i &lt; len(sym):
+                if i &lt; len(sym) - 1 and (sym[i], sym[i+1]) == best:
+                    out.append(sym[i] + sym[i+1]); i += 2
+                else:
+                    out.append(sym[i]); i += 1
+            new_vocab[tuple(out)] += f
+        vocab = new_vocab
+    return merges
+print(learn_bpe("low low low lower lowest newer newer wider".split(), 10))
+
+# Real tokenizers:
+# import tiktoken; enc = tiktoken.get_encoding("cl100k_base"); enc.encode("مرحبا بالعالم")
+# from transformers import AutoTokenizer; AutoTokenizer.from_pretrained("bert-base-uncased")</code></pre>

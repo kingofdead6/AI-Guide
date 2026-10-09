@@ -1,0 +1,26 @@
+<h3>Embedding models</h3>
+<p>An encoder maps text (or images) to \(\mathbf e\in\mathbb R^d\) (typically 384–3072 dimensions) so that similar meaning gives high cosine similarity. They are trained contrastively with the InfoNCE loss ([[vit-clip]]): a query and its relevant passage are positives, other passages in the batch (and mined "hard negatives") are negatives. Normalize embeddings to unit length so that dot product = cosine similarity.</p>
+<h3>Exact vs approximate search</h3>
+<p>Brute-force search over \(N\) vectors costs \(O(Nd)\) per query. Fine for up to roughly a million vectors with good hardware, too slow beyond. <b>Approximate nearest neighbour (ANN)</b> indexes trade a little recall for big speedups:</p>
+<table>
+<tr><th>Index</th><th>Idea</th><th>Trade-offs</th></tr>
+<tr><td>IVF</td><td>k-means the vectors into clusters; search only the <code>nprobe</code> closest clusters</td><td>Fast; recall depends on nprobe</td></tr>
+<tr><td>PQ (product quantization)</td><td>Split vectors into \(m\) sub-vectors and replace each with the ID of its nearest centroid in a small codebook</td><td>Huge memory savings; approximate distances</td></tr>
+<tr><td>HNSW</td><td>Multi-layer proximity graph; greedy search from a sparse top layer down to dense lower layers</td><td>Excellent recall/latency; more memory; the common default</td></tr>
+</table>
+<!--FIG:hnsw-->
+<p>Vector stores: FAISS (library), pgvector (Postgres extension), and dedicated databases such as Qdrant, Weaviate, Milvus and Chroma. Choose based on scale, filtering needs, and what you already run.</p>
+<pre><code class="language-python">from sentence_transformers import SentenceTransformer
+import faiss
+enc = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")      # small English model
+docs = ["The cat sat on the mat.", "Stocks fell sharply today.", "Kittens love to nap."]
+E = enc.encode(docs, normalize_embeddings=True).astype("float32")         # (3, 384)
+
+index = faiss.IndexFlatIP(E.shape[1])          # exact inner-product search
+index.add(E)
+q = enc.encode(["sleepy cats"], normalize_embeddings=True).astype("float32")
+scores, ids = index.search(q, k=2)
+print([docs[i] for i in ids[0]], scores)
+
+# HNSW for scale:  index = faiss.IndexHNSWFlat(d, 32, faiss.METRIC_INNER_PRODUCT)</code></pre>
+<p>For Arabic or mixed-language data, use a multilingual embedding model and test it on your own queries; quality varies a lot across languages.</p>

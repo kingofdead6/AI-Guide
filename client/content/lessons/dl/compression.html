@@ -1,0 +1,19 @@
+<h3>Knowledge distillation</h3>
+<!--FIG:distill-->
+<p>Train a small student to match a large teacher's <b>soft</b> output distribution, which carries "dark knowledge" (a 2 that looks a bit like a 7). With temperature \(T\):</p>
+$$\mathcal L=\alpha\,T^2\,D_{\mathrm{KL}}\!\Big(\operatorname{softmax}(\mathbf z_t/T)\,\big\|\,\operatorname{softmax}(\mathbf z_s/T)\Big)+(1-\alpha)\,\text{CE}(y,\mathbf z_s)$$
+<p>The \(T^2\) factor keeps gradient magnitudes comparable across temperatures. For LLMs, distillation is often done on sequences: the student is fine-tuned on text the teacher generates.</p>
+<h3>Pruning</h3>
+<p><b>Unstructured</b> pruning zeros individual small-magnitude weights (high sparsity possible, but speedups need sparse kernels). <b>Structured</b> pruning removes whole channels, heads or layers, giving real speedups on ordinary hardware. Prune gradually and fine-tune to recover. (The "lottery ticket" result showed sparse subnetworks that train well from their original initialization exist.)</p>
+<h3>Quantization</h3>
+<p><b>Post-training quantization</b> (PTQ) converts a trained model's weights (and possibly activations) to int8/int4 using a small calibration set. <b>Quantization-aware training</b> (QAT) simulates rounding during training so the model adapts; it recovers more accuracy at very low bit-widths. Per-channel or per-group scales and handling activation outliers are what make 4-bit LLMs work (details in [[finetuning]]).</p>
+<h3>Deployment stack</h3>
+<p>Export with ONNX or <code>torch.export</code>, then compile with an optimizing runtime (ONNX Runtime, TensorRT, OpenVINO, Core ML, TFLite / LiteRT for mobile). Always measure on the target hardware: fewer FLOPs does not automatically mean lower latency.</p>
+<pre><code class="language-python">def distill_loss(student_logits, teacher_logits, labels, T=4.0, alpha=0.7):
+    soft = F.kl_div(F.log_softmax(student_logits / T, -1), F.softmax(teacher_logits / T, -1),
+                    reduction="batchmean") * T * T
+    hard = F.cross_entropy(student_logits, labels)
+    return alpha * soft + (1 - alpha) * hard
+
+# Dynamic int8 quantization of linear layers for CPU inference
+qmodel = torch.ao.quantization.quantize_dynamic(model, {nn.Linear}, dtype=torch.qint8)</code></pre>

@@ -1,0 +1,40 @@
+<h3>The pipeline</h3>
+<ol>
+<li><b>Ingest:</b> parse PDFs, HTML, docs; clean boilerplate; keep metadata (title, page, URL, date, access rights).</li>
+<li><b>Chunk:</b> split into passages. Fixed-size with overlap (e.g. 300–800 tokens, 10–20% overlap) is a solid default; recursive splitting on headings and paragraphs keeps chunks coherent. Too small loses context; too large dilutes relevance.</li>
+<li><b>Embed and index</b> chunks (dense, plus BM25 for hybrid).</li>
+<li><b>Retrieve</b> top-k for each query, <b>rerank</b>, keep the best few.</li>
+<li><b>Generate:</b> prompt with instructions, numbered sources, and the question. Ask the model to cite source numbers and to say when the sources don't contain the answer.</li>
+</ol>
+<!--FIG:rag_pipeline-->
+<pre><code class="language-python">def chunk(text, size=800, overlap=150):            # character-based for simplicity
+    out, start = [], 0
+    while start &lt; len(text):
+        out.append(text[start:start + size]); start += size - overlap
+    return out
+
+class SimpleRAG:
+    def __init__(self, encoder, llm):
+        self.enc, self.llm, self.chunks, self.meta = encoder, llm, [], []
+    def add(self, text, source):
+        for c in chunk(text):
+            self.chunks.append(c); self.meta.append(source)
+        self.E = self.enc.encode(self.chunks, normalize_embeddings=True)
+    def retrieve(self, q, k=5):
+        qv = self.enc.encode([q], normalize_embeddings=True)[0]
+        top = np.argsort(-(self.E @ qv))[:k]
+        return [(self.chunks[i], self.meta[i]) for i in top]
+    def answer(self, q):
+        ctx = "\n\n".join(f"[{i+1}] ({src})\n{c}" for i, (c, src) in enumerate(self.retrieve(q)))
+        prompt = ("Answer the question using only the sources below. Cite sources like [1]. "
+                  "If the sources don't contain the answer, say so.\n\n"
+                  f"&lt;sources&gt;\n{ctx}\n&lt;/sources&gt;\n\nQuestion: {q}")
+        return self.llm(prompt)</code></pre>
+<h3>Making it good</h3>
+<ul>
+<li><b>Contextual chunks:</b> prepend the document title and section heading (or an LLM-written one-line summary of where the chunk sits) to each chunk before embedding.</li>
+<li><b>Parent-document retrieval:</b> match on small chunks, but give the model the larger surrounding section.</li>
+<li><b>Multi-hop questions:</b> let the model issue follow-up searches (agentic RAG, 8.5).</li>
+<li><b>Structured data:</b> route numeric questions to SQL instead of text search. <b>GraphRAG</b> builds an entity graph for questions that span many documents.</li>
+<li><b>Freshness and permissions:</b> re-index on change; filter by the user's access rights at retrieval time.</li>
+</ul>

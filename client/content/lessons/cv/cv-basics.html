@@ -1,0 +1,25 @@
+<h3>Images as tensors</h3>
+<p>An RGB image is a tensor of shape \(H\times W\times3\) with values 0–255; PyTorch uses \(C\times H\times W\). Normalize per channel with the pretraining statistics (ImageNet: mean \((0.485,0.456,0.406)\), std \((0.229,0.224,0.225)\)).</p>
+<h3>Data augmentation</h3>
+<p>Random crops, flips, rotations, color jitter, blur; and mixing methods like <b>MixUp</b> (\(\tilde x=\lambda x_i+(1-\lambda)x_j\), same for labels) and <b>CutMix</b> (paste a patch from another image, mix labels by area). Augmentation encodes invariances you believe in: a flipped cat is still a cat, but a flipped "6" is not a 6, so choose with care.</p>
+<h3>Transfer learning</h3>
+<ol>
+<li><b>Feature extraction:</b> freeze the backbone, train only a new head. Best with little data.</li>
+<li><b>Fine-tuning:</b> then unfreeze some or all layers with a small learning rate (e.g. 10× lower for the backbone).</li>
+</ol>
+<pre><code class="language-python">from torchvision import models, transforms, datasets
+train_tf = transforms.Compose([
+    transforms.RandomResizedCrop(224), transforms.RandomHorizontalFlip(),
+    transforms.ColorJitter(0.2, 0.2, 0.2), transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+ds = datasets.ImageFolder("data/train", transform=train_tf)    # folder per class
+
+model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+for p in model.parameters(): p.requires_grad = False            # 1) freeze
+model.fc = nn.Linear(model.fc.in_features, len(ds.classes))     # new head (trainable)
+opt = torch.optim.AdamW(model.fc.parameters(), lr=1e-3)
+# ... train a few epochs, then 2) unfreeze and fine-tune:
+for p in model.parameters(): p.requires_grad = True
+opt = torch.optim.AdamW([{"params": model.fc.parameters(), "lr": 1e-3},
+                         {"params": [p for n, p in model.named_parameters()
+                                     if not n.startswith("fc")], "lr": 1e-4}])</code></pre>

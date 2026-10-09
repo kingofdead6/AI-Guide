@@ -1,0 +1,12 @@
+$$\min_G\max_D\;V(D,G)=\mathbb E_{\mathbf x\sim p_{\text{data}}}[\log D(\mathbf x)]+\mathbb E_{\mathbf z\sim p(\mathbf z)}[\log(1-D(G(\mathbf z)))]$$
+<!--FIG:gan-->
+<h3>What the game optimizes</h3>
+<p>For a fixed \(G\), maximizing \(p_{\text{data}}\log D+p_g\log(1-D)\) pointwise gives the optimal discriminator</p>
+$$D^*(\mathbf x)=\frac{p_{\text{data}}(\mathbf x)}{p_{\text{data}}(\mathbf x)+p_g(\mathbf x)},\qquad V(D^*,G)=-\log4+2\cdot\mathrm{JSD}(p_{\text{data}}\,\|\,p_g)$$
+<p>So the generator minimizes the Jensen–Shannon divergence, which is minimized exactly when \(p_g=p_{\text{data}}\).</p>
+<h3>In practice</h3>
+<ul>
+<li><b>Non-saturating loss:</b> train \(G\) to maximize \(\log D(G(\mathbf z))\) rather than minimize \(\log(1-D(G(\mathbf z)))\), which has vanishing gradients early when \(D\) easily wins.</li>
+<li><b>Failure modes:</b> mode collapse (the generator produces few variants), oscillation, discriminator overpowering. Remedies include Wasserstein GANs with gradient penalty, spectral normalization, and careful architecture (StyleGAN).</li>
+<li>GANs give sharp, fast samples but are hard to train. Diffusion models have largely replaced them for image generation; GAN-style adversarial losses still appear inside other systems (e.g. some VAE decoders and audio vocoders).</li>
+</ul>

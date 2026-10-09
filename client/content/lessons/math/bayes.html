@@ -1,0 +1,12 @@
+$$\underbrace{p(\theta\mid\mathcal{D})}_{\text{posterior}}=\frac{\overbrace{p(\mathcal{D}\mid\theta)}^{\text{likelihood}}\;\overbrace{p(\theta)}^{\text{prior}}}{\underbrace{p(\mathcal{D})}_{\text{evidence}}}\;\propto\;p(\mathcal{D}\mid\theta)\,p(\theta)$$
+<h3>Worked example: the medical test</h3>
+<p>A disease has 1% prevalence. A test detects it 99% of the time and gives 5% false positives. You test positive. What is the probability you're sick?</p>
+$$P(D\mid+)=\frac{0.99\cdot0.01}{0.99\cdot0.01+0.05\cdot0.99}=\frac{0.0099}{0.0594}\approx16.7\%$$
+<p>Low base rates dominate. The same effect explains why a fraud classifier with 99% accuracy can still be mostly wrong when it flags something.</p>
+<h3>Conjugate updating: Beta–Bernoulli</h3>
+<p>Prior on a coin's bias \(p\sim\text{Beta}(a,b)\). After \(k\) heads in \(n\) flips, the posterior is \(\text{Beta}(a+k,\;b+n-k)\), with mean \(\frac{a+k}{a+b+n}\). The prior acts like \(a\) imaginary heads and \(b\) imaginary tails. Laplace smoothing in Naive Bayes is exactly this with \(a=b=1\).</p>
+<!--FIG:bayes_update-->
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>Prior Beta(2,2). You see 8 heads in 10 flips. Posterior mean?
+<details><summary>Solution</summary><div>Beta(10,4), mean \(10/14\approx0.714\), pulled toward 0.5 compared with the raw 0.8.</div></details></li>
+</ol></div>

@@ -1,0 +1,15 @@
+<h3>KV cache</h3>
+<p>When generating token \(t\), the keys and values for tokens \(1\dots t-1\) don't change, so cache them and compute only the new token's \(\mathbf q,\mathbf k,\mathbf v\). Each step costs \(O(t)\) instead of \(O(t^2)\). The cache is large:</p>
+$$\text{KV memory}=2\times n_{\text{layers}}\times n_{\text{kv heads}}\times d_{\text{head}}\times\text{seq len}\times\text{batch}\times\text{bytes}$$
+<p>Example: 32 layers, 32 KV heads of 128 dims, fp16, 8k context: \(2\cdot32\cdot32\cdot128\cdot8192\cdot2\) bytes ≈ 4.3 GB per sequence. <b>Grouped-query attention</b> (several query heads share one KV head; e.g. 8 KV heads) cuts this 4×. <b>Multi-query attention</b> uses a single KV head.</p>
+<!--FIG:kvcache-->
+<h3>Other techniques</h3>
+<ul>
+<li><b>FlashAttention:</b> computes exact attention in tiles that fit in fast on-chip memory, using an online softmax, never materializing the \(n\times n\) matrix in GPU main memory. Much faster and memory-linear.</li>
+<li><b>Continuous batching + paged KV cache</b> (vLLM): add and remove requests from the batch at each step; store the cache in pages like virtual memory to avoid fragmentation.</li>
+<li><b>Speculative decoding:</b> a small draft model proposes several tokens; the large model verifies them all in one pass and accepts a prefix. The output distribution is unchanged, latency drops.</li>
+<li><b>Mixture of experts:</b> replace the FFN with \(E\) expert FFNs and a router; each token uses the top-\(k\): \(\mathbf y=\sum_{i\in\text{top-}k}g_i(\mathbf x)E_i(\mathbf x)\). Total parameters grow while compute per token stays small. Needs a load-balancing loss so experts are used evenly.</li>
+<li><b>Long context:</b> RoPE scaling, sliding-window or sparse attention, and state-space / linear-attention hybrids.</li>
+</ul>
+<!--FIG:moe-->
+<div class="callout intuition"><b>Prefill vs decode</b><p>Processing the prompt (prefill) is compute-bound and parallel. Generating tokens (decode) is memory-bound: each new token must read all the weights and the KV cache from memory. That's why output tokens cost more than input tokens, and why quantization and batching help decode so much.</p></div>

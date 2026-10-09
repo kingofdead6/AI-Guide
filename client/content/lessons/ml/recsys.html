@@ -1,0 +1,29 @@
+<h3>Collaborative filtering and matrix factorization</h3>
+<p>From a sparse user × item interaction matrix, learn a vector per user and per item so their dot product predicts the interaction:</p>
+$$\hat r_{ui}=\mu+b_u+b_i+\mathbf p_u^\top\mathbf q_i,\qquad \min\sum_{(u,i)\in\text{observed}}(r_{ui}-\hat r_{ui})^2+\lambda\big(\|\mathbf p_u\|^2+\|\mathbf q_i\|^2+b_u^2+b_i^2\big)$$
+<p>Solved with SGD or alternating least squares. Most real feedback is <b>implicit</b> (clicks, watches, purchases) with no explicit negatives; the <b>BPR</b> loss learns to rank an observed item \(i\) above a sampled unobserved item \(j\): \(-\log\sigma(\hat r_{ui}-\hat r_{uj})\).</p>
+<h3>Modern multi-stage architecture</h3>
+<!--FIG:recsys_funnel-->
+<p><b>Candidate generation</b> must search millions of items in milliseconds, so it uses a <b>two-tower</b> model: user and item encoders trained with an in-batch softmax (the InfoNCE loss from [[vit-clip]]), with item vectors pre-computed in an ANN index. <b>Ranking</b> scores a few hundred candidates with a heavier model using rich cross features (GBDT, Wide &amp; Deep, DCN, DLRM-style networks, or Transformers over the user's recent history), predicting several objectives (click, watch time, purchase) combined into one score. <b>Re-ranking</b> applies diversity, freshness, fairness and business rules.</p>
+<!--FIG:two_tower-->
+<h3>Problems that make recsys hard</h3>
+<ul>
+<li><b>Cold start:</b> new users and items have no history; use content features and popularity priors.</li>
+<li><b>Feedback loops and popularity bias:</b> the model only learns from what it showed. Use exploration (bandits) and counterfactual evaluation.</li>
+<li><b>Offline/online mismatch:</b> offline Recall@k and NDCG don't always predict online wins; A/B tests decide.</li>
+<li><b>Position bias:</b> items shown higher get more clicks regardless of quality; model or correct it.</li>
+</ul>
+<pre><code class="language-python">import torch, torch.nn as nn, torch.nn.functional as F
+class MF(nn.Module):
+    def __init__(self, n_users, n_items, d=64):
+        super().__init__()
+        self.U, self.I = nn.Embedding(n_users, d), nn.Embedding(n_items, d)
+        self.bu, self.bi = nn.Embedding(n_users, 1), nn.Embedding(n_items, 1)
+        nn.init.normal_(self.U.weight, std=0.01); nn.init.normal_(self.I.weight, std=0.01)
+    def forward(self, u, i):
+        return (self.U(u) * self.I(i)).sum(-1) + self.bu(u).squeeze(-1) + self.bi(i).squeeze(-1)
+
+def bpr_loss(model, u, pos, neg):                     # implicit feedback
+    return -F.logsigmoid(model(u, pos) - model(u, neg)).mean()
+# training: for each (user, clicked item) sample a random non-clicked item as `neg`,
+# optimize with AdamW + weight decay, evaluate Recall@k on a time-based held-out split</code></pre>

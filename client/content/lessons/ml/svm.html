@@ -1,0 +1,26 @@
+<h3>Hard margin</h3>
+<p>For labels \(y_i\in\{-1,+1\}\), the distance from the hyperplane \(\mathbf w^\top\mathbf x+b=0\) to the nearest points (scaled so \(y_i(\mathbf w^\top\mathbf x_i+b)=1\)) is \(1/\|\mathbf w\|\), so the margin is \(2/\|\mathbf w\|\):</p>
+$$\min_{\mathbf w,b}\tfrac12\|\mathbf w\|^2\quad\text{s.t.}\quad y_i(\mathbf w^\top\mathbf x_i+b)\ge1\ \ \forall i$$
+<!--FIG:svm_margin-->
+<h3>Soft margin and hinge loss</h3>
+$$\min_{\mathbf w,b}\tfrac12\|\mathbf w\|^2+C\sum_i\max\big(0,\;1-y_i(\mathbf w^\top\mathbf x_i+b)\big)$$
+<p>The hinge loss is zero for points correctly classified beyond the margin. Large \(C\) means fewer violations allowed (low bias, high variance).</p>
+<h3>Dual form and the kernel trick</h3>
+<p>Using Lagrange multipliers (KKT conditions), the solution is \(\mathbf w=\sum_i\alpha_iy_i\mathbf x_i\), where \(\alpha_i\gt0\) only for <b>support vectors</b>, the points on or inside the margin. Predictions need only dot products:</p>
+$$f(\mathbf x)=\sum_i\alpha_iy_i\,K(\mathbf x_i,\mathbf x)+b$$
+<p>Replace \(\mathbf x_i^\top\mathbf x\) with a <b>kernel</b> \(K(\mathbf x,\mathbf x')=\phi(\mathbf x)^\top\phi(\mathbf x')\) to work in a high (even infinite) dimensional feature space implicitly.</p>
+<table>
+<tr><th>Kernel</th><th>Formula</th></tr>
+<tr><td>Linear</td><td>\(\mathbf x^\top\mathbf x'\)</td></tr>
+<tr><td>Polynomial</td><td>\((\mathbf x^\top\mathbf x'+c)^p\)</td></tr>
+<tr><td>RBF (Gaussian)</td><td>\(\exp(-\gamma\|\mathbf x-\mathbf x'\|^2)\)</td></tr>
+</table>
+<pre><code class="language-python">from sklearn.svm import SVC
+from sklearn.datasets import make_moons
+X, y = make_moons(400, noise=0.2, random_state=0)
+clf = make_pipeline(StandardScaler(), SVC(kernel="rbf", C=1.0, gamma="scale")).fit(X, y)
+print(clf.score(X, y), clf[-1].n_support_)</code></pre>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>Show that \(K(\mathbf x,\mathbf z)=(\mathbf x^\top\mathbf z)^2\) in 2D equals a dot product of explicit features.
+<details><summary>Solution</summary><div>\((x_1z_1+x_2z_2)^2=x_1^2z_1^2+2x_1x_2z_1z_2+x_2^2z_2^2=\phi(\mathbf x)^\top\phi(\mathbf z)\) with \(\phi(\mathbf x)=(x_1^2,\sqrt2x_1x_2,x_2^2)\).</div></details></li>
+</ol></div>

@@ -1,0 +1,95 @@
+<h3>The four containers</h3>
+<table>
+<tr><th>Type</th><th>Literal</th><th>Ordered</th><th>Mutable</th><th>Lookup by</th><th>Typical AI use</th></tr>
+<tr><td><code>list</code></td><td><code>[1, 2, 3]</code></td><td>yes</td><td>yes</td><td>position, O(1)</td><td>a batch of examples, a sequence of tokens</td></tr>
+<tr><td><code>tuple</code></td><td><code>(224, 224, 3)</code></td><td>yes</td><td>no</td><td>position, O(1)</td><td>shapes, fixed records, dict keys</td></tr>
+<tr><td><code>dict</code></td><td><code>{"lr": 3e-4}</code></td><td>insertion order</td><td>yes</td><td>key, O(1) average</td><td>configs, vocabularies, JSON, model inputs</td></tr>
+<tr><td><code>set</code></td><td><code>{"cat", "dog"}</code></td><td>no</td><td>yes</td><td>membership, O(1) average</td><td>deduplication, stopwords, seen IDs</td></tr>
+</table>
+<p>Membership tests show why the choice matters: <code>x in my_list</code> scans the whole list, O(n); <code>x in my_set</code> hashes once, O(1). Checking 100,000 tokens against a 50,000-word vocabulary stored as a list takes billions of comparisons; as a set it takes 100,000 hash lookups.</p>
+
+<h3>Lists</h3>
+<pre><code class="language-python">tokens = ["the", "cat", "sat", "on", "the", "mat"]
+tokens[0], tokens[-1]        # 'the', 'mat'   (negative indexes count from the end)
+tokens[1:4]                  # ['cat', 'sat', 'on']   (slices: start inclusive, end exclusive)
+tokens[::2]                  # every second item
+tokens.append("today")       # O(1) at the end
+tokens.insert(0, "&lt;s&gt;")      # O(n): shifts everything
+tokens.pop()                 # remove and return the last item
+sorted(tokens, key=len, reverse=True)   # new sorted list; tokens.sort() sorts in place
+batches = [tokens[i:i + 2] for i in range(0, len(tokens), 2)]   # chunk into pairs</code></pre>
+
+<h3>Dictionaries</h3>
+<pre><code class="language-python">config = {"lr": 3e-4, "batch_size": 32}
+config["epochs"] = 10                   # add or overwrite
+config.get("warmup", 0)                 # default when the key is missing
+for key, value in config.items():
+    print(key, value)
+
+# Counting words: three equivalent ways, from manual to idiomatic
+counts = {}
+for w in tokens:
+    counts[w] = counts.get(w, 0) + 1
+
+from collections import Counter, defaultdict
+counts = Counter(tokens)                # Counter({'the': 2, 'cat': 1, ...})
+counts.most_common(2)
+
+by_length = defaultdict(list)           # missing keys start as an empty list
+for w in tokens:
+    by_length[len(w)].append(w)
+
+vocab = {w: i for i, w in enumerate(sorted(set(tokens)))}   # word -&gt; id
+inv_vocab = {i: w for w, i in vocab.items()}                 # id -&gt; word</code></pre>
+<p>Keys must be <b>hashable</b> (immutable): strings, numbers, tuples. A list cannot be a key; convert it to a tuple.</p>
+
+<h3>Sets</h3>
+<pre><code class="language-python">train_ids = {1, 2, 3, 4}
+test_ids = {4, 5, 6}
+train_ids &amp; test_ids     # {4}: intersection, a leak between splits!
+train_ids | test_ids     # union
+train_ids - test_ids     # difference
+unique_words = set(tokens)</code></pre>
+
+<h3>Comprehensions</h3>
+<p>A comprehension builds a container from an iterable in one readable expression:</p>
+<pre><code class="language-python">squares = [x * x for x in range(10)]
+evens = [x for x in range(10) if x % 2 == 0]
+lengths = {w: len(w) for w in tokens}
+first_letters = {w[0] for w in tokens}
+matrix = [[i * j for j in range(3)] for i in range(3)]   # nested: rows of columns
+flat = [v for row in matrix for v in row]                 # flatten (outer loop first)</code></pre>
+<p>Use comprehensions for simple transforms and filters. When the logic needs several statements, a normal loop is clearer.</p>
+
+<h3>Mutability and aliasing</h3>
+<!--FIG:py_names-->
+<p>Assignment never copies. <code>b = a</code> makes a second name for the <i>same</i> list, so changing <code>b</code> changes <code>a</code>. This surprises everyone once, and it is the same rule that makes NumPy slices <i>views</i> of the original array.</p>
+<pre><code class="language-python">a = [1, 2, 3]
+b = a             # alias
+c = a.copy()      # shallow copy (also list(a) or a[:])
+b.append(4)
+print(a, c)       # [1, 2, 3, 4] [1, 2, 3]
+
+grid = [[0] * 3] * 3      # BUG: three references to one inner list
+grid[0][0] = 1
+print(grid)               # [[1, 0, 0], [1, 0, 0], [1, 0, 0]]
+grid = [[0] * 3 for _ in range(3)]   # correct: three separate lists
+
+import copy
+nested = {"layers": [64, 32]}
+deep = copy.deepcopy(nested)         # copies inner objects too</code></pre>
+<p>Use <code>is</code> to test identity (same object) and <code>==</code> to test equality (same value).</p>
+
+<h3>Unpacking</h3>
+<pre><code class="language-python">h, w, c = (224, 224, 3)
+first, *middle, last = [1, 2, 3, 4, 5]     # middle == [2, 3, 4]
+a, b = b, a                                 # swap without a temporary
+merged = {**config, "lr": 1e-3}             # dict merge, later keys win
+args = [*tokens[:2], "!"]</code></pre>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>You have 1 million user IDs in a list and need to check 1 million queries against it. Why is this slow and how do you fix it?
+<details><summary>Solution</summary><div>Each <code>in</code> on a list is O(n), so the total is about \(10^{12}\) comparisons. Convert to a set once (O(n)), then each query is O(1): about \(2\times10^6\) operations total.</div></details></li>
+<li>Write a dict comprehension that maps each word to its position of first occurrence in <code>tokens</code>.
+<details><summary>Solution</summary><div><code>{w: i for i, w in reversed(list(enumerate(tokens)))}</code>: iterating backwards lets the earliest index overwrite later ones. A clearer loop: <code>pos = {}; for i, w in enumerate(tokens): pos.setdefault(w, i)</code>.</div></details></li>
+</ol></div>

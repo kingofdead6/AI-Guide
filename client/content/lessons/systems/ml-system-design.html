@@ -1,0 +1,16 @@
+<!--FIG:sysdesign-->
+<h3>A framework for any design question</h3>
+<ol>
+<li><b>Clarify the goal and constraints:</b> business objective, users, scale (QPS, number of items), latency budget, freshness, privacy, cost.</li>
+<li><b>Frame the ML task:</b> what exactly is predicted (classification, ranking, generation), at what granularity, and how it drives the product.</li>
+<li><b>Metrics:</b> offline (AUC, NDCG, recall@k, faithfulness) and online (CTR, retention, revenue, resolution rate), plus guardrails (latency, complaints, fairness).</li>
+<li><b>Data and labels:</b> sources, how labels are obtained (explicit, implicit, human, LLM), delays, biases, leakage risks.</li>
+<li><b>Features and representations:</b> user, item, context, cross features, embeddings; online vs batch computation; feature store.</li>
+<li><b>Model:</b> start with a simple baseline, then the stronger model; justify each step up in complexity.</li>
+<li><b>Serving:</b> batch vs online, multi-stage funnels, caching, ANN indexes, hardware, latency breakdown.</li>
+<li><b>Evaluation and launch:</b> offline evaluation, shadow mode, A/B test, ramp-up.</li>
+<li><b>Monitoring and iteration:</b> data and prediction drift, retraining cadence, feedback loops, failure handling.</li>
+</ol>
+<h3>Back-of-the-envelope numbers</h3>
+<p>100M daily users × 20 requests ≈ 2B requests/day ≈ 23k QPS on average (plan for 2–3× peak). 100M items × 256-dim fp32 embeddings ≈ 100 GB. A ranking model budget of 50 ms for 500 candidates means 0.1 ms per candidate or batched GPU inference. Doing this arithmetic out loud shows seniority.</p>
+<div class="callout intuition"><b>What interviewers listen for</b><p>Asking clarifying questions before designing; a working baseline before the fancy model; explicit trade-offs (latency vs quality, freshness vs cost); awareness of data problems (leakage, bias, feedback loops); and a plan to measure success after launch.</p></div>

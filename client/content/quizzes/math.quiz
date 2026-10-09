@@ -1,0 +1,370 @@
+@lesson vectors
+Q: What is the cosine similarity between \((1,0,1)\) and \((0,1,1)\)?
+= 0.5 ±0.01
+> The dot product is 1 and both norms are \(\sqrt2\), so \(\cos=1/2\), an angle of 60°.
+
+Q: Two vectors have a dot product of 0. What does that mean?
+- They are equal
+* They are orthogonal
+- One of them is the zero vector
+- They point in opposite directions
+> A zero dot product means \(\cos\theta=0\), so the vectors are at 90° (unless one is zero, a special case of the same statement).
+
+Q: For unit-length embeddings, ranking neighbours by Euclidean distance gives the same order as ranking by cosine similarity.
+= true
+> For unit vectors \(\|\mathbf x-\mathbf y\|^2=2-2\cos(\mathbf x,\mathbf y)\), a decreasing function of cosine. That is why vector databases normalize embeddings.
+
+Q: What is \(\|(3,-4)\|_1\)?
+= 7
+> The L1 norm sums absolute values: 3 + 4 = 7. The L2 norm would be 5.
+
+@lesson matrices
+Q: \(\mathbf A\) is \(32\times784\) and \(\mathbf W^\top\) is \(784\times256\). What is the shape of \(\mathbf A\mathbf W^\top\)?
+- \(784\times784\)
+* \(32\times256\)
+- \(256\times32\)
+- The product is undefined
+> Inner dimensions (784) must match and disappear; the result takes the outer dimensions.
+
+Q: How many parameters does a 784 → 256 → 10 network with biases have?
+= 203530
+> \(784\cdot256+256+256\cdot10+10=203{,}530\).
+
+Q: Which statements about a square matrix \(\mathbf A\) are equivalent to "\(\mathbf A\) is invertible"? (select all)
+* \(\det\mathbf A\neq0\)
+* \(\mathbf A\) has full rank
+- \(\mathbf A\) is symmetric
+* The columns of \(\mathbf A\) are linearly independent
+> Invertibility, full rank, independent columns and nonzero determinant are all the same condition. Symmetry is unrelated.
+
+Q: \(\mathbf A^\top\mathbf A\) is positive semi-definite for every matrix \(\mathbf A\).
+= true
+> \(\mathbf x^\top\mathbf A^\top\mathbf A\mathbf x=\|\mathbf A\mathbf x\|^2\ge0\).
+
+@lesson eigen-svd
+Q: What are the eigenvalues of \(\begin{pmatrix}2&1\\1&2\end{pmatrix}\)?
+- 2 and 2
+* 3 and 1
+- 4 and 0
+- 1 and −1
+> \((2-\lambda)^2-1=0\) gives \(\lambda=3\) and \(\lambda=1\).
+
+Q: A \(4096\times4096\) matrix is replaced by a rank-16 factorization \(\mathbf B\mathbf A\). How many parameters does the factorization have?
+= 131072
+> \(4096\cdot16+16\cdot4096=131{,}072\), under 1% of the original 16.8 million. This is the LoRA idea.
+
+Q: According to the Eckart–Young theorem, the best rank-\(k\) approximation of a matrix is obtained by…
+- keeping the \(k\) largest entries
+* keeping the top \(k\) singular values and vectors of the SVD
+- keeping the first \(k\) rows
+- rounding every entry to \(k\) bits
+> Truncating the SVD minimizes the Frobenius and spectral error among all rank-\(k\) matrices.
+
+Q: If the largest eigenvalue magnitude of a matrix is below 1, repeatedly multiplying a vector by it makes the vector…
+* shrink toward zero
+- grow without bound
+- stay the same length
+- rotate forever without changing length
+> \(\mathbf A^k=\mathbf Q\boldsymbol\Lambda^k\mathbf Q^\top\) and \(|\lambda|^k\to0\). The same mechanism makes RNN gradients vanish.
+
+@lesson calculus
+Q: Which direction gives the fastest decrease of \(f\) at a point?
+- \(\nabla f\)
+* \(-\nabla f\)
+- Any direction orthogonal to \(\nabla f\)
+- The direction of the largest coordinate
+> By Cauchy–Schwarz the directional derivative \(\nabla f^\top\mathbf u\) is most negative for \(\mathbf u\) along \(-\nabla f\). Gradient descent steps that way.
+
+Q: What is \(\sigma'(0)\) for the sigmoid \(\sigma(z)=1/(1+e^{-z})\)?
+= 0.25 ±0.001
+> \(\sigma'(z)=\sigma(z)(1-\sigma(z))\) and \(\sigma(0)=0.5\), so \(0.5\cdot0.5=0.25\), its maximum value.
+
+Q: For \(f(x,y)=x^2y\), what is \(\partial f/\partial x\) at \((1,3)\)?
+= 6
+> \(\partial f/\partial x=2xy=2\cdot1\cdot3=6\).
+
+Q: Keeping only the first-order Taylor term and stepping \(\boldsymbol\delta=-\eta\nabla f\) gives gradient descent; also using the Hessian gives…
+- Momentum
+* Newton's method
+- Adam
+- Random search
+> Minimizing the quadratic approximation gives \(\boldsymbol\delta=-\mathbf H^{-1}\nabla f\), Newton's step.
+
+@lesson matrix-calculus
+Q: What is \(\nabla_{\mathbf x}(\mathbf a^\top\mathbf x)\)?
+* \(\mathbf a\)
+- \(\mathbf a^\top\mathbf x\)
+- \(\mathbf x\)
+- \(2\mathbf a\)
+> Each partial derivative \(\partial(\sum_ia_ix_i)/\partial x_k=a_k\).
+
+Q: For a linear layer \(\mathbf y=\mathbf W\mathbf x\) with upstream gradient \(\mathbf g=\partial\mathcal L/\partial\mathbf y\), what is \(\partial\mathcal L/\partial\mathbf W\)?
+- \(\mathbf W^\top\mathbf g\)
+* \(\mathbf g\mathbf x^\top\)
+- \(\mathbf x\mathbf g^\top\)
+- \(\mathbf g^\top\mathbf x\)
+> \(\partial\mathcal L/\partial W_{ij}=g_ix_j\), the outer product \(\mathbf g\mathbf x^\top\). It has the same shape as \(\mathbf W\).
+
+Q: The gradient of \(\log\sum_je^{z_j}\) with respect to \(\mathbf z\) is…
+- \(\mathbf z\)
+- \(e^{\mathbf z}\)
+* \(\operatorname{softmax}(\mathbf z)\)
+- \(1/\mathbf z\)
+> \(\partial/\partial z_k=e^{z_k}/\sum_je^{z_j}\), which is exactly the softmax.
+
+Q: Why use a central difference \((f(x+\epsilon)-f(x-\epsilon))/2\epsilon\) for gradient checking rather than a one-sided one?
+* Its error shrinks like \(\epsilon^2\) instead of \(\epsilon\)
+- It needs fewer function evaluations
+- It works without a function
+- It avoids floating-point numbers
+> The first-order error terms cancel, so the central difference is far more accurate at the same \(\epsilon\).
+
+@lesson probability
+Q: For \(X\sim\text{Uniform}(0,1)\), what is \(\mathbb E[X^2]\)?
+= 0.3333 ±0.005
+> \(\int_0^1x^2dx=1/3\). Note that \((\mathbb E[X])^2=1/4\), so \(\mathbb E[g(X)]\neq g(\mathbb E[X])\).
+
+Q: A continuous density can take values greater than 1.
+= true
+> Only areas under the density are probabilities. A uniform density on [0, 0.5] equals 2 everywhere on that interval.
+
+Q: Linearity of expectation \(\mathbb E[X+Y]=\mathbb E[X]+\mathbb E[Y]\) requires \(X\) and \(Y\) to be independent.
+= false
+> Linearity always holds. Independence is needed for \(\mathbb E[XY]=\mathbb E[X]\mathbb E[Y]\) and for variances to add.
+
+Q: Why do we minimize the average loss on a dataset instead of the expected risk directly?
+- The average is always larger
+* The data distribution is unknown, so we estimate the expectation with a sample average
+- Expected risk has no gradient
+- Datasets are infinite
+> The empirical risk is a Monte Carlo estimate of the expected risk; mini-batches are an even smaller estimate.
+
+@lesson variance-joint
+Q: What is the variance of \(\text{Uniform}(0,1)\)?
+= 0.08333 ±0.002
+> \(\mathbb E[X^2]-\mathbb E[X]^2=1/3-1/4=1/12\).
+
+Q: The mean of \(n\) independent variables, each with variance \(\sigma^2\), has variance…
+- \(\sigma^2\)
+- \(n\sigma^2\)
+* \(\sigma^2/n\)
+- \(\sigma^2/\sqrt n\)
+> Variances add for independent variables and scaling by \(1/n\) divides by \(n^2\): \(n\sigma^2/n^2\). Larger batches give less noisy gradients for this reason.
+
+Q: A correlation of 0 between two variables proves they are independent.
+= false
+> Correlation measures only linear dependence. \(Y=X^2\) with symmetric \(X\) has zero correlation but is completely determined by \(X\).
+
+Q: Under squared loss, which predictor minimizes the expected error?
+* The conditional mean \(\mathbb E[Y\mid\mathbf x]\)
+- The conditional median
+- The most frequent value of \(Y\)
+- The overall mean of \(Y\)
+> Squared loss is minimized by the conditional mean; absolute loss by the conditional median.
+
+@lesson bayes
+Q: A disease has 1% prevalence; the test has 99% sensitivity and a 5% false-positive rate. What is \(P(\text{disease}\mid+)\) as a probability?
+= 0.167 ±0.01
+> \(0.99\cdot0.01/(0.99\cdot0.01+0.05\cdot0.99)\approx0.167\). Low base rates dominate.
+
+Q: Prior Beta(2, 2); you observe 8 heads in 10 flips. What is the posterior mean?
+= 0.714 ±0.005
+> The posterior is Beta(10, 4) with mean 10/14 ≈ 0.714, pulled from 0.8 toward 0.5 by the prior.
+
+Q: In Bayes' theorem, which term is the likelihood?
+- \(p(\theta)\)
+* \(p(\mathcal D\mid\theta)\)
+- \(p(\theta\mid\mathcal D)\)
+- \(p(\mathcal D)\)
+> The likelihood says how probable the observed data is under parameters \(\theta\).
+
+Q: Laplace (add-one) smoothing in Naive Bayes corresponds to which prior?
+- A Gaussian prior
+* A uniform Beta/Dirichlet prior with one pseudo-count per outcome
+- No prior
+- A Laplace distribution prior
+> Adding \(\alpha=1\) to every count is the posterior mean under a Dirichlet(1, …, 1) prior.
+
+@lesson distributions
+Q: Assuming Gaussian noise on regression targets leads to which loss?
+* Mean squared error
+- Mean absolute error
+- Cross-entropy
+- Hinge loss
+> The negative log of a Gaussian density is a constant plus a squared error.
+
+Q: Which distribution models a binary label?
+- Poisson
+* Bernoulli
+- Exponential
+- Uniform
+> A Bernoulli(p) variable is 1 with probability p and 0 otherwise; its negative log-likelihood is binary cross-entropy.
+
+Q: What are the mean and variance of a Poisson(4) variable? Enter the variance.
+= 4
+> For a Poisson distribution the mean and variance both equal \(\lambda\).
+
+Q: Sampling \(\mathbf x=\boldsymbol\mu+\mathbf L\boldsymbol\epsilon\) with \(\mathbf L\mathbf L^\top=\boldsymbol\Sigma\) and \(\boldsymbol\epsilon\sim\mathcal N(0,\mathbf I)\) produces samples from…
+- \(\mathcal N(\boldsymbol\mu,\mathbf I)\)
+* \(\mathcal N(\boldsymbol\mu,\boldsymbol\Sigma)\)
+- \(\mathcal N(0,\boldsymbol\Sigma^2)\)
+- A uniform distribution
+> Affine maps of Gaussians are Gaussian with covariance \(\mathbf L\mathbf I\mathbf L^\top=\boldsymbol\Sigma\). This is the reparameterization trick.
+
+@lesson estimation
+Q: What is the maximum-likelihood estimate of a Bernoulli parameter after 7 successes in 20 trials?
+= 0.35 ±0.001
+> \(\hat p=k/n=7/20\).
+
+Q: MAP estimation with a Gaussian prior on the weights is equivalent to adding which penalty?
+* L2 (weight decay / ridge)
+- L1 (lasso)
+- Dropout
+- No penalty
+> \(-\log\mathcal N(\theta;0,\tau^2\mathbf I)=\|\theta\|^2/2\tau^2+\text{const}\).
+
+Q: A p-value of 0.03 means there is a 3% chance the null hypothesis is true.
+= false
+> It is the probability of data at least this extreme if the null were true. It is not the probability of the null itself.
+
+Q: Dividing by \(n\) instead of \(n-1\) when estimating variance gives an estimate that is…
+- unbiased
+* biased low
+- biased high
+- undefined for large n
+> \(\mathbb E[\hat\sigma^2_{\text{MLE}}]=\frac{n-1}{n}\sigma^2\); Bessel's correction removes the bias.
+
+@lesson info-theory
+Q: What is the entropy of a fair coin, in bits?
+= 1
+> \(-2\cdot0.5\log_2 0.5=1\) bit, the maximum for two outcomes.
+
+Q: Minimizing cross-entropy \(H(p,q)\) over a model \(q\) is equivalent to… (select all)
+* minimizing \(D_{\mathrm{KL}}(p\|q)\)
+* maximum likelihood
+- maximizing the entropy of \(q\)
+- minimizing \(D_{\mathrm{KL}}(q\|p)\)
+> \(H(p,q)=H(p)+D_{\mathrm{KL}}(p\|q)\) and \(H(p)\) is fixed by the data, so the three objectives coincide. KL is not symmetric, so the reverse KL is a different objective.
+
+Q: A language model has perplexity 20 on a test set. What does that mean?
+- It makes 20 errors per sentence
+* It is as uncertain as a uniform choice among about 20 tokens at each step
+- It has 20 layers
+- Its loss is 20 nats
+> Perplexity is \(\exp(\text{cross-entropy})\), the effective number of equally likely choices.
+
+Q: KL divergence can be negative when \(q\) is a better model than \(p\).
+= false
+> By Gibbs' inequality \(D_{\mathrm{KL}}(p\|q)\ge0\) always, with equality only when \(p=q\).
+
+@lesson optimization
+Q: For \(\mathcal L(\theta)=3\theta^2\), what is the largest learning rate for which gradient descent converges? (Enter the bound.)
+= 0.3333 ±0.005
+> The curvature is \(\mathcal L''=6\), and GD converges iff \(\eta\lt2/6\).
+
+Q: Why does gradient descent struggle on ill-conditioned problems?
+- The gradient is always zero
+* The learning rate must suit the steepest direction, so flat directions progress very slowly
+- The loss is not differentiable
+- It needs second derivatives
+> The slowest direction shrinks by roughly \(1-1/\kappa\) per step, where \(\kappa\) is the condition number.
+
+Q: Why does Adam apply bias correction to its moment estimates?
+* The moments start at zero, so early averages are biased toward zero
+- To make it equivalent to SGD
+- To add noise
+- To clip gradients
+> Dividing by \(1-\beta^t\) removes the startup bias of the exponential moving averages.
+
+Q: Which are convex training objectives? (select all)
+* Linear regression with squared loss
+* Logistic regression with cross-entropy
+- A two-layer neural network with cross-entropy
+* A linear SVM with hinge loss
+> Linear models with these losses are convex. Neural networks are not, though gradient methods still train them well.
+
+Q: What does a learning-rate warmup do?
+- Starts with a large learning rate and decreases it
+* Increases the learning rate gradually over the first steps
+- Freezes the first layers
+- Adds weight decay
+> Early on, Adam's statistics and the model are unstable; ramping the rate up avoids destructive first steps.
+
+@lesson numerics
+Q: Which format keeps fp32's exponent range but has far less precision?
+- fp16
+* bf16
+- int8
+- fp64
+> bf16 has 8 exponent bits like fp32 and only 7 mantissa bits, so gradients rarely overflow or underflow.
+
+Q: Why is \(\log\sum_ie^{z_i}\) computed as \(m+\log\sum_ie^{z_i-m}\) with \(m=\max_iz_i\)?
+* To avoid overflow when the \(z_i\) are large
+- To make the result an integer
+- Because it is faster
+- To change the result slightly for regularization
+> Subtracting the max keeps every exponent at most 0, so nothing overflows, and the result is mathematically identical.
+
+Q: In fp32, \(1+10^{-8}\) evaluates to exactly 1.
+= true
+> fp32 has about 7 significant digits (\(\epsilon\approx1.2\times10^{-7}\)), so the tiny term is lost: this is swamping.
+
+Q: What is the largest finite value representable in fp16?
+= 65504
+> fp16 has only 5 exponent bits; anything above 65,504 overflows to infinity, which is why fp16 training needs loss scaling.
+
+@lesson monte-carlo
+Q: A Monte Carlo estimate from 10,000 samples has a standard error of 0.02. How many samples give a standard error of 0.005?
+= 160000
+> The error scales as \(1/\sqrt N\): a 4× smaller error needs 16× the samples.
+
+Q: Importance sampling estimates \(\mathbb E_p[f]\) using samples from \(q\) and weights equal to…
+- \(q(x)/p(x)\)
+* \(p(x)/q(x)\)
+- \(p(x)q(x)\)
+- 1
+> \(\mathbb E_p[f]=\mathbb E_q[f\,p/q]\). The same ratio appears in PPO's clipped objective.
+
+Q: Why does Metropolis–Hastings work with an unnormalized density \(\tilde p\)?
+* The normalizing constant cancels in the acceptance ratio
+- It estimates the constant first
+- It only works when the constant is 1
+- It ignores the density
+> The acceptance probability uses \(\tilde p(x')/\tilde p(x)\), so the unknown constant divides out.
+
+Q: The reparameterization gradient estimator generally has lower variance than the score-function (REINFORCE) estimator.
+= true
+> It differentiates through the sample path itself. The score-function estimator works for discrete variables but is much noisier.
+
+@lesson exam
+Q: Gradient descent on \(\frac12\theta^\top\mathbf H\theta\) with \(\mathbf H=\operatorname{diag}(1,100)\) and \(\eta=0.019\): which coordinate converges more slowly?
+* The one with curvature 1
+- The one with curvature 100
+- Both converge at the same rate
+- Neither converges
+> Errors shrink by \(1-\eta\lambda\): \(1-0.019=0.981\) per step for \(\lambda=1\) versus \(1-1.9=-0.9\) for \(\lambda=100\) (fast, oscillating). The flat direction is the bottleneck.
+
+Q: Which identities connect statistics to common losses? (select all)
+* Gaussian likelihood ↔ MSE
+* Categorical likelihood with softmax ↔ cross-entropy
+* Gaussian prior ↔ L2 regularization
+- Laplace prior ↔ L2 regularization
+> A Laplace prior gives the L1 penalty, not L2.
+
+Q: You compute the variance of values around \(10^9\) in fp32 with \(\mathbb E[X^2]-\mathbb E[X]^2\) and get a negative number. What went wrong?
+- Variance is always negative for large values
+* Catastrophic cancellation: two huge, nearly equal numbers were subtracted
+- Overflow to infinity
+- The mean is undefined
+> Subtract the mean first (two-pass) or use Welford's algorithm.
+
+Q: What is the KL divergence \(D_{\mathrm{KL}}(p\|q)\) in bits between \(p=(0.5,0.5)\) and \(q=(0.25,0.75)\)? (Two decimals.)
+= 0.21 ±0.01
+> \(0.5\log_2(0.5/0.25)+0.5\log_2(0.5/0.75)=0.5-0.2925\approx0.21\) bits.
+
+Q: The SVD of centered data gives principal components. Which matrix's eigenvectors are the right singular vectors \(\mathbf V\)?
+- \(\mathbf X\mathbf X^\top\)
+* \(\mathbf X^\top\mathbf X\)
+- \(\mathbf X+\mathbf X^\top\)
+- \(\mathbf X^{-1}\)
+> \(\mathbf X^\top\mathbf X=\mathbf V\boldsymbol\Sigma^2\mathbf V^\top\), proportional to the covariance matrix of centered data.

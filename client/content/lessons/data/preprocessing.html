@@ -1,0 +1,43 @@
+<h3>Scaling</h3>
+$$\text{standardize: }z=\frac{x-\mu}{\sigma},\qquad\text{min–max: }x'=\frac{x-x_{\min}}{x_{\max}-x_{\min}}$$
+<p>Scaling matters for anything using distances or gradients (kNN, SVM, linear models, neural nets) because unscaled features make the loss surface ill-conditioned ([[optimization]]). Tree models don't care.</p>
+<h3>Encoding categoricals</h3>
+<ul>
+<li><b>One-hot:</b> one binary column per category; good for low cardinality.</li>
+<li><b>Ordinal:</b> integers for ordered categories (small &lt; medium &lt; large).</li>
+<li><b>Target encoding:</b> replace each category by the mean target; powerful for high cardinality but must be computed out-of-fold to avoid leakage.</li>
+<li><b>Embeddings:</b> learned vectors per category inside a neural network.</li>
+</ul>
+<h3>Other transformations</h3>
+<p>Impute missing values (median, mode, or model-based) and add a "was missing" indicator. Log-transform right-skewed values like prices and counts. Clip or winsorize extreme outliers (IQR rule: outside \([Q_1-1.5\,\text{IQR},\,Q_3+1.5\,\text{IQR}]\)). Extract date parts, ratios, aggregates and domain features.</p>
+<h3>Splits and leakage</h3>
+<ul>
+<li>Train / validation / test, e.g. 70/15/15. Tune on validation; touch test once at the end.</li>
+<li><b>Stratify</b> classification splits to preserve class ratios. For time series, split by time, never randomly. For grouped data (several rows per patient or user), split by group.</li>
+<li><b>Fit every transform on training data only</b>, then apply it to validation and test. Pipelines enforce this.</li>
+</ul>
+<h3>Class imbalance</h3>
+<p>Use class weights in the loss, resampling (oversample minority, e.g. SMOTE, or undersample majority), threshold tuning, and imbalance-aware metrics (PR-AUC, F1) rather than accuracy.</p>
+<pre><code class="language-python">from sklearn.model_selection import train_test_split
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+
+num = ["age", "income"]; cat = ["city", "plan"]
+pre = ColumnTransformer([
+    ("num", Pipeline([("imp", SimpleImputer(strategy="median", add_indicator=True)),
+                      ("sc", StandardScaler())]), num),
+    ("cat", Pipeline([("imp", SimpleImputer(strategy="most_frequent")),
+                      ("oh", OneHotEncoder(handle_unknown="ignore"))]), cat),
+])
+model = Pipeline([("pre", pre), ("clf", LogisticRegression(max_iter=1000, class_weight="balanced"))])
+X_tr, X_te, y_tr, y_te = train_test_split(df[num + cat], df["y"], test_size=0.2,
+                                          stratify=df["y"], random_state=0)
+model.fit(X_tr, y_tr)                  # scaler and imputer see training data only
+print(model.score(X_te, y_te))</code></pre>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>You standardize the whole dataset, then split, then train. Validation accuracy looks great. What went wrong, and how much does it matter?
+<details><summary>Solution</summary><div>The mean and standard deviation used test-set information, a mild leak. With standardization the effect is usually small, but the same mistake with target encoding, feature selection or oversampling before splitting can wildly inflate scores. Always split first and fit transforms inside a pipeline.</div></details></li>
+</ol></div>

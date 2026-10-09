@@ -1,0 +1,27 @@
+<h3>Types of learning</h3>
+<table>
+<tr><th>Type</th><th>Data</th><th>Examples</th></tr>
+<tr><td>Supervised</td><td>\((\mathbf x,y)\) pairs</td><td>Classification, regression</td></tr>
+<tr><td>Unsupervised</td><td>\(\mathbf x\) only</td><td>Clustering, dimensionality reduction, density estimation</td></tr>
+<tr><td>Self-supervised</td><td>Labels built from the data itself</td><td>Next-token prediction, masked modelling, contrastive learning</td></tr>
+<tr><td>Reinforcement</td><td>States, actions, rewards</td><td>Games, robotics, RLHF</td></tr>
+</table>
+<h3>Risk and empirical risk</h3>
+$$R(f)=\mathbb E_{(\mathbf x,y)\sim P}[\mathcal L(y,f(\mathbf x))],\qquad \hat R(f)=\frac1n\sum_{i=1}^n\mathcal L(y_i,f(\mathbf x_i))$$
+<p><b>Empirical risk minimization</b> picks \(f\) to minimize \(\hat R\). The <b>generalization gap</b> \(R-\hat R\) grows with model flexibility and shrinks with more data. Underfitting: both errors high. Overfitting: training error low, validation error high.</p>
+<h3>Bias–variance decomposition</h3>
+<p>For \(y=f(\mathbf x)+\varepsilon\) with noise variance \(\sigma^2\), and a model \(\hat f\) trained on a random dataset:</p>
+$$\mathbb E\big[(y-\hat f(\mathbf x))^2\big]=\underbrace{\sigma^2}_{\text{irreducible}}+\underbrace{\big(f(\mathbf x)-\mathbb E[\hat f(\mathbf x)]\big)^2}_{\text{bias}^2}+\underbrace{\mathbb E\big[(\hat f(\mathbf x)-\mathbb E[\hat f(\mathbf x)])^2\big]}_{\text{variance}}$$
+<p>Simple models have high bias; flexible models have high variance. Regularization, more data, and ensembling lower variance. Richer features and bigger models lower bias. (Very large neural networks show "double descent": past the interpolation point, test error can fall again. Classical intuition still guides most practical decisions.)</p>
+<!--FIG:bias_variance-->
+<div class="widget" data-widget="poly"></div>
+<h3>Cross-validation</h3>
+<p>\(k\)-fold CV splits training data into \(k\) folds, trains on \(k-1\) and validates on the remaining one, rotating. The average score is a lower-variance estimate of generalization, used to choose <b>hyperparameters</b> (settings you pick, like depth or \(\lambda\)), as opposed to <b>parameters</b> (learned weights).</p>
+<!--FIG:kfold-->
+<pre><code class="language-python">from sklearn.model_selection import cross_val_score, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+grid = GridSearchCV(RandomForestClassifier(random_state=0),
+                    {"max_depth": [4, 8, None], "n_estimators": [200, 500]},
+                    cv=5, scoring="roc_auc", n_jobs=-1)
+grid.fit(X_tr, y_tr); print(grid.best_params_, grid.best_score_)</code></pre>
+<div class="callout intuition"><b>Curse of dimensionality</b><p>In high dimensions, data is sparse and distances become similar: for random points, the ratio of nearest to farthest distance tends toward 1. Methods that rely on "nearby points" (kNN, kernels) need far more data as \(d\) grows. Learned representations (embeddings) fix this by mapping data to spaces where distance is meaningful.</p></div>

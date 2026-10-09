@@ -1,0 +1,18 @@
+<h3>Sequence labelling with BIO tags</h3>
+<p>Named entity recognition labels each token: <code>B-PER</code> begins a person, <code>I-PER</code> continues it, <code>O</code> is outside. "Youcef works at ESI in Algiers" → B-PER O O B-ORG O B-LOC. Evaluate with <b>span-level</b> precision, recall and F1 (an entity counts only if both boundaries and type are exact).</p>
+<h3>Conditional random fields</h3>
+<p>Predicting each tag independently can produce invalid sequences (I-ORG right after B-PER). A linear-chain CRF scores whole tag sequences with emission scores from the encoder plus learned transition scores:</p>
+$$p(\mathbf y\mid\mathbf x)=\frac{\exp\Big(\sum_t\big[e_t(y_t)+A_{y_{t-1},y_t}\big]\Big)}{Z(\mathbf x)}$$
+<p>\(Z\) is computed with the forward algorithm; the best sequence with the <b>Viterbi</b> algorithm, both \(O(TK^2)\) by dynamic programming. A BERT encoder + CRF head is a classic, strong NER model.</p>
+<h3>Relations, linking and LLM extraction</h3>
+<p>Relation extraction classifies pairs of entities (Person —works_at→ Org); entity linking maps mentions to knowledge-base IDs. With LLMs, extraction becomes: give a JSON schema, a few examples and the document; validate the output in code; route low-confidence or schema-invalid cases to a human. Always measure field-level accuracy on a labelled sample, because LLMs can produce plausible but wrong values.</p>
+<pre><code class="language-python">def viterbi(emissions, transitions):            # emissions (T, K), transitions (K, K): log-scores
+    T, K = emissions.shape
+    score = emissions[0].copy(); back = np.zeros((T, K), dtype=int)
+    for t in range(1, T):
+        cand = score[:, None] + transitions + emissions[t][None, :]   # (prev, cur)
+        back[t] = cand.argmax(0); score = cand.max(0)
+    path = [int(score.argmax())]
+    for t in range(T - 1, 0, -1):
+        path.append(int(back[t, path[-1]]))
+    return path[::-1]</code></pre>

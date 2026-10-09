@@ -1,0 +1,10 @@
+<h3>The policy gradient theorem</h3>
+<p>Objective \(J(\theta)=\mathbb E_{\tau\sim\pi_\theta}[R(\tau)]\) over trajectories \(\tau\). Using the <b>log-derivative trick</b> \(\nabla p=p\,\nabla\log p\):</p>
+$$\nabla_\theta J=\nabla_\theta\int p_\theta(\tau)R(\tau)\,d\tau=\int p_\theta(\tau)\nabla_\theta\log p_\theta(\tau)R(\tau)\,d\tau=\mathbb E_\tau\Big[\sum_t\nabla_\theta\log\pi_\theta(a_t\mid s_t)\,G_t\Big]$$
+<p>The environment's transition probabilities don't depend on \(\theta\), so they drop out of \(\nabla\log p_\theta(\tau)\): we don't need a model of the world. This is <b>REINFORCE</b>: increase the log-probability of actions in proportion to the return that followed them.</p>
+<h3>Reducing variance</h3>
+<p>Subtracting a baseline \(b(s_t)\) keeps the gradient unbiased but lowers variance. With \(b=V(s_t)\) we get the <b>advantage</b> \(A_t=G_t-V(s_t)\): "how much better than expected was this action?". <b>Actor–critic</b> methods learn the policy (actor) and \(V\) (critic) together.</p>
+<h3>PPO</h3>
+<p>Large policy updates are destructive, so PPO clips the probability ratio \(r_t(\theta)=\pi_\theta(a_t\mid s_t)/\pi_{\theta_{\text{old}}}(a_t\mid s_t)\):</p>
+$$\mathcal L^{\text{CLIP}}=\mathbb E_t\Big[\min\big(r_t(\theta)A_t,\ \operatorname{clip}(r_t(\theta),1-\epsilon,1+\epsilon)A_t\big)\Big]$$
+<p>In RLHF the "environment" is a prompt, the "action" is the generated response (token by token), and the reward comes from a reward model or a verifier, minus the KL penalty from [[alignment]].</p>

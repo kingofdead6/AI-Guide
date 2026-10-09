@@ -1,0 +1,29 @@
+<p>Convention: the gradient of a scalar with respect to a vector or matrix has the <b>same shape</b> as that vector or matrix.</p>
+<table>
+<tr><th>Function</th><th>Gradient</th></tr>
+<tr><td>\(\mathbf{a}^\top\mathbf{x}\)</td><td>\(\mathbf{a}\)</td></tr>
+<tr><td>\(\mathbf{x}^\top\mathbf{A}\mathbf{x}\)</td><td>\((\mathbf{A}+\mathbf{A}^\top)\mathbf{x}\) &nbsp;(\(=2\mathbf{Ax}\) if symmetric)</td></tr>
+<tr><td>\(\|\mathbf{x}\|_2^2\)</td><td>\(2\mathbf{x}\)</td></tr>
+<tr><td>\(\|\mathbf{Ax}-\mathbf{b}\|_2^2\)</td><td>\(2\mathbf{A}^\top(\mathbf{Ax}-\mathbf{b})\)</td></tr>
+<tr><td>\(\mathcal{L}(\mathbf{y})\) with \(\mathbf{y}=\mathbf{Wx}\)</td><td>\(\dfrac{\partial\mathcal{L}}{\partial\mathbf{W}}=\mathbf{g}\,\mathbf{x}^\top,\quad \dfrac{\partial\mathcal{L}}{\partial\mathbf{x}}=\mathbf{W}^\top\mathbf{g}\), where \(\mathbf{g}=\partial\mathcal{L}/\partial\mathbf{y}\)</td></tr>
+<tr><td>\(\log\sum_j e^{z_j}\)</td><td>\(\operatorname{softmax}(\mathbf{z})\)</td></tr>
+</table>
+<h3>Derivation: \(\nabla_\mathbf{x}(\mathbf{x}^\top\mathbf{Ax})\)</h3>
+$$f=\sum_i\sum_j x_iA_{ij}x_j\;\Rightarrow\;\frac{\partial f}{\partial x_k}=\sum_j A_{kj}x_j+\sum_i x_iA_{ik}=(\mathbf{Ax})_k+(\mathbf{A}^\top\mathbf{x})_k$$
+<h3>Derivation: the linear layer</h3>
+<p>With \(y_i=\sum_j W_{ij}x_j\), the chain rule gives \(\partial\mathcal{L}/\partial W_{ij}=g_i\,x_j\), which is the outer product \(\mathbf{g}\mathbf{x}^\top\). And \(\partial\mathcal{L}/\partial x_j=\sum_i g_iW_{ij}=(\mathbf{W}^\top\mathbf{g})_j\). These two lines are the whole backward pass of a dense layer.</p>
+<h3>Always check your gradients numerically</h3>
+<pre><code class="language-python">def num_grad(f, x, eps=1e-6):
+    g = np.zeros_like(x)
+    for i in range(x.size):
+        e = np.zeros_like(x); e.flat[i] = eps
+        g.flat[i] = (f(x + e) - f(x - e)) / (2 * eps)   # central difference
+    return g
+
+A = np.random.randn(3, 3); x = np.random.randn(3)
+f = lambda v: v @ A @ v
+print(np.allclose(num_grad(f, x), (A + A.T) @ x, atol=1e-5))   # True</code></pre>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>Derive \(\nabla_{\mathbf{z}}\log\sum_j e^{z_j}\).
+<details><summary>Solution</summary><div>\(\dfrac{\partial}{\partial z_k}\log\sum_j e^{z_j}=\dfrac{e^{z_k}}{\sum_j e^{z_j}}=\operatorname{softmax}(\mathbf{z})_k\).</div></details></li>
+</ol></div>

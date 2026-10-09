@@ -1,0 +1,122 @@
+@lesson cv-basics
+Q: You have 800 labelled images for a new task. What is the best starting point?
+- Train a ResNet-50 from scratch
+* Fine-tune a pretrained backbone, starting with a frozen backbone and a new head
+- Use k-means on raw pixels
+- Train only on the 10 best images
+> Pretrained features transfer well; with little data, freezing most layers avoids overfitting.
+
+Q: Horizontal flipping is always a safe augmentation.
+= false
+> It depends on the invariances of the task: a flipped "6" or flipped text is no longer the same thing.
+
+Q: When unfreezing a pretrained backbone, a common choice is to give it a learning rate that is…
+* about 10× lower than the new head's
+- 10× higher than the head's
+- zero
+- the same as training from scratch
+> Pretrained weights are already good; large updates would destroy them.
+
+Q: What does MixUp do?
+- Shuffles pixels within an image
+* Blends two images and their labels with the same mixing weight
+- Rotates images randomly
+- Removes the background
+> \(\tilde x=\lambda x_i+(1-\lambda)x_j\), and the same for the one-hot labels.
+
+@lesson detection-segmentation
+Q: What is the IoU of boxes [0, 0, 10, 10] and [5, 5, 15, 15]? (three decimals)
+= 0.143 ±0.002
+> Intersection 25, union 175, so IoU = 25/175 ≈ 0.143.
+
+Q: What does non-maximum suppression remove?
+* Lower-confidence boxes that overlap a higher-confidence box by more than a threshold
+- All boxes below 50% confidence
+- Boxes at the image edge
+- The background class
+> Detectors predict many overlapping boxes per object; NMS keeps the best one.
+
+Q: Why does the focal loss help one-stage detectors?
+- It speeds up inference
+* It down-weights the many easy background examples so training focuses on hard ones
+- It removes the need for anchors
+- It replaces NMS
+> \(-(1-p_t)^\gamma\log p_t\) shrinks the loss of confidently correct predictions.
+
+Q: What gives U-Net its sharp segmentation boundaries?
+* Skip connections that pass high-resolution encoder features to the decoder
+- A larger softmax
+- Max pooling
+- Removing the encoder
+> Fine spatial detail lost by downsampling is recovered from the encoder.
+
+@lesson vit-clip
+Q: A 224×224 image split into 16×16 patches gives how many patch tokens?
+= 196
+> \((224/16)^2=14^2=196\), plus a [CLS] token in the original ViT.
+
+Q: How does CLIP classify an image zero-shot?
+- It was trained on every class name
+* It embeds prompts like "a photo of a {label}" and picks the one most similar to the image embedding
+- It runs a detector first
+- It asks a human
+> Image and text share an embedding space trained contrastively.
+
+Q: In CLIP's training batch, what are the negatives for an image?
+* The texts of the other images in the same batch
+- Random noise images
+- Nothing; there are no negatives
+- Images of the same class
+> The InfoNCE loss treats the matching caption as the correct class among all captions in the batch.
+
+Q: ViTs need more data or stronger pretraining than CNNs mainly because…
+- they have no parameters
+* they lack the built-in locality and translation-equivariance biases of convolutions
+- they cannot use GPUs
+- attention is inaccurate
+> Weaker inductive biases must be learned from data, but they scale very well when data is abundant.
+
+@lesson video-3d
+Q: In tracking-by-detection, which algorithm assigns new detections to existing tracks?
+- k-means
+* The Hungarian algorithm on an IoU/appearance cost matrix
+- Gradient descent
+- BFS
+> It finds the minimum-cost one-to-one assignment; a Kalman filter predicts where each track should be.
+
+Q: What does a NeRF learn?
+* A function from 3D position and viewing direction to density and colour
+- A depth map for one image
+- A mesh with textures
+- A 2D segmentation mask
+> Pixels are rendered by integrating density and colour along camera rays.
+
+Q: PointNet uses a symmetric max-pool so that its output does not depend on the order of the input points.
+= true
+> Point clouds are unordered sets, just like a graph's neighbours.
+
+@lesson exam
+Q: A detector reaches mAP@0.5 of 0.80 but mAP@[0.5:0.95] of 0.35. What does that suggest?
+* It finds objects but localizes boxes imprecisely
+- It misses most objects
+- It has too many classes
+- The metric is broken
+> Strict IoU thresholds expose loose boxes; better box regression losses or higher-resolution features help.
+
+Q: Which components does a vision-language model like LLaVA combine? (select all)
+* A pretrained vision encoder
+* A projector into the LLM's embedding space
+* A language model decoder
+- A U-Net
+> Image patches become "visual tokens" that the LLM reads alongside text.
+
+Q: You must segment tumours that occupy 1% of each scan. Which loss addition helps most with the imbalance?
+- MSE
+* Dice loss alongside cross-entropy
+- Hinge loss
+- No change
+> Dice measures overlap directly and is far less dominated by the large background.
+
+Q: A 336×336 image with 14×14 patches becomes how many visual tokens?
+= 576
+> \((336/14)^2=24^2=576\). High-resolution tiling multiplies this, which costs context and money.

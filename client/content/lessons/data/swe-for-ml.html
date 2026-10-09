@@ -1,0 +1,37 @@
+<h3>Project layout</h3>
+<pre><code class="language-bash">my-project/
+├── pyproject.toml        # dependencies and tool config (uv / pip / poetry)
+├── configs/train.yaml    # hyperparameters live in config, not in code
+├── src/my_project/
+│   ├── data.py  model.py  train.py  evaluate.py
+├── tests/test_data.py  tests/test_model.py
+├── scripts/              # entry points, one-off jobs
+└── notebooks/            # exploration only; move reusable code into src/</code></pre>
+<h3>Habits that pay off</h3>
+<ul>
+<li>Type hints, a formatter and linter (ruff), and pre-commit hooks.</li>
+<li>Config objects (dataclasses, YAML, Hydra) and a CLI (argparse/typer) so every run is reproducible from a command.</li>
+<li>Logging instead of print; log the git commit, config and data version with each run.</li>
+<li>Small pull requests with clear descriptions; review others' code.</li>
+<li>Version large data and models outside git (DVC, object storage, model registry).</li>
+</ul>
+<h3>Testing ML code</h3>
+<p>Unit-test data transforms on tiny hand-made inputs. Test output shapes and dtypes. Test that the model can overfit a single batch. Test invariances (a flipped image should keep the same label) and directional expectations (more square metres should not lower a predicted price). Fix seeds for determinism in tests.</p>
+<pre><code class="language-python"># tests/test_model.py  (run with: pytest -q)
+import torch
+from my_project.model import MLP
+
+def test_output_shape():
+    m = MLP(10, 32, 3)
+    assert m(torch.randn(4, 10)).shape == (4, 3)
+
+def test_can_overfit_one_batch():
+    torch.manual_seed(0)
+    m = MLP(10, 64, 3); x = torch.randn(16, 10); y = torch.randint(0, 3, (16,))
+    opt = torch.optim.Adam(m.parameters(), 1e-2)
+    for _ in range(300):
+        loss = torch.nn.functional.cross_entropy(m(x), y)
+        opt.zero_grad(); loss.backward(); opt.step()
+    assert loss.item() &lt; 0.05</code></pre>
+<h3>Performance and the machine</h3>
+<p>Profile before optimizing (<code>cProfile</code>, <code>py-spy</code>, <code>torch.profiler</code>). The usual training bottleneck is the data loader: use more workers, pinned memory, pre-processed Parquet or sharded datasets. Be at home on Linux: <code>ssh</code>, <code>tmux</code>, <code>nvidia-smi</code>, <code>htop</code>, environment variables, and Docker for reproducible environments.</p>
