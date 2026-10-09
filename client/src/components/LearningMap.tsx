@@ -101,7 +101,7 @@ function MapSvg({ layout, vertical, className }: { layout: typeof WIDE; vertical
   return (
     <svg viewBox={`0 0 ${layout.w} ${layout.h}`} className={className} role="group" aria-label="Course map: each course with its prerequisites and your progress">
       {layout.labels.map(([t, x, y]) => (
-        <text key={t} x={x} y={y} textAnchor="middle" className="fill-muted" style={{ font: '600 13px Archivo, sans-serif' }}>
+        <text key={t} x={x} y={y} textAnchor="middle" className="fill-muted" style={{ font: '600 13px var(--font-sans)' }}>
           {t}
         </text>
       ))}
@@ -154,7 +154,7 @@ function MapSvg({ layout, vertical, className }: { layout: typeof WIDE; vertical
             {s.certified ? (
               <path d={`M${x - 7},${y + 0.5} l4.6,4.6 l9.4,-9.4`} stroke="var(--surface)" strokeWidth={2.8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
             ) : (
-              <text x={x} y={y + 0.5} textAnchor="middle" dominantBaseline="central" fill={s.started ? col : 'var(--muted)'} style={{ font: `700 ${vertical ? 12 : 13}px Archivo, sans-serif` }}>
+              <text x={x} y={y + 0.5} textAnchor="middle" dominantBaseline="central" fill={s.started ? col : 'var(--muted)'} style={{ font: `700 ${vertical ? 12 : 13}px var(--font-sans)` }}>
                 {i + 1}
               </text>
             )}
@@ -164,7 +164,7 @@ function MapSvg({ layout, vertical, className }: { layout: typeof WIDE; vertical
               y={y + r + (vertical ? 15 : 18)}
               textAnchor="middle"
               className="fill-ink group-hover:fill-[var(--accent)]"
-              style={{ font: `600 ${vertical ? 11.5 : 13.5}px Archivo, sans-serif` }}
+              style={{ font: `600 ${vertical ? 11.5 : 13.5}px var(--font-sans)` }}
             >
               {c.short}
             </text>
@@ -198,7 +198,7 @@ function MapSvg({ layout, vertical, className }: { layout: typeof WIDE; vertical
               fill={done ? 'var(--surface)' : 'var(--warn)'}
             />
             </g>
-            <text x={x} y={y + R + (vertical ? 15 : 18)} textAnchor="middle" className="fill-ink" style={{ font: `650 ${vertical ? 11.5 : 13.5}px Archivo, sans-serif` }}>
+            <text x={x} y={y + R + (vertical ? 15 : 18)} textAnchor="middle" className="fill-ink" style={{ font: `650 ${vertical ? 11.5 : 13.5}px var(--font-sans)` }}>
               Certificate
             </text>
           </a>

@@ -26,7 +26,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found.' }));
 
 // In production, serve the built client (client/dist) from the same origin.
-const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/dist');
+const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../client/dist');
 if (fs.existsSync(dist)) {
   app.use(express.static(dist, { index: 'index.html', maxAge: '1h' }));
   app.get(/^(?!\/api).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')));

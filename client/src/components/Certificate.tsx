@@ -10,10 +10,10 @@ export type CertificateProps = {
   courseList?: string[];
 };
 
-const INK = '#141a2e';
-const MUTED = '#5a6276';
-const ACCENT = '#2d55e0';
-const AMBER = '#d9731f';
+const INK = '#14141f';
+const MUTED = '#5c5f72';
+const ACCENT = '#5145e5';
+const AMBER = '#e07612';
 const SERIF = "'Source Serif 4', Georgia, 'Times New Roman', serif";
 const SANS = "Archivo, 'Helvetica Neue', Arial, sans-serif";
 
@@ -52,7 +52,7 @@ export const Certificate = forwardRef<SVGSVGElement, CertificateProps>(function 
         <rect width={44} height={44} rx={11} fill={ACCENT} />
         <circle cx={14} cy={15} r={4} fill="#fff" />
         <circle cx={14} cy={29} r={4} fill="#fff" />
-        <circle cx={31} cy={22} r={5} fill="#f0a35c" />
+        <circle cx={31} cy={22} r={5} fill="#f5a84a" />
         <path d="M17.6 16.6 26.4 20.6M17.6 27.4 26.4 23.4" stroke="#fff" strokeWidth={2} />
         <text x={60} y={20} fill={INK} style={{ font: `700 20px ${SANS}` }}>
           The AI Guide Academy

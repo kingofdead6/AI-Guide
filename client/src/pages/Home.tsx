@@ -111,7 +111,7 @@ export default function Home() {
                           <span
                             className={cx(
                               'h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center font-bold text-[15px] border-2 transition-transform duration-300 group-hover:scale-110',
-                              s.certified ? `${tone[c.color].bg} border-transparent text-white dark:text-[#0d1120]` : `${tone[c.color].border} ${tone[c.color].text}`,
+                              s.certified ? `${tone[c.color].bg} border-transparent text-white dark:text-[#0a0a12]` : `${tone[c.color].border} ${tone[c.color].text}`,
                             )}
                           >
                             {n}

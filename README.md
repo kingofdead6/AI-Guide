@@ -15,11 +15,11 @@ Requires Node 20 or newer and a MongoDB database (MongoDB Atlas works).
 
 ```bash
 npm run install:all
-npm run dev:server     # API on http://localhost:4000
+npm run dev:server     # API on http://localhost:4000 (entry: server/index.js)
 npm run dev:client     # site on http://localhost:5173, /api is proxied to the server
 ```
 
-Sign in with the admin account and open **Admin** in the header (or `#/admin`).
+Sign in with the admin account: it only sees the admin panel (learners, deletion requests, account settings), never the learning site.
 
 ## Production
 
@@ -44,11 +44,15 @@ If you host the client on a different domain, build it with `VITE_API_URL=https:
 | POST | `/api/auth/register` | anyone | `{ name, email, password }` → `{ token, user }` |
 | POST | `/api/auth/login` | anyone | `{ email, password }` → `{ token, user }` |
 | GET / PATCH | `/api/auth/me` | signed in | current user / change name |
+| POST | `/api/auth/password` | signed in | `{ currentPassword, newPassword }`; signs out other devices |
+| POST / DELETE | `/api/auth/deletion-request` | learner | request / cancel account deletion (`{ reason }`) |
 | GET / PUT | `/api/progress` | signed in | load / save the progress document |
 | GET | `/api/admin/stats` | admin | learner counts and activity |
 | GET | `/api/admin/users?q=` | admin | all learners with a slim copy of their progress |
 | GET | `/api/admin/users/:id` | admin | one learner with full progress |
 | PATCH | `/api/admin/users/:id` | admin | `{ role: "user" \| "admin" }` |
 | DELETE | `/api/admin/users/:id` | admin | delete a learner |
+| GET | `/api/admin/deletion-requests` | admin | pending deletion requests |
+| DELETE | `/api/admin/deletion-requests/:id` | admin | dismiss a request and keep the account |
 
 To grant or revoke admin access from the command line: `npm run make-admin --prefix server -- someone@example.com [--revoke]`.

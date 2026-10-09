@@ -57,4 +57,34 @@ router.patch('/me', requireAuth, async (req, res) => {
   res.json({ user: req.user.toPublic() });
 });
 
+router.post('/password', limiter, requireAuth, async (req, res) => {
+  const current = str(req.body?.currentPassword);
+  const next = str(req.body?.newPassword);
+  const user = await User.findById(req.user._id).select('+passwordHash');
+  if (!(await bcrypt.compare(current, user.passwordHash))) return res.status(400).json({ error: 'Your current password is not correct.' });
+  if (next.length < 8 || next.length > 200) return res.status(400).json({ error: 'Your new password needs at least 8 characters.' });
+  if (next === current) return res.status(400).json({ error: 'Choose a password different from your current one.' });
+  user.passwordHash = await bcrypt.hash(next, 12);
+  user.tokenVersion = (user.tokenVersion ?? 0) + 1;
+  await user.save();
+  // Other devices are signed out; this one gets a fresh token.
+  res.json({ token: signToken(user), user: user.toPublic() });
+});
+
+router.post('/deletion-request', requireAuth, async (req, res) => {
+  if (req.user.role === 'admin') return res.status(400).json({ error: 'Admin accounts cannot request deletion. Ask another admin to remove your access.' });
+  const reason = str(req.body?.reason).trim().slice(0, 1000);
+  req.user.deletionRequestedAt = req.user.deletionRequestedAt ?? new Date();
+  req.user.deletionReason = reason;
+  await req.user.save();
+  res.json({ user: req.user.toPublic() });
+});
+
+router.delete('/deletion-request', requireAuth, async (req, res) => {
+  req.user.deletionRequestedAt = null;
+  req.user.deletionReason = '';
+  await req.user.save();
+  res.json({ user: req.user.toPublic() });
+});
+
 export default router;

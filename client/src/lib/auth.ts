@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { api, ApiError, tokenStore } from './api';
 import { exportProgress, useProgress, type ProgressData } from './store';
 
-export type User = { id: string; name: string; email: string; role: 'user' | 'admin'; createdAt: string; lastSeenAt: string };
+export type User = { id: string; name: string; email: string; role: 'user' | 'admin'; createdAt: string; lastSeenAt: string; deletionRequestedAt?: string | null };
 export type SyncStatus = 'local' | 'saving' | 'saved' | 'offline' | 'error';
 
 type AuthState = {
@@ -120,9 +120,12 @@ function applyLocal(p: ProgressData) {
   }
 }
 
+/** Admin accounts only manage the academy; they do not keep learner progress. */
+const isLearner = (u: User | null): u is User => !!u && u.role !== 'admin';
+
 async function push(keepalive = false): Promise<void> {
   const user = useAuth.getState().user;
-  if (!user) return;
+  if (!isLearner(user)) return;
   clearTimeout(timer);
   if (inflight && !keepalive) await inflight.catch(() => {});
   useAuth.setState({ sync: 'saving' });
@@ -149,6 +152,7 @@ const schedule = () => {
 async function pull() {
   const user = useAuth.getState().user;
   if (!user) return;
+  if (!isLearner(user)) return void useAuth.setState({ sync: 'local' });
   useAuth.setState({ sync: 'saving' });
   const { progress: remote } = await api<{ progress: ProgressData | null }>('/progress');
   const m = meta();
@@ -220,6 +224,29 @@ export async function logout() {
   signOutLocal();
 }
 
+export async function updateName(name: string) {
+  const r = await api<{ user: User }>('/auth/me', { method: 'PATCH', body: { name } });
+  setUser(r.user);
+  return r.user;
+}
+
+/** Changes the password. Other devices are signed out; this one keeps working with a fresh token. */
+export async function changePassword(currentPassword: string, newPassword: string) {
+  const r = await api<{ token: string; user: User }>('/auth/password', { body: { currentPassword, newPassword } });
+  tokenStore.set(r.token);
+  setUser(r.user);
+}
+
+export async function requestDeletion(reason: string) {
+  const r = await api<{ user: User }>('/auth/deletion-request', { body: { reason } });
+  setUser(r.user);
+}
+
+export async function cancelDeletion() {
+  const r = await api<{ user: User }>('/auth/deletion-request', { method: 'DELETE' });
+  setUser(r.user);
+}
+
 let started = false;
 /** Restores the session, pulls saved progress and starts auto-saving. Call once at startup. */
 export function startSync() {
@@ -227,13 +254,13 @@ export function startSync() {
   started = true;
 
   useProgress.subscribe(() => {
-    if (suppress || !useAuth.getState().user) return;
+    if (suppress || !isLearner(useAuth.getState().user)) return;
     setMeta({ dirty: true });
     schedule();
   });
 
   const flush = () => {
-    if (useAuth.getState().user && meta().dirty) void push(true);
+    if (isLearner(useAuth.getState().user) && meta().dirty) void push(true);
   };
   window.addEventListener('pagehide', flush);
   document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && flush());

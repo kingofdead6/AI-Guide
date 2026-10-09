@@ -17,11 +17,11 @@ export const tone: Record<Course['color'], { text: string; bg: string; soft: str
 const btnBase =
   'inline-flex items-center justify-center gap-2 rounded-[10px] font-semibold text-[15px] px-4 py-2.5 disabled:opacity-45 disabled:cursor-not-allowed select-none';
 export const btn = {
-  primary: `${btnBase} btn-shine bg-accent text-white dark:text-[#0d1120]`,
+  primary: `${btnBase} btn-shine bg-accent text-white dark:text-[#0a0a12]`,
   secondary: `${btnBase} btn-press bg-surface text-ink border border-line-strong hover:border-accent hover:text-accent`,
   ghost: `${btnBase} btn-press text-ink hover:bg-sunk`,
-  ok: `${btnBase} btn-press bg-ok text-white dark:text-[#0d1120]`,
-  danger: `${btnBase} btn-press bg-bad text-white dark:text-[#0d1120] hover:opacity-90`,
+  ok: `${btnBase} btn-press bg-ok text-white dark:text-[#0a0a12]`,
+  danger: `${btnBase} btn-press bg-bad text-white dark:text-[#0a0a12] hover:opacity-90`,
 };
 
 export function ButtonLink({ to, kind = 'primary', children, className }: { to: string; kind?: keyof typeof btn; children: ReactNode; className?: string }) {

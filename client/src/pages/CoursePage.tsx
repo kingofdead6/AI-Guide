@@ -77,7 +77,7 @@ export default function CoursePage() {
                     <span
                       className={cx(
                         'mt-0.5 h-8 w-8 rounded-full flex items-center justify-center text-[14px] font-bold border-2 transition-transform duration-300 group-hover:scale-110',
-                        done ? 'bg-ok border-ok text-white dark:text-[#0d1120]' : visited ? 'border-accent text-accent' : 'border-line-strong text-muted',
+                        done ? 'bg-ok border-ok text-white dark:text-[#0a0a12]' : visited ? 'border-accent text-accent' : 'border-line-strong text-muted',
                       )}
                       aria-label={done ? 'Completed' : visited ? 'In progress' : 'Not started'}
                     >
@@ -109,7 +109,7 @@ export default function CoursePage() {
                 <span
                   className={cx(
                     'mt-0.5 h-8 w-8 rounded-full flex items-center justify-center border-2',
-                    s.examPassed ? 'bg-ok border-ok text-white dark:text-[#0d1120]' : s.lessonsComplete ? 'border-accent text-accent' : 'border-line-strong text-muted',
+                    s.examPassed ? 'bg-ok border-ok text-white dark:text-[#0a0a12]' : s.lessonsComplete ? 'border-accent text-accent' : 'border-line-strong text-muted',
                   )}
                 >
                   {s.examPassed ? <IconCheck size={16} strokeWidth={3} /> : s.lessonsComplete ? <IconAward size={16} /> : <IconLock size={15} />}

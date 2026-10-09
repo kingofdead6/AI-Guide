@@ -4,7 +4,7 @@ import { IconShield } from '../../components/icons';
 import { useAuth, type User } from '../../lib/auth';
 import type { ProgressData } from '../../lib/store';
 
-export type AdminUser = User & { progressUpdatedAt: string | null; progress: ProgressData | null };
+export type AdminUser = User & { progressUpdatedAt: string | null; progress: ProgressData | null; deletionReason?: string };
 
 /** Server documents can be missing fields (or be null for users who never synced); fill them in. */
 export const normalize = (p: ProgressData | null | undefined): ProgressData => ({

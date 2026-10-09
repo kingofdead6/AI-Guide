@@ -40,12 +40,13 @@ const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 router.get('/stats', async (_req, res) => {
   const now = Date.now();
-  const [users, admins, active7, active30, new7] = await Promise.all([
+  const [users, admins, active7, active30, new7, deletionRequests] = await Promise.all([
     User.countDocuments(),
     User.countDocuments({ role: 'admin' }),
     User.countDocuments({ lastSeenAt: { $gte: new Date(now - 7 * DAY) } }),
     User.countDocuments({ lastSeenAt: { $gte: new Date(now - 30 * DAY) } }),
     User.countDocuments({ createdAt: { $gte: new Date(now - 7 * DAY) } }),
+    User.countDocuments({ deletionRequestedAt: { $ne: null } }),
   ]);
   const since = new Date(now - 29 * DAY);
   since.setHours(0, 0, 0, 0);
@@ -54,7 +55,7 @@ router.get('/stats', async (_req, res) => {
     { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, n: { $sum: 1 } } },
     { $sort: { _id: 1 } },
   ]);
-  res.json({ users, admins, active7, active30, new7, signups: Object.fromEntries(signups.map((s) => [s._id, s.n])) });
+  res.json({ users, admins, active7, active30, new7, deletionRequests, signups: Object.fromEntries(signups.map((s) => [s._id, s.n])) });
 });
 
 router.get('/users', async (req, res) => {
@@ -69,11 +70,24 @@ router.get('/users', async (req, res) => {
   });
 });
 
+router.get('/deletion-requests', async (_req, res) => {
+  const docs = await User.find({ deletionRequestedAt: { $ne: null } }).sort({ deletionRequestedAt: 1 });
+  res.json({ requests: docs.map((u) => ({ ...u.toPublic(), deletionReason: u.deletionReason, progress: slim(u.progress) })) });
+});
+
+/** Keep the account and clear the request. */
+router.delete('/deletion-requests/:id', async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: 'User not found.' });
+  const u = await User.findByIdAndUpdate(req.params.id, { deletionRequestedAt: null, deletionReason: '' }, { returnDocument: 'after' });
+  if (!u) return res.status(404).json({ error: 'User not found.' });
+  res.json({ user: u.toPublic() });
+});
+
 router.get('/users/:id', async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: 'User not found.' });
   const u = await User.findById(req.params.id);
   if (!u) return res.status(404).json({ error: 'User not found.' });
-  res.json({ user: { ...u.toPublic(), progressUpdatedAt: u.progressUpdatedAt, progress: u.progress ?? null } });
+  res.json({ user: { ...u.toPublic(), deletionReason: u.deletionReason, progressUpdatedAt: u.progressUpdatedAt, progress: u.progress ?? null } });
 });
 
 router.patch('/users/:id', async (req, res) => {

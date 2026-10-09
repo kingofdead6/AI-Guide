@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { logout, useAuth } from '../lib/auth';
-import { IconChart, IconCloudCheck, IconCloudOff, IconLogIn, IconLogOut, IconShield } from './icons';
+import { IconChart, IconCloudCheck, IconCloudOff, IconKey, IconLogIn, IconLogOut, IconPalette, IconShield } from './icons';
 import { cx } from './ui';
 
 export const initials = (name: string) =>
@@ -29,7 +29,7 @@ export function Avatar({ name, size = 36, className }: { name: string; size?: nu
 
 export function SyncBadge() {
   const { user, sync } = useAuth();
-  if (!user) return null;
+  if (!user || user.role === 'admin') return null;
   const label = { local: 'Not synced yet', saving: 'Saving…', saved: 'Progress saved to your account', offline: 'Offline: will save when you reconnect', error: 'Could not save, retrying' }[sync];
   return (
     <span className="hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-[10px] text-muted" title={label} aria-label={label} role="status">
@@ -67,7 +67,7 @@ export function UserMenu() {
 
   if (!user)
     return (
-      <Link to="/login" className="ml-1 h-10 inline-flex items-center gap-2 rounded-[10px] px-3.5 text-[14.5px] font-semibold btn-shine text-white dark:text-[#0d1120]">
+      <Link to="/login" className="ml-1 h-10 inline-flex items-center gap-2 rounded-[10px] px-3.5 text-[14.5px] font-semibold btn-shine text-white dark:text-[#0a0a12]">
         <IconLogIn size={17} />
         <span className="hidden sm:inline">Sign in</span>
       </Link>
@@ -96,14 +96,21 @@ export function UserMenu() {
             </div>
           </div>
           <div className="my-1 h-px bg-line" />
-          <Link role="menuitem" to="/progress" className={item} onClick={() => setOpen(false)}>
-            <IconChart size={17} className="text-muted" /> My progress
-          </Link>
-          {user.role === 'admin' && (
+          {user.role === 'admin' ? (
             <Link role="menuitem" to="/admin" className={item} onClick={() => setOpen(false)}>
               <IconShield size={17} className="text-accent" /> Admin panel
             </Link>
+          ) : (
+            <Link role="menuitem" to="/progress" className={item} onClick={() => setOpen(false)}>
+              <IconChart size={17} className="text-muted" /> My progress
+            </Link>
           )}
+          <Link role="menuitem" to="/account" className={item} onClick={() => setOpen(false)}>
+            <IconKey size={17} className="text-muted" /> Account settings
+          </Link>
+          <Link role="menuitem" to="/settings" className={item} onClick={() => setOpen(false)}>
+            <IconPalette size={17} className="text-muted" /> Appearance
+          </Link>
           <button
             role="menuitem"
             type="button"

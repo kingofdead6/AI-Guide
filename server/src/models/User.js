@@ -10,6 +10,11 @@ const userSchema = new mongoose.Schema(
     progress: { type: mongoose.Schema.Types.Mixed, default: null },
     progressUpdatedAt: { type: Date, default: null },
     lastSeenAt: { type: Date, default: Date.now, index: true },
+    /** Bumped on password change so every older login token stops working. */
+    tokenVersion: { type: Number, default: 0 },
+    /** Set when the learner asks for their account to be deleted; an admin reviews and deletes it. */
+    deletionRequestedAt: { type: Date, default: null, index: true },
+    deletionReason: { type: String, default: '', maxlength: 1000 },
   },
   { timestamps: true, minimize: false },
 );
@@ -22,6 +27,7 @@ userSchema.methods.toPublic = function toPublic() {
     role: this.role,
     createdAt: this.createdAt,
     lastSeenAt: this.lastSeenAt,
+    deletionRequestedAt: this.deletionRequestedAt ?? null,
   };
 };
 

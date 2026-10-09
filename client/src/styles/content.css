@@ -3,7 +3,7 @@
 /* ------------------------------------------------------------------ prose */
 .prose-lesson {
   font-family: var(--font-serif);
-  font-size: 1.125rem;
+  font-size: calc(1.125rem * var(--reading-scale, 1));
   line-height: 1.72;
   color: var(--text);
   font-optical-sizing: auto;
@@ -17,7 +17,7 @@
 }
 .prose-lesson h3 {
   font-family: var(--font-sans);
-  font-size: 1.3rem;
+  font-size: calc(1.3rem * var(--reading-scale, 1));
   line-height: 1.3;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -27,7 +27,7 @@
 }
 .prose-lesson h4 {
   font-family: var(--font-sans);
-  font-size: 1.05rem;
+  font-size: calc(1.05rem * var(--reading-scale, 1));
   font-weight: 700;
   margin-top: 1.6em;
 }
@@ -75,7 +75,7 @@
   white-space: nowrap;
 }
 .prose-lesson .lead {
-  font-size: 1.2rem;
+  font-size: calc(1.2rem * var(--reading-scale, 1));
   color: var(--muted);
 }
 
@@ -86,7 +86,7 @@
   border-collapse: collapse;
   width: 100%;
   font-family: var(--font-sans);
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--reading-scale, 1));
   line-height: 1.5;
 }
 .prose-lesson th,
@@ -110,7 +110,7 @@
 .prose-lesson .key {
   border-radius: 12px;
   padding: 0.9em 1.15em;
-  font-size: 1.02rem;
+  font-size: calc(1.02rem * var(--reading-scale, 1));
 }
 .prose-lesson .callout {
   border-left: 4px solid;
@@ -118,7 +118,7 @@
 .prose-lesson .callout > b:first-child {
   display: block;
   font-family: var(--font-sans);
-  font-size: 0.92rem;
+  font-size: calc(0.92rem * var(--reading-scale, 1));
   font-weight: 700;
   margin-bottom: 0.25em;
 }
@@ -166,7 +166,7 @@
 .prose-lesson summary {
   cursor: pointer;
   font-family: var(--font-sans);
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--reading-scale, 1));
   font-weight: 650;
   color: var(--c4);
 }
@@ -200,7 +200,7 @@ pre.code {
   padding: 1.1em 1.1em;
   overflow-x: auto;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: calc(0.8rem * var(--reading-scale, 1));
   line-height: 1.6;
   max-width: 100%;
 }
@@ -286,7 +286,7 @@ pre.code .copy-btn:focus-visible {
 }
 .fig figcaption {
   font-family: var(--font-sans);
-  font-size: 0.85rem;
+  font-size: calc(0.85rem * var(--reading-scale, 1));
   line-height: 1.5;
   color: var(--muted);
   text-align: center;
@@ -464,7 +464,7 @@ pre.code .copy-btn:focus-visible {
   color: #fff;
 }
 .dark .w-btn.primary {
-  color: #0d1120;
+  color: #0a0a12;
 }
 .w-stat {
   font-family: var(--font-mono);
@@ -596,7 +596,7 @@ pre.code .copy-btn:focus-visible {
     width: 100px;
   }
   .prose-lesson {
-    font-size: 1.06rem;
+    font-size: calc(1.06rem * var(--reading-scale, 1));
   }
 }
 

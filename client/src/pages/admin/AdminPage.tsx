@@ -160,6 +160,7 @@ function Dashboard() {
                       <span className="flex items-center gap-2">
                         <span className="font-semibold truncate group-hover:text-accent">{r.name}</span>
                         <RoleBadge role={r.role} />
+                        {r.deletionRequestedAt && <span className="rounded-full bg-bad-soft text-bad px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide">Deletion requested</span>}
                       </span>
                       <span className="block text-[13px] text-muted truncate">{r.email}</span>
                     </span>

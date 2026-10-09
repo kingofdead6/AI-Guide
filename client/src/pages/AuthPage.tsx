@@ -184,6 +184,19 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 )}
               </button>
             </form>
+            {!isLogin && (
+              <p className="mt-4 text-center text-[13px] text-muted">
+                By creating an account you agree to the{' '}
+                <Link to="/terms" className="underline underline-offset-2 hover:text-ink">
+                  terms of use
+                </Link>{' '}
+                and{' '}
+                <Link to="/privacy" className="underline underline-offset-2 hover:text-ink">
+                  privacy policy
+                </Link>
+                .
+              </p>
+            )}
             <p className="mt-5 text-center text-[14px] text-muted">
               {isLogin ? 'New here? ' : 'Already have an account? '}
               <Link to={isLogin ? '/register' : '/login'} state={loc.state} replace className="font-semibold text-accent hover:underline">

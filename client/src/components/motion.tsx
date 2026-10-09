@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { motionReduced } from '../lib/appearance';
 
-const reduced = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const reduced = () => typeof window !== 'undefined' && motionReduced();
 
 /**
  * Elements with a `data-reveal` attribute fade and slide in the first time they scroll into view.

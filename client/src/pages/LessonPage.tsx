@@ -41,7 +41,7 @@ function Outline({ course, current, onPick }: { course: Course; current: string;
                 <span
                   className={cx(
                     'mt-px h-5 w-5 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold border',
-                    done ? 'bg-ok border-ok text-white dark:text-[#0d1120]' : 'border-line-strong text-muted',
+                    done ? 'bg-ok border-ok text-white dark:text-[#0a0a12]' : 'border-line-strong text-muted',
                   )}
                 >
                   {done ? <IconCheck size={12} strokeWidth={3.5} /> : i + 1}

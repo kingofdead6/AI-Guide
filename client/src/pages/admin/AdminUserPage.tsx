@@ -124,6 +124,39 @@ function Detail() {
         </div>
       </header>
 
+      {u.deletionRequestedAt && (
+        <div data-reveal className="mt-8 rounded-2xl border border-warn/40 bg-warn-soft p-5 flex flex-wrap items-start gap-4">
+          <IconClock size={22} className="text-warn shrink-0 mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <p className="font-bold">Deletion requested {ago(u.deletionRequestedAt)}</p>
+            <p className={cx('mt-1 text-[14.5px]', !u.deletionReason && 'text-muted italic')}>{u.deletionReason || 'No reason given.'}</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className={btn.secondary}
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  await api(`/admin/deletion-requests/${u.id}`, { method: 'DELETE' });
+                  setU({ ...u, deletionRequestedAt: null, deletionReason: '' });
+                } catch (e) {
+                  setErr((e as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Keep account
+            </button>
+            <button type="button" className={btn.danger} disabled={busy} onClick={() => setConfirmDelete(true)}>
+              <IconTrash size={16} /> Delete account
+            </button>
+          </div>
+        </div>
+      )}
+
       {!u.progress && (
         <p data-reveal className="mt-8 rounded-xl border border-line bg-sunk/60 px-4 py-3 text-muted">
           This learner has not saved any progress yet.
@@ -224,7 +257,7 @@ function Detail() {
                               <span
                                 className={cx(
                                   'h-6 w-6 rounded-full flex items-center justify-center text-[12px] font-bold border-2',
-                                  done ? 'bg-ok border-ok text-white dark:text-[#0d1120]' : ls?.visitedAt ? 'border-accent text-accent' : 'border-line-strong text-muted',
+                                  done ? 'bg-ok border-ok text-white dark:text-[#0a0a12]' : ls?.visitedAt ? 'border-accent text-accent' : 'border-line-strong text-muted',
                                 )}
                               >
                                 {done ? <IconCheck size={13} strokeWidth={3} /> : j + 1}
@@ -261,7 +294,7 @@ function Detail() {
                           );
                         })}
                         <li className="grid grid-cols-[28px_minmax(0,1fr)_auto] gap-3 py-2.5 items-center text-[14px]">
-                          <span className={cx('h-6 w-6 rounded-full flex items-center justify-center border-2', s.examPassed ? 'bg-ok border-ok text-white dark:text-[#0d1120]' : 'border-line-strong text-muted')}>
+                          <span className={cx('h-6 w-6 rounded-full flex items-center justify-center border-2', s.examPassed ? 'bg-ok border-ok text-white dark:text-[#0a0a12]' : 'border-line-strong text-muted')}>
                             <IconTarget size={13} />
                           </span>
                           <span>

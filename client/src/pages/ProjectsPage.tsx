@@ -67,7 +67,7 @@ export default function ProjectsPage() {
                         <span
                           className={cx(
                             'mt-0.5 h-5 w-5 shrink-0 rounded-[6px] border-2 flex items-center justify-center peer-focus-visible:outline-2 peer-focus-visible:outline-accent',
-                            state[m.id] ? 'bg-ok border-ok text-white dark:text-[#0d1120]' : 'border-line-strong',
+                            state[m.id] ? 'bg-ok border-ok text-white dark:text-[#0a0a12]' : 'border-line-strong',
                           )}
                           aria-hidden
                         >
