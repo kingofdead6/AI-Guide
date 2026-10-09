@@ -14,7 +14,7 @@ export const config = {
   mongoUri: required('MONGO_URI'),
   jwtSecret: required('JWT_SECRET'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '30d',
-  /** Comma-separated list of origins allowed to call the API from another domain. Empty = same origin only. */
+  /** Comma-separated list of origins allowed to call the API from another domain. `*` = any origin. Empty = same origin only. */
   clientOrigins: (process.env.CLIENT_ORIGIN || '')
     .split(',')
     .map((s) => s.trim())

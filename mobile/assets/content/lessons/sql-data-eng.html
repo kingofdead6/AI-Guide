@@ -1,0 +1,53 @@
+<h3 id="sql-you-must-be-able-to-write">SQL you must be able to write</h3>
+<pre class="code" data-lang="sql"><code class="hljs language-sql"><span class="hljs-comment">-- Latest row per user (deduplication) with a window function</span>
+<span class="hljs-keyword">WITH</span> ranked <span class="hljs-keyword">AS</span> (
+  <span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span>, <span class="hljs-built_in">ROW_NUMBER</span>() <span class="hljs-keyword">OVER</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> user_id <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> updated_at <span class="hljs-keyword">DESC</span>) <span class="hljs-keyword">AS</span> rn
+  <span class="hljs-keyword">FROM</span> profiles
+)
+<span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> ranked <span class="hljs-keyword">WHERE</span> rn <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;
+
+<span class="hljs-comment">-- 7-day rolling average of daily revenue</span>
+<span class="hljs-keyword">SELECT</span> <span class="hljs-keyword">day</span>,
+       <span class="hljs-built_in">SUM</span>(amount) <span class="hljs-keyword">AS</span> revenue,
+       <span class="hljs-built_in">AVG</span>(<span class="hljs-built_in">SUM</span>(amount)) <span class="hljs-keyword">OVER</span> (<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> <span class="hljs-keyword">day</span> <span class="hljs-keyword">ROWS</span> <span class="hljs-keyword">BETWEEN</span> <span class="hljs-number">6</span> PRECEDING <span class="hljs-keyword">AND</span> <span class="hljs-keyword">CURRENT</span> <span class="hljs-type">ROW</span>) <span class="hljs-keyword">AS</span> rev_7d
+<span class="hljs-keyword">FROM</span> orders <span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> <span class="hljs-keyword">day</span> <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> <span class="hljs-keyword">day</span>;
+
+<span class="hljs-comment">-- Day-1 retention: share of users active the day after signup</span>
+<span class="hljs-keyword">SELECT</span> s.signup_day,
+       <span class="hljs-built_in">COUNT</span>(<span class="hljs-keyword">DISTINCT</span> a.user_id) <span class="hljs-operator">*</span> <span class="hljs-number">1.0</span> <span class="hljs-operator">/</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-keyword">DISTINCT</span> s.user_id) <span class="hljs-keyword">AS</span> d1_retention
+<span class="hljs-keyword">FROM</span> signups s
+<span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> activity a <span class="hljs-keyword">ON</span> a.user_id <span class="hljs-operator">=</span> s.user_id <span class="hljs-keyword">AND</span> a.day <span class="hljs-operator">=</span> s.signup_day <span class="hljs-operator">+</span> <span class="hljs-type">INTERVAL</span> <span class="hljs-string">&#x27;1 day&#x27;</span>
+<span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> s.signup_day;</code></pre>
+<p>Know: <code>JOIN</code> types (inner, left, full, anti-join via <code>LEFT JOIN … WHERE b.id IS NULL</code>), <code>GROUP BY</code> vs <code>HAVING</code>, window functions (<code>ROW_NUMBER</code>, <code>RANK</code>, <code>LAG</code>, <code>LEAD</code>, running sums), CTEs, and how <code>NULL</code> behaves in comparisons and aggregates.</p>
+<h3 id="formats-and-engines">Formats and engines</h3>
+<table>
+<tr><th>Tool</th><th>When</th></tr>
+<tr><td>CSV / JSONL</td><td>Interchange, small data, LLM datasets (one JSON object per line)</td></tr>
+<tr><td>Parquet (+ Arrow in memory)</td><td>Columnar and compressed: read only the columns you need. The default for analytics and training data.</td></tr>
+<tr><td>pandas</td><td>Up to a few GB in memory</td></tr>
+<tr><td>Polars / DuckDB</td><td>Fast single-machine analytics, tens to hundreds of GB, SQL over Parquet files</td></tr>
+<tr><td>Spark / Ray / Dask</td><td>Distributed processing on clusters</td></tr>
+<tr><td>Kafka / streaming</td><td>Real-time events and features</td></tr>
+<tr><td>Airflow / Dagster / Prefect</td><td>Orchestrating scheduled pipelines (DAGs of tasks)</td></tr>
+</table>
+<h3 id="pipeline-principles">Pipeline principles</h3>
+<ul>
+<li><b>Idempotent</b> steps: re-running a job gives the same result. Partition data by date.</li>
+<li><b>Point-in-time correctness:</b> a training example must only use features known at that moment. Joining today's features onto last year's labels is leakage. Feature stores exist largely to enforce this.</li>
+<li><b>Validate early:</b> schemas, null rates, ranges and distribution checks at ingestion (pandera, Great Expectations).</li>
+<li><b>Lineage and versioning:</b> know exactly which data produced which model.</li>
+</ul>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">import</span> duckdb, polars <span class="hljs-keyword">as</span> pl
+<span class="hljs-comment"># SQL directly over Parquet files, no database server needed</span>
+df = duckdb.sql(<span class="hljs-string">&quot;&quot;&quot;
+    SELECT country, COUNT(*) AS n, AVG(price) AS avg_price
+    FROM &#x27;data/orders/*.parquet&#x27;
+    WHERE order_date &gt;= DATE &#x27;2025-01-01&#x27;
+    GROUP BY country ORDER BY n DESC
+&quot;&quot;&quot;</span>).df()
+
+<span class="hljs-comment"># Polars: lazy, multi-threaded dataframe</span>
+out = (pl.scan_parquet(<span class="hljs-string">&quot;data/orders/*.parquet&quot;</span>)
+         .<span class="hljs-built_in">filter</span>(pl.col(<span class="hljs-string">&quot;price&quot;</span>) &gt; <span class="hljs-number">0</span>)
+         .group_by(<span class="hljs-string">&quot;user_id&quot;</span>).agg(pl.col(<span class="hljs-string">&quot;price&quot;</span>).<span class="hljs-built_in">sum</span>().alias(<span class="hljs-string">&quot;spend&quot;</span>))
+         .collect())</code></pre>

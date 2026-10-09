@@ -1,0 +1,48 @@
+<h3 id="the-steps">The steps</h3>
+<ol>
+<li><b>Data:</b> a few hundred MB of clean text (e.g. a Wikipedia dump in your language, public-domain books). Deduplicate and normalize.</li>
+<li><b>Tokenizer:</b> train byte-level BPE with a vocabulary of 8k–32k.</li>
+<li><b>Packing:</b> concatenate tokenized documents separated by an end-of-text token and cut into blocks of length 256–1024.</li>
+<li><b>Model:</b> <code>TinyGPT</code> from <a class="xref" href="#/course/dl/transformer">Attention &amp; the Transformer</a> (e.g. 6 layers, d = 384, 6 heads ≈ 10–30M parameters).</li>
+<li><b>Train:</b> AdamW (lr ≈ 3e-4 to 1e-3, weight decay 0.1, β₂ = 0.95), warmup + cosine decay, bf16 autocast, gradient clipping at 1.0.</li>
+<li><b>Monitor:</b> the initial loss should be ≈ ln(vocab size); track validation loss and perplexity; sample text every few hundred steps.</li>
+<li><b>Then:</b> instruction-tune on a small chat dataset with a chat template and the loss masked to assistant tokens only.</li>
+</ol>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">import</span> math, torch, numpy <span class="hljs-keyword">as</span> np
+<span class="hljs-keyword">from</span> tokenizers <span class="hljs-keyword">import</span> ByteLevelBPETokenizer
+
+<span class="hljs-comment"># 1–3. tokenizer + packed dataset</span>
+tok = ByteLevelBPETokenizer()
+tok.train([<span class="hljs-string">&quot;corpus.txt&quot;</span>], vocab_size=<span class="hljs-number">16000</span>, min_frequency=<span class="hljs-number">2</span>, special_tokens=[<span class="hljs-string">&quot;&lt;|endoftext|&gt;&quot;</span>])
+ids = np.array(tok.encode(<span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;corpus.txt&quot;</span>, encoding=<span class="hljs-string">&quot;utf-8&quot;</span>).read()).ids, dtype=np.uint16)
+split = <span class="hljs-built_in">int</span>(<span class="hljs-number">0.98</span> * <span class="hljs-built_in">len</span>(ids)); train_ids, val_ids = ids[:split], ids[split:]
+block, batch = <span class="hljs-number">256</span>, <span class="hljs-number">32</span>
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">get_batch</span>(<span class="hljs-params">data</span>):
+    ix = np.random.randint(<span class="hljs-number">0</span>, <span class="hljs-built_in">len</span>(data) - block - <span class="hljs-number">1</span>, batch)
+    x = torch.stack([torch.from_numpy(data[i:i + block].astype(np.int64)) <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> ix])
+    y = torch.stack([torch.from_numpy(data[i + <span class="hljs-number">1</span>:i + block + <span class="hljs-number">1</span>].astype(np.int64)) <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> ix])
+    <span class="hljs-keyword">return</span> x.cuda(), y.cuda()
+
+<span class="hljs-comment"># 4–5. model + training loop</span>
+model = TinyGPT(vocab=<span class="hljs-number">16000</span>, d=<span class="hljs-number">384</span>, n_heads=<span class="hljs-number">6</span>, n_layers=<span class="hljs-number">6</span>, max_len=block).cuda()
+opt = torch.optim.AdamW(model.parameters(), lr=<span class="hljs-number">6e-4</span>, betas=(<span class="hljs-number">0.9</span>, <span class="hljs-number">0.95</span>), weight_decay=<span class="hljs-number">0.1</span>)
+steps, warmup = <span class="hljs-number">5000</span>, <span class="hljs-number">200</span>
+lr_at = <span class="hljs-keyword">lambda</span> s: <span class="hljs-number">6e-4</span> * <span class="hljs-built_in">min</span>(<span class="hljs-number">1</span>, s / warmup) * <span class="hljs-number">0.5</span> * (<span class="hljs-number">1</span> + math.cos(math.pi * <span class="hljs-built_in">min</span>(<span class="hljs-number">1</span>, s / steps)))
+<span class="hljs-keyword">for</span> step <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(steps):
+    <span class="hljs-keyword">for</span> g <span class="hljs-keyword">in</span> opt.param_groups: g[<span class="hljs-string">&quot;lr&quot;</span>] = lr_at(step)
+    x, y = get_batch(train_ids)
+    <span class="hljs-keyword">with</span> torch.autocast(<span class="hljs-string">&quot;cuda&quot;</span>, dtype=torch.bfloat16):
+        _, loss = model(x, y)
+    opt.zero_grad(set_to_none=<span class="hljs-literal">True</span>); loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), <span class="hljs-number">1.0</span>); opt.step()
+    <span class="hljs-keyword">if</span> step % <span class="hljs-number">500</span> == <span class="hljs-number">0</span>:
+        model.<span class="hljs-built_in">eval</span>()
+        <span class="hljs-keyword">with</span> torch.no_grad():
+            vl = <span class="hljs-built_in">sum</span>(model(*get_batch(val_ids))[<span class="hljs-number">1</span>].item() <span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">20</span>)) / <span class="hljs-number">20</span>
+        <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;step <span class="hljs-subst">{step}</span> train <span class="hljs-subst">{loss.item():<span class="hljs-number">.3</span>f}</span> val <span class="hljs-subst">{vl:<span class="hljs-number">.3</span>f}</span> ppl <span class="hljs-subst">{math.exp(vl):<span class="hljs-number">.1</span>f}</span>&quot;</span>)
+        model.train()
+
+<span class="hljs-comment"># 6. sample (generate() from &lt;a class=&quot;xref&quot; href=&quot;#/course/llm/decoding&quot;&gt;Decoding: Temperature, Top-k &amp; Top-p&lt;/a&gt;)</span>
+start = torch.tensor([tok.encode(<span class="hljs-string">&quot;The history of&quot;</span>).ids]).cuda()
+<span class="hljs-built_in">print</span>(tok.decode(generate(model, start, max_new=<span class="hljs-number">120</span>, T=<span class="hljs-number">0.8</span>)[<span class="hljs-number">0</span>].tolist()))</code></pre>
+<div class="callout intuition"><b>What to expect</b><p>With 16k vocabulary the first loss is near ln(16000) ≈ 9.7. A few thousand steps bring it to roughly 3–4 on clean text, and samples go from random tokens to fluent but meaningless sentences. That gap between fluency and knowledge is what scale buys. If the loss plateaus early, check the learning rate first.</p></div>

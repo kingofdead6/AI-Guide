@@ -1,0 +1,104 @@
+<h3 id="files-and-paths">Files and paths</h3>
+<p>Use <code>pathlib</code> instead of string paths: it works on Windows and Linux and reads clearly.</p>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">from</span> pathlib <span class="hljs-keyword">import</span> Path
+<span class="hljs-keyword">import</span> json, csv
+
+root = Path(<span class="hljs-string">&quot;data&quot;</span>)
+(root / <span class="hljs-string">&quot;raw&quot;</span>).mkdir(parents=<span class="hljs-literal">True</span>, exist_ok=<span class="hljs-literal">True</span>)
+<span class="hljs-keyword">for</span> p <span class="hljs-keyword">in</span> <span class="hljs-built_in">sorted</span>(root.glob(<span class="hljs-string">&quot;**/*.jsonl&quot;</span>)):      <span class="hljs-comment"># recursive search</span>
+    <span class="hljs-built_in">print</span>(p.name, p.suffix, p.stat().st_size)
+
+text = Path(<span class="hljs-string">&quot;notes.txt&quot;</span>).read_text(encoding=<span class="hljs-string">&quot;utf-8&quot;</span>)
+Path(<span class="hljs-string">&quot;out.txt&quot;</span>).write_text(<span class="hljs-string">&quot;done\n&quot;</span>, encoding=<span class="hljs-string">&quot;utf-8&quot;</span>)
+
+<span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;config.json&quot;</span>, encoding=<span class="hljs-string">&quot;utf-8&quot;</span>) <span class="hljs-keyword">as</span> f:   <span class="hljs-comment"># always close files: use with</span>
+    cfg = json.load(f)
+<span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;results.json&quot;</span>, <span class="hljs-string">&quot;w&quot;</span>, encoding=<span class="hljs-string">&quot;utf-8&quot;</span>) <span class="hljs-keyword">as</span> f:
+    json.dump({<span class="hljs-string">&quot;acc&quot;</span>: <span class="hljs-number">0.91</span>}, f, ensure_ascii=<span class="hljs-literal">False</span>, indent=<span class="hljs-number">2</span>)   <span class="hljs-comment"># keep Arabic readable</span>
+
+<span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;rows.csv&quot;</span>, newline=<span class="hljs-string">&quot;&quot;</span>, encoding=<span class="hljs-string">&quot;utf-8&quot;</span>) <span class="hljs-keyword">as</span> f:
+    <span class="hljs-keyword">for</span> row <span class="hljs-keyword">in</span> csv.DictReader(f):                 <span class="hljs-comment"># each row is a dict keyed by header</span>
+        <span class="hljs-built_in">print</span>(row[<span class="hljs-string">&quot;label&quot;</span>])</code></pre>
+<p>Formats worth knowing: <b>JSON</b> for configs and API payloads, <b>JSONL</b> (one JSON object per line) for datasets and LLM fine-tuning data, <b>CSV</b> for simple tables, <b>Parquet</b> for large tabular data (see <a class="xref" href="#/course/data/sql-data-eng">SQL &amp; Data Engineering</a>), and <code>pickle</code> only for trusted, temporary Python objects: loading a pickle runs arbitrary code.</p>
+
+<h3 id="errors-and-exceptions">Errors and exceptions</h3>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">parse_score</span>(<span class="hljs-params">raw: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-built_in">float</span>:
+    <span class="hljs-keyword">try</span>:
+        value = <span class="hljs-built_in">float</span>(raw)
+    <span class="hljs-keyword">except</span> ValueError <span class="hljs-keyword">as</span> e:
+        <span class="hljs-keyword">raise</span> ValueError(<span class="hljs-string">f&quot;score must be a number, got <span class="hljs-subst">{raw!r}</span>&quot;</span>) <span class="hljs-keyword">from</span> e
+    <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> <span class="hljs-number">0</span> &lt;= value &lt;= <span class="hljs-number">1</span>:
+        <span class="hljs-keyword">raise</span> ValueError(<span class="hljs-string">f&quot;score must be in [0, 1], got <span class="hljs-subst">{value}</span>&quot;</span>)
+    <span class="hljs-keyword">return</span> value
+
+<span class="hljs-keyword">try</span>:
+    s = parse_score(<span class="hljs-string">&quot;1.7&quot;</span>)
+<span class="hljs-keyword">except</span> ValueError <span class="hljs-keyword">as</span> e:
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;bad input:&quot;</span>, e)
+<span class="hljs-keyword">else</span>:
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;ok&quot;</span>, s)          <span class="hljs-comment"># runs only if no exception</span>
+<span class="hljs-keyword">finally</span>:
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;always runs&quot;</span>)    <span class="hljs-comment"># cleanup</span></code></pre>
+<ul>
+<li>Catch the <b>specific</b> exceptions you can handle. A bare <code>except:</code> also swallows <code>KeyboardInterrupt</code> and hides real bugs.</li>
+<li><b>Fail fast</b> with clear messages at the boundary of your system (inputs, configs, API responses), so errors surface where they start.</li>
+<li>Define your own exception classes for domain errors: <code>class RateLimited(Exception): pass</code>.</li>
+<li>Use <code>assert</code> for internal sanity checks (shapes, invariants), not for validating user input: assertions can be disabled with <code>python -O</code>.</li>
+</ul>
+
+<h3 id="logging-instead-of-print">Logging instead of print</h3>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">import</span> logging
+logging.basicConfig(level=logging.INFO, <span class="hljs-built_in">format</span>=<span class="hljs-string">&quot;%(asctime)s %(levelname)s %(name)s: %(message)s&quot;</span>)
+log = logging.getLogger(<span class="hljs-string">&quot;train&quot;</span>)
+log.info(<span class="hljs-string">&quot;epoch %d loss %.4f&quot;</span>, <span class="hljs-number">3</span>, <span class="hljs-number">0.4123</span>)
+log.warning(<span class="hljs-string">&quot;learning rate %.0e looks high&quot;</span>, <span class="hljs-number">1e-1</span>)</code></pre>
+
+<h3 id="command-line-scripts">Command-line scripts</h3>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-comment"># train.py  — run with: python train.py --lr 1e-3 --epochs 5</span>
+<span class="hljs-keyword">import</span> argparse
+<span class="hljs-keyword">from</span> pathlib <span class="hljs-keyword">import</span> Path
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">main</span>():
+    ap = argparse.ArgumentParser(description=<span class="hljs-string">&quot;Train a classifier&quot;</span>)
+    ap.add_argument(<span class="hljs-string">&quot;--lr&quot;</span>, <span class="hljs-built_in">type</span>=<span class="hljs-built_in">float</span>, default=<span class="hljs-number">3e-4</span>)
+    ap.add_argument(<span class="hljs-string">&quot;--epochs&quot;</span>, <span class="hljs-built_in">type</span>=<span class="hljs-built_in">int</span>, default=<span class="hljs-number">10</span>)
+    ap.add_argument(<span class="hljs-string">&quot;--data&quot;</span>, <span class="hljs-built_in">type</span>=Path, required=<span class="hljs-literal">True</span>)
+    args = ap.parse_args()
+    <span class="hljs-built_in">print</span>(args.lr, args.epochs, args.data)
+
+<span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">&quot;__main__&quot;</span>:     <span class="hljs-comment"># only runs when executed directly, not when imported</span>
+    main()</code></pre>
+
+<h3 id="environments-and-dependencies">Environments and dependencies</h3>
+<p>Every project gets its own isolated environment so library versions don't collide. Record exact versions so the project runs the same on another machine, in CI and in Docker.</p>
+<pre class="code" data-lang="bash"><code class="hljs language-bash"><span class="hljs-comment"># Standard library tooling</span>
+python -m venv .venv
+<span class="hljs-built_in">source</span> .venv/bin/activate          <span class="hljs-comment"># Windows: .venv\Scripts\activate</span>
+pip install numpy pandas torch
+pip freeze &gt; requirements.txt      <span class="hljs-comment"># pin exact versions</span>
+
+<span class="hljs-comment"># uv: a fast modern alternative that manages Python versions, envs and lockfiles</span>
+uv init my-project &amp;&amp; <span class="hljs-built_in">cd</span> my-project
+uv add numpy pandas torch          <span class="hljs-comment"># updates pyproject.toml and uv.lock</span>
+uv run python train.py
+
+<span class="hljs-comment"># conda/mamba: useful when you need non-Python binaries (CUDA toolkits, GDAL)</span></code></pre>
+<p>Secrets (API keys) never go in code or git. Read them from environment variables, often loaded from a <code>.env</code> file that is listed in <code>.gitignore</code>:</p>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">import</span> os
+api_key = os.environ.get(<span class="hljs-string">&quot;LLM_API_KEY&quot;</span>)
+<span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> api_key:
+    <span class="hljs-keyword">raise</span> RuntimeError(<span class="hljs-string">&quot;Set LLM_API_KEY before running this script&quot;</span>)</code></pre>
+
+<h3 id="modules-and-packages">Modules and packages</h3>
+<p>A <b>module</b> is a <code>.py</code> file; a <b>package</b> is a folder of modules. Put reusable code in a package under <code>src/</code> and import it from notebooks and scripts instead of copying cells around. A <code>pyproject.toml</code> declares the package name, dependencies and tool settings; <code>pip install -e .</code> makes it importable everywhere in the environment while you edit it.</p>
+<pre class="code" data-lang="bash"><code class="hljs language-bash">my-project/
+├── pyproject.toml
+├── src/my_project/__init__.py
+├── src/my_project/data.py
+└── tests/test_data.py</code></pre>
+<p><a class="xref" href="#/course/data/swe-for-ml">Software Engineering for ML</a> goes further into structure, testing and configs.</p>
+
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>A teammate's script works on their laptop but crashes on the server with <code>ModuleNotFoundError</code> for a library they installed months ago. What should the project have, and why?
+<details><summary>Solution</summary><div>A pinned dependency file (requirements.txt with versions, or pyproject + lockfile) and a fresh virtual environment created from it. Then the server installs exactly the same versions, and missing or mismatched packages show up immediately instead of at runtime.</div></details></li>
+</ol></div>

@@ -1,0 +1,36 @@
+name: ai_guide_academy
+description: "The AI Guide Academy mobile app"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  provider: ^6.1.5+1
+  http: ^1.6.0
+  shared_preferences: ^2.5.6
+  webview_flutter: ^4.14.1
+  url_launcher: ^6.3.3
+  flutter_math_fork: ^0.7.4
+  html: ^0.15.7
+  google_fonts: ^9.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  # Content is copied from the website by `node tool/sync_content.mjs`.
+  assets:
+    - assets/content/
+    - assets/content/lessons/
+    - assets/content/quizzes/
+    - assets/content/exercises/
+    - assets/content/pages/
+    - assets/web/

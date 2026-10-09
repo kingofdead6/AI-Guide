@@ -1,0 +1,80 @@
+<h3 id="two-kinds-of-slow">Two kinds of slow</h3>
+<p>Before choosing a concurrency tool, ask what your program is waiting for.</p>
+<table>
+<tr><th>Work is…</th><th>Example</th><th>Bottleneck</th><th>Use</th></tr>
+<tr><td><b>I/O-bound</b></td><td>Calling an LLM API, downloading images, querying a database</td><td>Waiting on the network or disk</td><td><code>asyncio</code> or threads</td></tr>
+<tr><td><b>CPU-bound</b></td><td>Tokenizing a corpus in pure Python, feature engineering loops</td><td>The CPU</td><td>Processes (<code>multiprocessing</code>), or a vectorized library</td></tr>
+<tr><td>GPU-bound</td><td>Training, batched inference</td><td>The accelerator</td><td>Bigger batches, better kernels (see <a class="xref" href="#/course/systems/gpus">GPUs, Memory &amp; Kernels</a>)</td></tr>
+</table>
+
+<h3 id="the-gil">The GIL</h3>
+<p>In the standard CPython interpreter, the <b>global interpreter lock</b> lets only one thread execute Python bytecode at a time. Threads therefore don't speed up pure-Python computation. They <i>do</i> help with I/O, because a thread waiting on the network releases the lock, and with libraries like NumPy and PyTorch that release it inside their C code. (Recent Python versions offer an experimental free-threaded build without the GIL; most production code still assumes it.)</p>
+
+<h3 id="threads-for-blocking-i-o">Threads for blocking I/O</h3>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">from</span> concurrent.futures <span class="hljs-keyword">import</span> ThreadPoolExecutor, as_completed
+<span class="hljs-keyword">import</span> urllib.request
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">fetch</span>(<span class="hljs-params">url: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-built_in">int</span>:
+    <span class="hljs-keyword">with</span> urllib.request.urlopen(url, timeout=<span class="hljs-number">10</span>) <span class="hljs-keyword">as</span> r:
+        <span class="hljs-keyword">return</span> <span class="hljs-built_in">len</span>(r.read())
+
+urls = [<span class="hljs-string">f&quot;https://example.com/?page=<span class="hljs-subst">{i}</span>&quot;</span> <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">20</span>)]
+<span class="hljs-keyword">with</span> ThreadPoolExecutor(max_workers=<span class="hljs-number">8</span>) <span class="hljs-keyword">as</span> pool:
+    futures = {pool.submit(fetch, u): u <span class="hljs-keyword">for</span> u <span class="hljs-keyword">in</span> urls}
+    <span class="hljs-keyword">for</span> fut <span class="hljs-keyword">in</span> as_completed(futures):
+        <span class="hljs-built_in">print</span>(futures[fut], fut.result())</code></pre>
+
+<h3 id="processes-for-cpu-heavy-python">Processes for CPU-heavy Python</h3>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">from</span> concurrent.futures <span class="hljs-keyword">import</span> ProcessPoolExecutor
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">clean</span>(<span class="hljs-params">doc: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-built_in">str</span>:
+    <span class="hljs-keyword">return</span> <span class="hljs-string">&quot; &quot;</span>.join(doc.lower().split())
+
+<span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">&quot;__main__&quot;</span>:                 <span class="hljs-comment"># required for process pools on Windows/macOS</span>
+    docs = [<span class="hljs-string">&quot;  Hello World  &quot;</span>] * <span class="hljs-number">100_000</span>
+    <span class="hljs-keyword">with</span> ProcessPoolExecutor() <span class="hljs-keyword">as</span> pool:    <span class="hljs-comment"># one worker per CPU core by default</span>
+        cleaned = <span class="hljs-built_in">list</span>(pool.<span class="hljs-built_in">map</span>(clean, docs, chunksize=<span class="hljs-number">1_000</span>))</code></pre>
+<p>Each process has its own interpreter and memory, so arguments and results are pickled and copied between them. Send big chunks of work (large <code>chunksize</code>), not millions of tiny calls. PyTorch's <code>DataLoader(num_workers=4)</code> uses exactly this to prepare batches in parallel.</p>
+
+<h3 id="asyncio-thousands-of-concurrent-requests">asyncio: thousands of concurrent requests</h3>
+<p>With <code>async</code>/<code>await</code>, one thread juggles many tasks. When a task awaits a network response, the event loop runs other tasks instead of sitting idle. This is the standard way to call LLM APIs at scale.</p>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">import</span> asyncio, random
+
+<span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">call_llm</span>(<span class="hljs-params">prompt: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-built_in">str</span>:
+    <span class="hljs-keyword">await</span> asyncio.sleep(random.uniform(<span class="hljs-number">0.5</span>, <span class="hljs-number">1.5</span>))     <span class="hljs-comment"># stands in for an HTTP request</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-string">f&quot;answer to <span class="hljs-subst">{prompt!r}</span>&quot;</span>
+
+<span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">main</span>(<span class="hljs-params">prompts: <span class="hljs-built_in">list</span>[<span class="hljs-built_in">str</span>], max_concurrency: <span class="hljs-built_in">int</span> = <span class="hljs-number">16</span></span>):
+    sem = asyncio.Semaphore(max_concurrency)          <span class="hljs-comment"># respect the provider&#x27;s rate limits</span>
+
+    <span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">one</span>(<span class="hljs-params">p</span>):
+        <span class="hljs-keyword">async</span> <span class="hljs-keyword">with</span> sem:
+            <span class="hljs-keyword">for</span> attempt <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">3</span>):
+                <span class="hljs-keyword">try</span>:
+                    <span class="hljs-keyword">return</span> <span class="hljs-keyword">await</span> asyncio.wait_for(call_llm(p), timeout=<span class="hljs-number">30</span>)
+                <span class="hljs-keyword">except</span> (asyncio.TimeoutError, ConnectionError):
+                    <span class="hljs-keyword">await</span> asyncio.sleep(<span class="hljs-number">2</span> ** attempt)
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">None</span>                               <span class="hljs-comment"># give up after 3 tries</span>
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">await</span> asyncio.gather(*(one(p) <span class="hljs-keyword">for</span> p <span class="hljs-keyword">in</span> prompts))
+
+results = asyncio.run(main([<span class="hljs-string">f&quot;question <span class="hljs-subst">{i}</span>&quot;</span> <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">200</span>)]))
+<span class="hljs-built_in">print</span>(<span class="hljs-built_in">sum</span>(r <span class="hljs-keyword">is</span> <span class="hljs-keyword">not</span> <span class="hljs-literal">None</span> <span class="hljs-keyword">for</span> r <span class="hljs-keyword">in</span> results))</code></pre>
+<div class="callout intuition"><b>The arithmetic</b><p>200 calls at about 1 second each take about 200 seconds one by one. With 16 in flight at a time they take about <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>200</mn><mi mathvariant="normal">/</mi><mn>16</mn><mo>≈</mo><mn>13</mn></mrow><annotation encoding="application/x-tex">200/16\approx13</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">200/16</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">13</span></span></span></span> seconds. Real gains are capped by the provider's rate limits, which is why the semaphore matters.</p></div>
+<ul>
+<li>Inside async code, never call blocking functions (<code>time.sleep</code>, <code>requests.get</code>): they freeze the whole event loop. Use async libraries (<code>httpx.AsyncClient</code>, official async SDK clients) or <code>await asyncio.to_thread(blocking_fn, ...)</code>.</li>
+<li>Most LLM provider SDKs ship an async client with the same methods as the sync one.</li>
+<li>Always add timeouts, retries with backoff, and a concurrency limit.</li>
+</ul>
+
+<h3 id="choosing-quickly">Choosing quickly</h3>
+<ol>
+<li>Can a library do it vectorized (NumPy, pandas, PyTorch)? Do that first.</li>
+<li>Waiting on networks? <code>asyncio</code> (or a thread pool if the client library is blocking).</li>
+<li>Pure Python crunching? A process pool, or move the hot loop into a compiled library.</li>
+</ol>
+
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>You must embed 50,000 documents through an API that allows 600 requests per minute and takes about 0.5 s per request. Roughly how long does it take sequentially, and what is the fastest you can legally go?
+<details><summary>Solution</summary><div>Sequentially about 50,000 × 0.5 s ≈ 7 hours. The rate limit caps you at 600/min, so at best 50,000 / 600 ≈ 83 minutes. About 5 concurrent requests already reach that limit (600/min ÷ 120/min per worker). Batching several documents per request, if the API allows it, cuts the time further.</div></details></li>
+</ol></div>

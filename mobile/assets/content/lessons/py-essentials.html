@@ -1,0 +1,96 @@
+<h3 id="why-python-for-ai">Why Python for AI</h3>
+<p>Python is slow at raw arithmetic, yet almost every AI system is written in it. The reason is that Python is the <b>glue</b>: the heavy maths runs inside libraries written in C, C++, CUDA or Rust (NumPy, PyTorch, tokenizers), and Python orchestrates them with readable code. Your job is to write clear Python that hands big chunks of work to those libraries.</p>
+<div class="callout intuition"><b>The rule of thumb</b><p>A Python loop runs roughly 10–100 million simple operations per second. A vectorized library call can do billions. Write the logic in Python; push the number crunching into libraries.</p></div>
+
+<h3 id="values-types-and-names">Values, types and names</h3>
+<p>Every value is an <b>object</b> with a type. A variable is just a <b>name</b> bound to an object; the name has no type of its own.</p>
+<table>
+<tr><th>Type</th><th>Example</th><th>Notes</th></tr>
+<tr><td><code>int</code></td><td><code>42</code>, <code>10**30</code></td><td>Arbitrary precision: never overflows</td></tr>
+<tr><td><code>float</code></td><td><code>3.14</code>, <code>1e-8</code></td><td>64-bit IEEE 754; <code>0.1 + 0.2 != 0.3</code> (see <a class="xref" href="#/course/math/numerics">Numerical Computing: Floating Point &amp; Stability</a>)</td></tr>
+<tr><td><code>bool</code></td><td><code>True</code>, <code>False</code></td><td>A subclass of int: <code>True + True == 2</code></td></tr>
+<tr><td><code>str</code></td><td><code>"attention"</code></td><td>Immutable Unicode text</td></tr>
+<tr><td><code>None</code></td><td><code>None</code></td><td>"No value"; compare with <code>is None</code></td></tr>
+</table>
+<pre class="code" data-lang="python"><code class="hljs language-python">x = <span class="hljs-number">7</span>
+y = x / <span class="hljs-number">2</span>          <span class="hljs-comment"># 3.5: true division always gives a float</span>
+z = x // <span class="hljs-number">2</span>         <span class="hljs-comment"># 3: floor division</span>
+r = x % <span class="hljs-number">2</span>          <span class="hljs-comment"># 1: remainder</span>
+p = <span class="hljs-number">2</span> ** <span class="hljs-number">10</span>        <span class="hljs-comment"># 1024: power</span>
+name = <span class="hljs-string">&quot;Youcef&quot;</span>
+msg = <span class="hljs-string">f&quot;<span class="hljs-subst">{name}</span> has <span class="hljs-subst">{x}</span> new lessons, <span class="hljs-subst">{y:<span class="hljs-number">.2</span>f}</span> per day&quot;</span>   <span class="hljs-comment"># f-strings format values</span>
+<span class="hljs-built_in">print</span>(<span class="hljs-built_in">type</span>(x), <span class="hljs-built_in">type</span>(y), <span class="hljs-built_in">isinstance</span>(x, <span class="hljs-built_in">int</span>))</code></pre>
+
+<h3 id="control-flow">Control flow</h3>
+<p>Indentation <i>is</i> the syntax: a block is everything indented under a line ending in a colon.</p>
+<pre class="code" data-lang="python"><code class="hljs language-python">score = <span class="hljs-number">0.83</span>
+<span class="hljs-keyword">if</span> score &gt;= <span class="hljs-number">0.9</span>:
+    grade = <span class="hljs-string">&quot;excellent&quot;</span>
+<span class="hljs-keyword">elif</span> score &gt;= <span class="hljs-number">0.6</span>:
+    grade = <span class="hljs-string">&quot;pass&quot;</span>
+<span class="hljs-keyword">else</span>:
+    grade = <span class="hljs-string">&quot;retry&quot;</span>
+
+<span class="hljs-keyword">for</span> epoch <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">3</span>):            <span class="hljs-comment"># 0, 1, 2</span>
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;epoch&quot;</span>, epoch)
+
+loss, step = <span class="hljs-number">10.0</span>, <span class="hljs-number">0</span>
+<span class="hljs-keyword">while</span> loss &gt; <span class="hljs-number">1.0</span> <span class="hljs-keyword">and</span> step &lt; <span class="hljs-number">100</span>:
+    loss *= <span class="hljs-number">0.8</span>
+    step += <span class="hljs-number">1</span>
+
+<span class="hljs-keyword">for</span> i, word <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>([<span class="hljs-string">&quot;the&quot;</span>, <span class="hljs-string">&quot;cat&quot;</span>, <span class="hljs-string">&quot;sat&quot;</span>]):   <span class="hljs-comment"># index and value together</span>
+    <span class="hljs-built_in">print</span>(i, word)
+<span class="hljs-keyword">for</span> a, b <span class="hljs-keyword">in</span> <span class="hljs-built_in">zip</span>([<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>], [<span class="hljs-number">10</span>, <span class="hljs-number">20</span>, <span class="hljs-number">30</span>]):           <span class="hljs-comment"># walk two sequences in step</span>
+    <span class="hljs-built_in">print</span>(a * b)</code></pre>
+<p><b>Truthiness:</b> empty containers, <code>0</code>, <code>0.0</code>, <code>""</code> and <code>None</code> count as false in an <code>if</code>. So <code>if items:</code> means "if the list is not empty".</p>
+
+<h3 id="functions">Functions</h3>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">accuracy</span>(<span class="hljs-params">preds, labels, *, ignore_index=<span class="hljs-literal">None</span></span>):
+    <span class="hljs-string">&quot;&quot;&quot;Share of predictions that match the labels.
+
+    The * makes ignore_index keyword-only, so calls stay readable.
+    &quot;&quot;&quot;</span>
+    pairs = [(p, y) <span class="hljs-keyword">for</span> p, y <span class="hljs-keyword">in</span> <span class="hljs-built_in">zip</span>(preds, labels) <span class="hljs-keyword">if</span> y != ignore_index]
+    <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> pairs:
+        <span class="hljs-keyword">return</span> <span class="hljs-number">0.0</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">sum</span>(p == y <span class="hljs-keyword">for</span> p, y <span class="hljs-keyword">in</span> pairs) / <span class="hljs-built_in">len</span>(pairs)
+
+<span class="hljs-built_in">print</span>(accuracy([<span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>], [<span class="hljs-number">1</span>, <span class="hljs-number">1</span>, <span class="hljs-number">1</span>]))                     <span class="hljs-comment"># 0.666...</span>
+<span class="hljs-built_in">print</span>(accuracy([<span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>], [<span class="hljs-number">1</span>, -<span class="hljs-number">1</span>, <span class="hljs-number">1</span>], ignore_index=-<span class="hljs-number">1</span>))   <span class="hljs-comment"># 1.0</span></code></pre>
+<ul>
+<li><b>Default arguments</b> are evaluated once, when the function is defined. Never use a mutable default like <code>def f(x, cache=[])</code>: the same list is shared by every call. Use <code>cache=None</code> and create it inside.</li>
+<li><code>*args</code> collects extra positional arguments into a tuple and <code>**kwargs</code> extra keyword arguments into a dict. This is how wrappers forward arguments to libraries: <code>model(**batch)</code>.</li>
+<li>Functions are objects: you can pass them around, store them in dicts and return them. <code>sorted(words, key=len)</code> passes the function <code>len</code>.</li>
+<li><b>Scope:</b> names assigned inside a function are local. Reading a global works; assigning one needs <code>global</code> (and is usually a design smell).</li>
+</ul>
+<pre class="code" data-lang="python"><code class="hljs language-python">square = <span class="hljs-keyword">lambda</span> v: v * v                 <span class="hljs-comment"># small anonymous function</span>
+activations = {<span class="hljs-string">&quot;relu&quot;</span>: <span class="hljs-keyword">lambda</span> v: <span class="hljs-built_in">max</span>(<span class="hljs-number">0.0</span>, v), <span class="hljs-string">&quot;identity&quot;</span>: <span class="hljs-keyword">lambda</span> v: v}
+<span class="hljs-built_in">print</span>(activations[<span class="hljs-string">&quot;relu&quot;</span>](-<span class="hljs-number">3.0</span>))          <span class="hljs-comment"># 0.0</span>
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">make_scheduler</span>(<span class="hljs-params">base_lr, decay</span>):
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">lr_at</span>(<span class="hljs-params">step</span>):                      <span class="hljs-comment"># a closure: remembers base_lr and decay</span>
+        <span class="hljs-keyword">return</span> base_lr * decay ** step
+    <span class="hljs-keyword">return</span> lr_at
+
+sched = make_scheduler(<span class="hljs-number">0.1</span>, <span class="hljs-number">0.9</span>)
+<span class="hljs-built_in">print</span>([<span class="hljs-built_in">round</span>(sched(s), <span class="hljs-number">4</span>) <span class="hljs-keyword">for</span> s <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">4</span>)])   <span class="hljs-comment"># [0.1, 0.09, 0.081, 0.0729]</span></code></pre>
+
+<h3 id="strings-for-text-processing">Strings for text processing</h3>
+<p>NLP work starts with string handling. The methods you will use constantly:</p>
+<pre class="code" data-lang="python"><code class="hljs language-python">s = <span class="hljs-string">&quot;  The Transformer changed NLP.  &quot;</span>
+s.strip().lower()                    <span class="hljs-comment"># &#x27;the transformer changed nlp.&#x27;</span>
+s.split()                            <span class="hljs-comment"># [&#x27;The&#x27;, &#x27;Transformer&#x27;, &#x27;changed&#x27;, &#x27;NLP.&#x27;]</span>
+<span class="hljs-string">&quot; &quot;</span>.join([<span class="hljs-string">&quot;a&quot;</span>, <span class="hljs-string">&quot;b&quot;</span>, <span class="hljs-string">&quot;c&quot;</span>])            <span class="hljs-comment"># &#x27;a b c&#x27;</span>
+<span class="hljs-string">&quot;attention&quot;</span>.startswith(<span class="hljs-string">&quot;att&quot;</span>)        <span class="hljs-comment"># True</span>
+<span class="hljs-string">&quot;loss=0.32&quot;</span>.replace(<span class="hljs-string">&quot;=&quot;</span>, <span class="hljs-string">&quot;: &quot;</span>)       <span class="hljs-comment"># &#x27;loss: 0.32&#x27;</span>
+<span class="hljs-string">&quot;مرحبا&quot;</span>.encode(<span class="hljs-string">&quot;utf-8&quot;</span>)              <span class="hljs-comment"># bytes: Arabic letters take 2 bytes each in UTF-8</span>
+<span class="hljs-built_in">len</span>(<span class="hljs-string">&quot;مرحبا&quot;</span>), <span class="hljs-built_in">len</span>(<span class="hljs-string">&quot;مرحبا&quot;</span>.encode())  <span class="hljs-comment"># (5, 10)</span></code></pre>
+<div class="callout warn"><b>Text is Unicode, files are bytes</b>Always open text files with an explicit <code>encoding="utf-8"</code>. Many bugs with Arabic, French accents or emoji come from relying on a platform default encoding.</div>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>What does <code>[i * i for i in range(5) if i % 2 == 0]</code> produce?
+<details><summary>Solution</summary><div><code>[0, 4, 16]</code>: squares of 0, 2 and 4.</div></details></li>
+<li>Why is <code>def add_item(x, items=[])</code> a bug?
+<details><summary>Solution</summary><div>The default list is created once and shared, so items from earlier calls leak into later ones. Use <code>items=None</code> and <code>if items is None: items = []</code>.</div></details></li>
+</ol></div>

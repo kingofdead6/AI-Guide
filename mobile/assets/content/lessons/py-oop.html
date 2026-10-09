@@ -1,0 +1,136 @@
+<h3 id="classes-bundle-state-and-behaviour">Classes bundle state and behaviour</h3>
+<p>A class defines a new type: the data each object holds (attributes) and what it can do (methods). In ML code you meet classes constantly: <code>nn.Module</code>, <code>Dataset</code>, tokenizers, API clients, config objects.</p>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">class</span> <span class="hljs-title class_">RunningMean</span>:
+    <span class="hljs-string">&quot;&quot;&quot;Tracks the mean of a stream of numbers without storing them.&quot;&quot;&quot;</span>
+
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self</span>):
+        <span class="hljs-variable language_">self</span>.n = <span class="hljs-number">0</span>
+        <span class="hljs-variable language_">self</span>.mean = <span class="hljs-number">0.0</span>
+
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">update</span>(<span class="hljs-params">self, x: <span class="hljs-built_in">float</span></span>) -&gt; <span class="hljs-literal">None</span>:
+        <span class="hljs-variable language_">self</span>.n += <span class="hljs-number">1</span>
+        <span class="hljs-variable language_">self</span>.mean += (x - <span class="hljs-variable language_">self</span>.mean) / <span class="hljs-variable language_">self</span>.n     <span class="hljs-comment"># incremental mean</span>
+
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__repr__</span>(<span class="hljs-params">self</span>) -&gt; <span class="hljs-built_in">str</span>:                   <span class="hljs-comment"># what print() shows</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-string">f&quot;RunningMean(n=<span class="hljs-subst">{self.n}</span>, mean=<span class="hljs-subst">{self.mean:<span class="hljs-number">.4</span>f}</span>)&quot;</span>
+
+loss_meter = RunningMean()
+<span class="hljs-keyword">for</span> loss <span class="hljs-keyword">in</span> [<span class="hljs-number">0.9</span>, <span class="hljs-number">0.7</span>, <span class="hljs-number">0.5</span>]:
+    loss_meter.update(loss)
+<span class="hljs-built_in">print</span>(loss_meter)        <span class="hljs-comment"># RunningMean(n=3, mean=0.7000)</span></code></pre>
+<p><code>self</code> is the object the method is called on: <code>loss_meter.update(0.9)</code> is <code>RunningMean.update(loss_meter, 0.9)</code>.</p>
+
+<h3 id="inheritance-and-composition">Inheritance and composition</h3>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">class</span> <span class="hljs-title class_">Tokenizer</span>:
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">tokenize</span>(<span class="hljs-params">self, text: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-built_in">list</span>[<span class="hljs-built_in">str</span>]:
+        <span class="hljs-keyword">raise</span> NotImplementedError
+
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__call__</span>(<span class="hljs-params">self, text: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-built_in">list</span>[<span class="hljs-built_in">str</span>]:   <span class="hljs-comment"># lets you write tok(&quot;...&quot;)</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-variable language_">self</span>.tokenize(text)
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">WhitespaceTokenizer</span>(<span class="hljs-title class_ inherited__">Tokenizer</span>):
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">tokenize</span>(<span class="hljs-params">self, text</span>):
+        <span class="hljs-keyword">return</span> text.split()
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">LowercaseTokenizer</span>(<span class="hljs-title class_ inherited__">WhitespaceTokenizer</span>):
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">tokenize</span>(<span class="hljs-params">self, text</span>):
+        <span class="hljs-keyword">return</span> <span class="hljs-built_in">super</span>().tokenize(text.lower())     <span class="hljs-comment"># reuse the parent&#x27;s logic</span>
+
+tok = LowercaseTokenizer()
+<span class="hljs-built_in">print</span>(tok(<span class="hljs-string">&quot;The Cat SAT&quot;</span>))    <span class="hljs-comment"># [&#x27;the&#x27;, &#x27;cat&#x27;, &#x27;sat&#x27;]</span></code></pre>
+<p>Prefer <b>composition</b> (an object that holds other objects) over deep inheritance trees. A PyTorch model is composition: a <code>Transformer</code> holds a list of <code>Block</code>s, each holding attention and MLP modules.</p>
+
+<h3 id="dataclasses-classes-for-data">Dataclasses: classes for data</h3>
+<p>Most "classes" in ML projects are records: configs, examples, results. <code>@dataclass</code> writes <code>__init__</code>, <code>__repr__</code> and <code>__eq__</code> for you.</p>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">from</span> dataclasses <span class="hljs-keyword">import</span> dataclass, field, asdict
+
+<span class="hljs-meta">@dataclass</span>
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">TrainConfig</span>:
+    model: <span class="hljs-built_in">str</span> = <span class="hljs-string">&quot;small&quot;</span>
+    lr: <span class="hljs-built_in">float</span> = <span class="hljs-number">3e-4</span>
+    batch_size: <span class="hljs-built_in">int</span> = <span class="hljs-number">32</span>
+    epochs: <span class="hljs-built_in">int</span> = <span class="hljs-number">10</span>
+    tags: <span class="hljs-built_in">list</span>[<span class="hljs-built_in">str</span>] = field(default_factory=<span class="hljs-built_in">list</span>)   <span class="hljs-comment"># mutable default done right</span>
+
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">steps_per_epoch</span>(<span class="hljs-params">self, n_examples: <span class="hljs-built_in">int</span></span>) -&gt; <span class="hljs-built_in">int</span>:
+        <span class="hljs-keyword">return</span> -(-n_examples // <span class="hljs-variable language_">self</span>.batch_size)    <span class="hljs-comment"># ceiling division</span>
+
+cfg = TrainConfig(lr=<span class="hljs-number">1e-3</span>, tags=[<span class="hljs-string">&quot;baseline&quot;</span>])
+<span class="hljs-built_in">print</span>(cfg)                   <span class="hljs-comment"># TrainConfig(model=&#x27;small&#x27;, lr=0.001, ...)</span>
+<span class="hljs-built_in">print</span>(asdict(cfg))           <span class="hljs-comment"># plain dict, ready for JSON or experiment tracking</span>
+
+<span class="hljs-meta">@dataclass(<span class="hljs-params">frozen=<span class="hljs-literal">True</span></span>)      </span><span class="hljs-comment"># immutable and hashable</span>
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">Example</span>:
+    text: <span class="hljs-built_in">str</span>
+    label: <span class="hljs-built_in">int</span></code></pre>
+
+<h3 id="the-data-model-dunder-methods">The data model: dunder methods</h3>
+<p>Python's built-in syntax calls special "dunder" (double underscore) methods. Implement them and your objects work with <code>len()</code>, indexing, <code>for</code> loops, <code>+</code> and more. This is exactly how a PyTorch <code>Dataset</code> plugs into a <code>DataLoader</code>.</p>
+<table>
+<tr><th>Syntax</th><th>Calls</th></tr>
+<tr><td><code>len(x)</code></td><td><code>x.__len__()</code></td></tr>
+<tr><td><code>x[i]</code></td><td><code>x.__getitem__(i)</code></td></tr>
+<tr><td><code>for v in x</code></td><td><code>x.__iter__()</code> (or <code>__getitem__</code> from 0)</td></tr>
+<tr><td><code>x(…)</code></td><td><code>x.__call__(…)</code> (how <code>model(inputs)</code> works)</td></tr>
+<tr><td><code>a + b</code>, <code>a @ b</code></td><td><code>a.__add__(b)</code>, <code>a.__matmul__(b)</code></td></tr>
+<tr><td><code>with x:</code></td><td><code>x.__enter__()</code> / <code>x.__exit__()</code></td></tr>
+</table>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">class</span> <span class="hljs-title class_">TextDataset</span>:
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self, texts, labels</span>):
+        <span class="hljs-keyword">assert</span> <span class="hljs-built_in">len</span>(texts) == <span class="hljs-built_in">len</span>(labels)
+        <span class="hljs-variable language_">self</span>.texts, <span class="hljs-variable language_">self</span>.labels = texts, labels
+
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__len__</span>(<span class="hljs-params">self</span>):
+        <span class="hljs-keyword">return</span> <span class="hljs-built_in">len</span>(<span class="hljs-variable language_">self</span>.texts)
+
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__getitem__</span>(<span class="hljs-params">self, i</span>):
+        <span class="hljs-keyword">return</span> {<span class="hljs-string">&quot;text&quot;</span>: <span class="hljs-variable language_">self</span>.texts[i], <span class="hljs-string">&quot;label&quot;</span>: <span class="hljs-variable language_">self</span>.labels[i]}
+
+ds = TextDataset([<span class="hljs-string">&quot;good&quot;</span>, <span class="hljs-string">&quot;bad&quot;</span>, <span class="hljs-string">&quot;great&quot;</span>], [<span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>])
+<span class="hljs-built_in">print</span>(<span class="hljs-built_in">len</span>(ds), ds[<span class="hljs-number">1</span>])          <span class="hljs-comment"># 3 {&#x27;text&#x27;: &#x27;bad&#x27;, &#x27;label&#x27;: 0}</span>
+<span class="hljs-keyword">for</span> ex <span class="hljs-keyword">in</span> ds:                  <span class="hljs-comment"># works because __getitem__ raises IndexError at the end</span>
+    <span class="hljs-built_in">print</span>(ex[<span class="hljs-string">&quot;text&quot;</span>])
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">Vec2</span>:
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self, x, y</span>): <span class="hljs-variable language_">self</span>.x, <span class="hljs-variable language_">self</span>.y = x, y
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__add__</span>(<span class="hljs-params">self, o</span>): <span class="hljs-keyword">return</span> Vec2(<span class="hljs-variable language_">self</span>.x + o.x, <span class="hljs-variable language_">self</span>.y + o.y)
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__matmul__</span>(<span class="hljs-params">self, o</span>): <span class="hljs-keyword">return</span> <span class="hljs-variable language_">self</span>.x * o.x + <span class="hljs-variable language_">self</span>.y * o.y     <span class="hljs-comment"># dot product with @</span>
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__repr__</span>(<span class="hljs-params">self</span>): <span class="hljs-keyword">return</span> <span class="hljs-string">f&quot;Vec2(<span class="hljs-subst">{self.x}</span>, <span class="hljs-subst">{self.y}</span>)&quot;</span>
+
+<span class="hljs-built_in">print</span>(Vec2(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>) + Vec2(<span class="hljs-number">3</span>, <span class="hljs-number">4</span>), Vec2(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>) @ Vec2(<span class="hljs-number">3</span>, <span class="hljs-number">4</span>))   <span class="hljs-comment"># Vec2(4, 6) 11</span></code></pre>
+
+<h3 id="class-attributes-class-methods-and-static-methods">Class attributes, class methods and static methods</h3>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">class</span> <span class="hljs-title class_">Model</span>:
+    registry = {}                      <span class="hljs-comment"># class attribute: shared by all instances</span>
+
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self, name</span>):
+        <span class="hljs-variable language_">self</span>.name = name
+
+<span class="hljs-meta">    @classmethod</span>
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">from_config</span>(<span class="hljs-params">cls, cfg: <span class="hljs-built_in">dict</span></span>):   <span class="hljs-comment"># alternative constructor, like from_pretrained</span>
+        <span class="hljs-keyword">return</span> cls(cfg[<span class="hljs-string">&quot;name&quot;</span>])
+
+<span class="hljs-meta">    @staticmethod</span>
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">param_count</span>(<span class="hljs-params">d_in, d_out</span>):      <span class="hljs-comment"># plain function grouped with the class</span>
+        <span class="hljs-keyword">return</span> d_in * d_out + d_out
+
+m = Model.from_config({<span class="hljs-string">&quot;name&quot;</span>: <span class="hljs-string">&quot;tiny&quot;</span>})
+<span class="hljs-built_in">print</span>(m.name, Model.param_count(<span class="hljs-number">784</span>, <span class="hljs-number">10</span>))   <span class="hljs-comment"># tiny 7850</span></code></pre>
+<div class="callout mllink"><b>Where you will see this</b><code>AutoModel.from_pretrained(...)</code> is a class method; <code>model(x)</code> calls <code>__call__</code>, which runs hooks then your <code>forward</code>; <code>DataLoader</code> needs only <code>__len__</code> and <code>__getitem__</code> from your dataset.</div>
+
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>Write a dataclass <code>Metrics</code> with fields <code>tp, fp, fn</code> and properties <code>precision</code>, <code>recall</code> and <code>f1</code> that handle division by zero.
+<details><summary>Solution</summary><div><pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-meta">@dataclass</span>
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">Metrics</span>:
+    tp: <span class="hljs-built_in">int</span> = <span class="hljs-number">0</span>
+    fp: <span class="hljs-built_in">int</span> = <span class="hljs-number">0</span>
+    fn: <span class="hljs-built_in">int</span> = <span class="hljs-number">0</span>
+<span class="hljs-meta">    @property</span>
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">precision</span>(<span class="hljs-params">self</span>): <span class="hljs-keyword">return</span> <span class="hljs-variable language_">self</span>.tp / (<span class="hljs-variable language_">self</span>.tp + <span class="hljs-variable language_">self</span>.fp) <span class="hljs-keyword">if</span> <span class="hljs-variable language_">self</span>.tp + <span class="hljs-variable language_">self</span>.fp <span class="hljs-keyword">else</span> <span class="hljs-number">0.0</span>
+<span class="hljs-meta">    @property</span>
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">recall</span>(<span class="hljs-params">self</span>): <span class="hljs-keyword">return</span> <span class="hljs-variable language_">self</span>.tp / (<span class="hljs-variable language_">self</span>.tp + <span class="hljs-variable language_">self</span>.fn) <span class="hljs-keyword">if</span> <span class="hljs-variable language_">self</span>.tp + <span class="hljs-variable language_">self</span>.fn <span class="hljs-keyword">else</span> <span class="hljs-number">0.0</span>
+<span class="hljs-meta">    @property</span>
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">f1</span>(<span class="hljs-params">self</span>):
+        p, r = <span class="hljs-variable language_">self</span>.precision, <span class="hljs-variable language_">self</span>.recall
+        <span class="hljs-keyword">return</span> <span class="hljs-number">2</span> * p * r / (p + r) <span class="hljs-keyword">if</span> p + r <span class="hljs-keyword">else</span> <span class="hljs-number">0.0</span></code></pre></div></details></li>
+</ol></div>

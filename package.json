@@ -1,12 +1,13 @@
 {
   "name": "ai-guide-academy-workspace",
   "private": true,
-  "description": "The AI Guide Academy: client (React site) and server (accounts, saved progress, admin API).",
+  "description": "The AI Guide Academy: client (React site), server (API) and mobile (Flutter app).",
   "scripts": {
     "install:all": "npm install --prefix client && npm install --prefix server",
     "dev:client": "npm run dev --prefix client",
     "dev:server": "npm run dev --prefix server",
     "build": "npm run build --prefix client",
-    "start": "npm start --prefix server"
+    "start": "npm start --prefix server",
+    "mobile:sync": "node mobile/tool/sync_content.mjs"
   }
 }

@@ -1,0 +1,38 @@
+<h3 id="the-loop">The loop</h3>
+<ol>
+<li>The model receives the goal, available tools (name, description, JSON schema for arguments), and history.</li>
+<li>It outputs either a final answer or a structured <b>tool call</b>.</li>
+<li>Your code executes the tool (search, SQL, code execution, an API) and appends the result.</li>
+<li>Repeat, with a step limit.</li>
+</ol>
+<p>This "reason, act, observe" pattern is often called <b>ReAct</b>. Providers support native function calling, and the <b>Model Context Protocol (MCP)</b> standardizes how tools and data sources are exposed to models.</p>
+<figure class="fig"><svg class="fsvg" viewBox="0 0 500 300" role="img" aria-label="An agent loop: the model decides, tools act, results feed back" style="--fw:500px"><defs><marker id="agent_loop-m" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-m"/></marker><marker id="agent_loop-a" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-a"/></marker><marker id="agent_loop-c2" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-c2"/></marker><marker id="agent_loop-c3" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-c3"/></marker><marker id="agent_loop-c4" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-c4"/></marker><marker id="agent_loop-c5" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-c5"/></marker></defs><rect x="170.0" y="110.0" width="140.0" height="70.0" rx="12" class="bacc"/><text x="240.0" y="136.0" dy="0.35em" text-anchor="middle" class="lg b">LLM</text><text x="240.0" y="156.0" dy="0.35em" text-anchor="middle" class="sm mut">reason → decide</text><rect x="360.0" y="110.0" width="130.0" height="70.0" rx="12" class="b2"/><text x="425.0" y="136.0" dy="0.35em" text-anchor="middle" class="b">Tools</text><text x="425.0" y="156.0" dy="0.35em" text-anchor="middle" class="xs mut">search, code, APIs</text><rect x="10.0" y="110.0" width="110.0" height="70.0" rx="12" class="b4"/><text x="65.0" y="145.0" dy="0.35em" text-anchor="middle" class="sm">User / goal</text><rect x="170.0" y="230.0" width="140.0" height="50.0" rx="10" class="b3"/><text x="240.0" y="246.0" dy="0.35em" text-anchor="middle" class="sm">Memory</text><text x="240.0" y="266.0" dy="0.35em" text-anchor="middle" class="sm mut">history, notes</text><path d="M310,130 L358,130" class="lna" marker-end="url(#agent_loop-a)"/><text x="334.0" y="118.0" dy="0.35em" text-anchor="middle" class="xs acc">tool call</text><path d="M358,160 L312,160" class="lc2" marker-end="url(#agent_loop-c2)"/><text x="334.0" y="174.0" dy="0.35em" text-anchor="middle" class="xs tc2">result</text><line x1="120.0" y1="130.0" x2="168.0" y2="130.0" class="ln" marker-end="url(#agent_loop-m)"/><line x1="168.0" y1="160.0" x2="122.0" y2="160.0" class="ln" marker-end="url(#agent_loop-m)"/><text x="144.0" y="118.0" dy="0.35em" text-anchor="middle" class="xs mut">task</text><text x="144.0" y="174.0" dy="0.35em" text-anchor="middle" class="xs mut">answer</text><line x1="240.0" y1="180.0" x2="240.0" y2="228.0" class="ln" marker-end="url(#agent_loop-m)"/><line x1="260.0" y1="228.0" x2="260.0" y2="182.0" class="ln" marker-end="url(#agent_loop-m)"/><path d="M240,108 C240,40 300,40 300,108" class="lc5 dash" marker-end="url(#agent_loop-c5)"/><text x="270.0" y="32.0" dy="0.35em" text-anchor="middle" class="xs tc5">repeat until done or step limit</text></svg><figcaption>An agent loop: the model decides, tools act, results feed back</figcaption></figure>
+<h3 id="design-principles">Design principles</h3>
+<ul>
+<li>Start with the simplest thing: a single LLM call, then a fixed workflow (prompt chaining, routing), and only then a free-form agent.</li>
+<li>Write tool descriptions as carefully as prompts; return concise, informative errors so the model can recover.</li>
+<li><b>Memory:</b> short-term is the conversation context; long-term is a store the agent can write to and search.</li>
+<li><b>Safety:</b> least-privilege tools, human confirmation for irreversible actions (sending, paying, deleting), and treat tool outputs and web content as untrusted data, never instructions.</li>
+<li><b>Evaluate on full tasks</b> (success rate, steps, cost), not single turns.</li>
+</ul>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">import</span> json
+TOOLS = {
+    <span class="hljs-string">&quot;search_docs&quot;</span>: <span class="hljs-keyword">lambda</span> query: [c <span class="hljs-keyword">for</span> c, _ <span class="hljs-keyword">in</span> rag.retrieve(query, k=<span class="hljs-number">3</span>)],
+    <span class="hljs-string">&quot;calculator&quot;</span>:  <span class="hljs-keyword">lambda</span> expression: <span class="hljs-built_in">eval</span>(expression, {<span class="hljs-string">&quot;__builtins__&quot;</span>: {}}),   <span class="hljs-comment"># demo only; never eval untrusted input in production</span>
+}
+SYSTEM = (<span class="hljs-string">&quot;You can use tools. Reply with JSON only: &quot;</span>
+          <span class="hljs-string">&#x27;{&quot;tool&quot;: name, &quot;args&quot;: {...}} to call a tool, or {&quot;answer&quot;: text} when done. &#x27;</span>
+          <span class="hljs-string">&quot;Tools: search_docs(query), calculator(expression).&quot;</span>)
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">run_agent</span>(<span class="hljs-params">goal, max_steps=<span class="hljs-number">6</span></span>):
+    history = [<span class="hljs-string">f&quot;Goal: <span class="hljs-subst">{goal}</span>&quot;</span>]
+    <span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(max_steps):
+        reply = json.loads(llm(SYSTEM + <span class="hljs-string">&quot;\n\n&quot;</span> + <span class="hljs-string">&quot;\n&quot;</span>.join(history)))
+        <span class="hljs-keyword">if</span> <span class="hljs-string">&quot;answer&quot;</span> <span class="hljs-keyword">in</span> reply:
+            <span class="hljs-keyword">return</span> reply[<span class="hljs-string">&quot;answer&quot;</span>]
+        <span class="hljs-keyword">try</span>:
+            result = TOOLS[reply[<span class="hljs-string">&quot;tool&quot;</span>]](**reply[<span class="hljs-string">&quot;args&quot;</span>])
+        <span class="hljs-keyword">except</span> Exception <span class="hljs-keyword">as</span> e:
+            result = <span class="hljs-string">f&quot;ERROR: <span class="hljs-subst">{e}</span>&quot;</span>
+        history.append(<span class="hljs-string">f&quot;Called <span class="hljs-subst">{reply[<span class="hljs-string">&#x27;tool&#x27;</span>]}</span>(<span class="hljs-subst">{reply[<span class="hljs-string">&#x27;args&#x27;</span>]}</span>) -&gt; <span class="hljs-subst">{json.dumps(result)[:<span class="hljs-number">2000</span>]}</span>&quot;</span>)
+    <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;Stopped: step limit reached.&quot;</span></code></pre>

@@ -1,0 +1,38 @@
+<h3 id="prompting-that-works">Prompting that works</h3>
+<ul>
+<li>Be explicit about the task, audience, constraints and output format. Give context the model can't guess.</li>
+<li>Show a few examples (few-shot), including tricky edge cases.</li>
+<li>Ask for reasoning before the final answer on hard problems, or use a reasoning-capable model.</li>
+<li>Separate instructions from data with clear delimiters (e.g. XML-style tags), and treat retrieved or user-supplied text as data, never as instructions, to resist prompt injection.</li>
+<li>Request structured output (JSON matching a schema) and validate it in code.</li>
+</ul>
+<h3 id="evaluation-is-the-real-work">Evaluation is the real work</h3>
+<ol>
+<li>Build a test set of realistic inputs with expected outputs or grading criteria (start with 50–200).</li>
+<li>Score with exact checks where possible (string match, unit tests, schema validation).</li>
+<li>Use LLM-as-judge with a clear rubric for open-ended outputs, and spot-check the judge against human ratings; judges have biases (length, position, self-preference).</li>
+<li>Re-run the suite on every prompt or model change. Track cost and latency alongside quality.</li>
+</ol>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">import</span> json
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">llm</span>(<span class="hljs-params">prompt: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-built_in">str</span>:
+    <span class="hljs-string">&quot;&quot;&quot;Call your provider&#x27;s chat API here and return the text.&quot;&quot;&quot;</span>
+    <span class="hljs-keyword">raise</span> NotImplementedError
+
+SCHEMA_HINT = <span class="hljs-string">&#x27;{&quot;sentiment&quot;: &quot;positive|negative|neutral&quot;, &quot;confidence&quot;: 0-1, &quot;reason&quot;: str}&#x27;</span>
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">classify</span>(<span class="hljs-params">review: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-built_in">dict</span>:
+    prompt = (<span class="hljs-string">f&quot;Classify the sentiment of the review inside &lt;review&gt; tags.\n&quot;</span>
+              <span class="hljs-string">f&quot;Return only JSON in this shape: <span class="hljs-subst">{SCHEMA_HINT}</span>\n&quot;</span>
+              <span class="hljs-string">f&quot;&lt;review&gt;<span class="hljs-subst">{review}</span>&lt;/review&gt;&quot;</span>)
+    <span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">3</span>):                                  <span class="hljs-comment"># retry on malformed output</span>
+        <span class="hljs-keyword">try</span>:
+            out = json.loads(llm(prompt))
+            <span class="hljs-keyword">assert</span> out[<span class="hljs-string">&quot;sentiment&quot;</span>] <span class="hljs-keyword">in</span> {<span class="hljs-string">&quot;positive&quot;</span>, <span class="hljs-string">&quot;negative&quot;</span>, <span class="hljs-string">&quot;neutral&quot;</span>}
+            <span class="hljs-keyword">return</span> out
+        <span class="hljs-keyword">except</span> (json.JSONDecodeError, KeyError, AssertionError):
+            <span class="hljs-keyword">continue</span>
+    <span class="hljs-keyword">raise</span> ValueError(<span class="hljs-string">&quot;model did not return valid JSON&quot;</span>)
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">evaluate</span>(<span class="hljs-params">cases</span>):                                    <span class="hljs-comment"># cases: [(text, expected_label)]</span>
+    hits = <span class="hljs-built_in">sum</span>(classify(t)[<span class="hljs-string">&quot;sentiment&quot;</span>] == y <span class="hljs-keyword">for</span> t, y <span class="hljs-keyword">in</span> cases)
+    <span class="hljs-keyword">return</span> hits / <span class="hljs-built_in">len</span>(cases)</code></pre>
+<div class="callout warn"><b>Hallucination</b>LLMs generate plausible text, not verified facts. Ground answers in retrieved sources (<a class="xref" href="#/course/rag">RAG, Agents &amp; LLMOps</a>), ask for citations and check them, let the model say "I don't know", and verify anything high-stakes.</div>

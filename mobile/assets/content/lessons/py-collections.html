@@ -1,0 +1,95 @@
+<h3 id="the-four-containers">The four containers</h3>
+<table>
+<tr><th>Type</th><th>Literal</th><th>Ordered</th><th>Mutable</th><th>Lookup by</th><th>Typical AI use</th></tr>
+<tr><td><code>list</code></td><td><code>[1, 2, 3]</code></td><td>yes</td><td>yes</td><td>position, O(1)</td><td>a batch of examples, a sequence of tokens</td></tr>
+<tr><td><code>tuple</code></td><td><code>(224, 224, 3)</code></td><td>yes</td><td>no</td><td>position, O(1)</td><td>shapes, fixed records, dict keys</td></tr>
+<tr><td><code>dict</code></td><td><code>{"lr": 3e-4}</code></td><td>insertion order</td><td>yes</td><td>key, O(1) average</td><td>configs, vocabularies, JSON, model inputs</td></tr>
+<tr><td><code>set</code></td><td><code>{"cat", "dog"}</code></td><td>no</td><td>yes</td><td>membership, O(1) average</td><td>deduplication, stopwords, seen IDs</td></tr>
+</table>
+<p>Membership tests show why the choice matters: <code>x in my_list</code> scans the whole list, O(n); <code>x in my_set</code> hashes once, O(1). Checking 100,000 tokens against a 50,000-word vocabulary stored as a list takes billions of comparisons; as a set it takes 100,000 hash lookups.</p>
+
+<h3 id="lists">Lists</h3>
+<pre class="code" data-lang="python"><code class="hljs language-python">tokens = [<span class="hljs-string">&quot;the&quot;</span>, <span class="hljs-string">&quot;cat&quot;</span>, <span class="hljs-string">&quot;sat&quot;</span>, <span class="hljs-string">&quot;on&quot;</span>, <span class="hljs-string">&quot;the&quot;</span>, <span class="hljs-string">&quot;mat&quot;</span>]
+tokens[<span class="hljs-number">0</span>], tokens[-<span class="hljs-number">1</span>]        <span class="hljs-comment"># &#x27;the&#x27;, &#x27;mat&#x27;   (negative indexes count from the end)</span>
+tokens[<span class="hljs-number">1</span>:<span class="hljs-number">4</span>]                  <span class="hljs-comment"># [&#x27;cat&#x27;, &#x27;sat&#x27;, &#x27;on&#x27;]   (slices: start inclusive, end exclusive)</span>
+tokens[::<span class="hljs-number">2</span>]                  <span class="hljs-comment"># every second item</span>
+tokens.append(<span class="hljs-string">&quot;today&quot;</span>)       <span class="hljs-comment"># O(1) at the end</span>
+tokens.insert(<span class="hljs-number">0</span>, <span class="hljs-string">&quot;&lt;s&gt;&quot;</span>)      <span class="hljs-comment"># O(n): shifts everything</span>
+tokens.pop()                 <span class="hljs-comment"># remove and return the last item</span>
+<span class="hljs-built_in">sorted</span>(tokens, key=<span class="hljs-built_in">len</span>, reverse=<span class="hljs-literal">True</span>)   <span class="hljs-comment"># new sorted list; tokens.sort() sorts in place</span>
+batches = [tokens[i:i + <span class="hljs-number">2</span>] <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">0</span>, <span class="hljs-built_in">len</span>(tokens), <span class="hljs-number">2</span>)]   <span class="hljs-comment"># chunk into pairs</span></code></pre>
+
+<h3 id="dictionaries">Dictionaries</h3>
+<pre class="code" data-lang="python"><code class="hljs language-python">config = {<span class="hljs-string">&quot;lr&quot;</span>: <span class="hljs-number">3e-4</span>, <span class="hljs-string">&quot;batch_size&quot;</span>: <span class="hljs-number">32</span>}
+config[<span class="hljs-string">&quot;epochs&quot;</span>] = <span class="hljs-number">10</span>                   <span class="hljs-comment"># add or overwrite</span>
+config.get(<span class="hljs-string">&quot;warmup&quot;</span>, <span class="hljs-number">0</span>)                 <span class="hljs-comment"># default when the key is missing</span>
+<span class="hljs-keyword">for</span> key, value <span class="hljs-keyword">in</span> config.items():
+    <span class="hljs-built_in">print</span>(key, value)
+
+<span class="hljs-comment"># Counting words: three equivalent ways, from manual to idiomatic</span>
+counts = {}
+<span class="hljs-keyword">for</span> w <span class="hljs-keyword">in</span> tokens:
+    counts[w] = counts.get(w, <span class="hljs-number">0</span>) + <span class="hljs-number">1</span>
+
+<span class="hljs-keyword">from</span> collections <span class="hljs-keyword">import</span> Counter, defaultdict
+counts = Counter(tokens)                <span class="hljs-comment"># Counter({&#x27;the&#x27;: 2, &#x27;cat&#x27;: 1, ...})</span>
+counts.most_common(<span class="hljs-number">2</span>)
+
+by_length = defaultdict(<span class="hljs-built_in">list</span>)           <span class="hljs-comment"># missing keys start as an empty list</span>
+<span class="hljs-keyword">for</span> w <span class="hljs-keyword">in</span> tokens:
+    by_length[<span class="hljs-built_in">len</span>(w)].append(w)
+
+vocab = {w: i <span class="hljs-keyword">for</span> i, w <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(<span class="hljs-built_in">sorted</span>(<span class="hljs-built_in">set</span>(tokens)))}   <span class="hljs-comment"># word -&gt; id</span>
+inv_vocab = {i: w <span class="hljs-keyword">for</span> w, i <span class="hljs-keyword">in</span> vocab.items()}                 <span class="hljs-comment"># id -&gt; word</span></code></pre>
+<p>Keys must be <b>hashable</b> (immutable): strings, numbers, tuples. A list cannot be a key; convert it to a tuple.</p>
+
+<h3 id="sets">Sets</h3>
+<pre class="code" data-lang="python"><code class="hljs language-python">train_ids = {<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>, <span class="hljs-number">4</span>}
+test_ids = {<span class="hljs-number">4</span>, <span class="hljs-number">5</span>, <span class="hljs-number">6</span>}
+train_ids &amp; test_ids     <span class="hljs-comment"># {4}: intersection, a leak between splits!</span>
+train_ids | test_ids     <span class="hljs-comment"># union</span>
+train_ids - test_ids     <span class="hljs-comment"># difference</span>
+unique_words = <span class="hljs-built_in">set</span>(tokens)</code></pre>
+
+<h3 id="comprehensions">Comprehensions</h3>
+<p>A comprehension builds a container from an iterable in one readable expression:</p>
+<pre class="code" data-lang="python"><code class="hljs language-python">squares = [x * x <span class="hljs-keyword">for</span> x <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">10</span>)]
+evens = [x <span class="hljs-keyword">for</span> x <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">10</span>) <span class="hljs-keyword">if</span> x % <span class="hljs-number">2</span> == <span class="hljs-number">0</span>]
+lengths = {w: <span class="hljs-built_in">len</span>(w) <span class="hljs-keyword">for</span> w <span class="hljs-keyword">in</span> tokens}
+first_letters = {w[<span class="hljs-number">0</span>] <span class="hljs-keyword">for</span> w <span class="hljs-keyword">in</span> tokens}
+matrix = [[i * j <span class="hljs-keyword">for</span> j <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">3</span>)] <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">3</span>)]   <span class="hljs-comment"># nested: rows of columns</span>
+flat = [v <span class="hljs-keyword">for</span> row <span class="hljs-keyword">in</span> matrix <span class="hljs-keyword">for</span> v <span class="hljs-keyword">in</span> row]                 <span class="hljs-comment"># flatten (outer loop first)</span></code></pre>
+<p>Use comprehensions for simple transforms and filters. When the logic needs several statements, a normal loop is clearer.</p>
+
+<h3 id="mutability-and-aliasing">Mutability and aliasing</h3>
+<figure class="fig"><svg class="fsvg" viewBox="0 0 480 264" role="img" aria-label="Names point to objects: two names can share one mutable list" style="--fw:480px"><defs><marker id="py_names-m" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-m"/></marker><marker id="py_names-a" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-a"/></marker><marker id="py_names-c2" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-c2"/></marker><marker id="py_names-c3" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-c3"/></marker><marker id="py_names-c4" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-c4"/></marker><marker id="py_names-c5" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-c5"/></marker></defs><text x="110.0" y="18.0" dy="0.35em" text-anchor="middle" class="sm b">names</text><text x="360.0" y="18.0" dy="0.35em" text-anchor="middle" class="sm b">objects in memory</text><rect x="60.0" y="50.0" width="100.0" height="40.0" rx="8" class="b2"/><text x="110.0" y="70.0" dy="0.35em" text-anchor="middle" class="b">a</text><rect x="60.0" y="120.0" width="100.0" height="40.0" rx="8" class="b2"/><text x="110.0" y="140.0" dy="0.35em" text-anchor="middle" class="b">b</text><rect x="60.0" y="190.0" width="100.0" height="40.0" rx="8" class="b2"/><text x="110.0" y="210.0" dy="0.35em" text-anchor="middle" class="b">c</text><rect x="280.0" y="70.0" width="170.0" height="56.0" rx="10" class="bacc"/><text x="365.0" y="89.0" dy="0.35em" text-anchor="middle" class="sm">[1, 2, 3, 4]</text><text x="365.0" y="109.0" dy="0.35em" text-anchor="middle" class="sm mut">list (mutable)</text><rect x="280.0" y="180.0" width="170.0" height="56.0" rx="10" class="b3"/><text x="365.0" y="199.0" dy="0.35em" text-anchor="middle" class="sm">[1, 2, 3]</text><text x="365.0" y="219.0" dy="0.35em" text-anchor="middle" class="sm mut">a separate copy</text><line x1="160.0" y1="70.0" x2="278.0" y2="92.0" class="lna" marker-end="url(#py_names-a)"/><line x1="160.0" y1="140.0" x2="278.0" y2="104.0" class="lna" marker-end="url(#py_names-a)"/><line x1="160.0" y1="210.0" x2="278.0" y2="208.0" class="lc3" marker-end="url(#py_names-c3)"/><text x="240.0" y="254.0" dy="0.35em" text-anchor="middle" class="xs mut">b = a shares the list · c = a.copy() makes a new one</text></svg><figcaption>Names point to objects: two names can share one mutable list</figcaption></figure>
+<p>Assignment never copies. <code>b = a</code> makes a second name for the <i>same</i> list, so changing <code>b</code> changes <code>a</code>. This surprises everyone once, and it is the same rule that makes NumPy slices <i>views</i> of the original array.</p>
+<pre class="code" data-lang="python"><code class="hljs language-python">a = [<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>]
+b = a             <span class="hljs-comment"># alias</span>
+c = a.copy()      <span class="hljs-comment"># shallow copy (also list(a) or a[:])</span>
+b.append(<span class="hljs-number">4</span>)
+<span class="hljs-built_in">print</span>(a, c)       <span class="hljs-comment"># [1, 2, 3, 4] [1, 2, 3]</span>
+
+grid = [[<span class="hljs-number">0</span>] * <span class="hljs-number">3</span>] * <span class="hljs-number">3</span>      <span class="hljs-comment"># <span class="hljs-doctag">BUG:</span> three references to one inner list</span>
+grid[<span class="hljs-number">0</span>][<span class="hljs-number">0</span>] = <span class="hljs-number">1</span>
+<span class="hljs-built_in">print</span>(grid)               <span class="hljs-comment"># [[1, 0, 0], [1, 0, 0], [1, 0, 0]]</span>
+grid = [[<span class="hljs-number">0</span>] * <span class="hljs-number">3</span> <span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">3</span>)]   <span class="hljs-comment"># correct: three separate lists</span>
+
+<span class="hljs-keyword">import</span> copy
+nested = {<span class="hljs-string">&quot;layers&quot;</span>: [<span class="hljs-number">64</span>, <span class="hljs-number">32</span>]}
+deep = copy.deepcopy(nested)         <span class="hljs-comment"># copies inner objects too</span></code></pre>
+<p>Use <code>is</code> to test identity (same object) and <code>==</code> to test equality (same value).</p>
+
+<h3 id="unpacking">Unpacking</h3>
+<pre class="code" data-lang="python"><code class="hljs language-python">h, w, c = (<span class="hljs-number">224</span>, <span class="hljs-number">224</span>, <span class="hljs-number">3</span>)
+first, *middle, last = [<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>, <span class="hljs-number">4</span>, <span class="hljs-number">5</span>]     <span class="hljs-comment"># middle == [2, 3, 4]</span>
+a, b = b, a                                 <span class="hljs-comment"># swap without a temporary</span>
+merged = {**config, <span class="hljs-string">&quot;lr&quot;</span>: <span class="hljs-number">1e-3</span>}             <span class="hljs-comment"># dict merge, later keys win</span>
+args = [*tokens[:<span class="hljs-number">2</span>], <span class="hljs-string">&quot;!&quot;</span>]</code></pre>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>You have 1 million user IDs in a list and need to check 1 million queries against it. Why is this slow and how do you fix it?
+<details><summary>Solution</summary><div>Each <code>in</code> on a list is O(n), so the total is about <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mn>12</mn></msup></mrow><annotation encoding="application/x-tex">10^{12}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">12</span></span></span></span></span></span></span></span></span></span></span></span> comparisons. Convert to a set once (O(n)), then each query is O(1): about <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn><mo>×</mo><msup><mn>10</mn><mn>6</mn></msup></mrow><annotation encoding="application/x-tex">2\times10^6</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">2</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">6</span></span></span></span></span></span></span></span></span></span></span> operations total.</div></details></li>
+<li>Write a dict comprehension that maps each word to its position of first occurrence in <code>tokens</code>.
+<details><summary>Solution</summary><div><code>{w: i for i, w in reversed(list(enumerate(tokens)))}</code>: iterating backwards lets the earliest index overwrite later ones. A clearer loop: <code>pos = {}; for i, w in enumerate(tokens): pos.setdefault(w, i)</code>.</div></details></li>
+</ol></div>

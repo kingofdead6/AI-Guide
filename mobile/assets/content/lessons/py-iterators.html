@@ -1,0 +1,131 @@
+<h3 id="iterables-and-iterators">Iterables and iterators</h3>
+<p>A <code>for</code> loop works on anything <b>iterable</b>. Under the hood it calls <code>iter(x)</code> to get an <b>iterator</b>, then calls <code>next()</code> on it until <code>StopIteration</code>. An iterator produces values one at a time and remembers where it is; it can only be consumed once.</p>
+<pre class="code" data-lang="python"><code class="hljs language-python">it = <span class="hljs-built_in">iter</span>([<span class="hljs-number">10</span>, <span class="hljs-number">20</span>, <span class="hljs-number">30</span>])
+<span class="hljs-built_in">next</span>(it), <span class="hljs-built_in">next</span>(it), <span class="hljs-built_in">next</span>(it)     <span class="hljs-comment"># 10, 20, 30</span>
+<span class="hljs-comment"># next(it) now raises StopIteration</span>
+
+squares = <span class="hljs-built_in">map</span>(<span class="hljs-keyword">lambda</span> v: v * v, <span class="hljs-built_in">range</span>(<span class="hljs-number">5</span>))   <span class="hljs-comment"># lazy: nothing computed yet</span>
+<span class="hljs-built_in">print</span>(<span class="hljs-built_in">list</span>(squares))                       <span class="hljs-comment"># [0, 1, 4, 9, 16]</span>
+<span class="hljs-built_in">print</span>(<span class="hljs-built_in">list</span>(squares))                       <span class="hljs-comment"># []  (already consumed)</span></code></pre>
+
+<h3 id="generators-lazy-sequences">Generators: lazy sequences</h3>
+<p>A function containing <code>yield</code> becomes a <b>generator</b>. Each <code>yield</code> hands one value to the caller and pauses until the next value is requested. Generators let you stream data that would never fit in memory: a 500 GB text corpus, a stream of LLM tokens, an endless data loader.</p>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">read_jsonl</span>(<span class="hljs-params">path</span>):
+    <span class="hljs-string">&quot;&quot;&quot;Yield one record at a time from a JSON-lines file of any size.&quot;&quot;&quot;</span>
+    <span class="hljs-keyword">import</span> json
+    <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(path, encoding=<span class="hljs-string">&quot;utf-8&quot;</span>) <span class="hljs-keyword">as</span> f:
+        <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> f:
+            <span class="hljs-keyword">if</span> line.strip():
+                <span class="hljs-keyword">yield</span> json.loads(line)
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">batched</span>(<span class="hljs-params">iterable, n</span>):
+    <span class="hljs-string">&quot;&quot;&quot;Group any iterable into lists of size n (the last may be shorter).&quot;&quot;&quot;</span>
+    batch = []
+    <span class="hljs-keyword">for</span> item <span class="hljs-keyword">in</span> iterable:
+        batch.append(item)
+        <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(batch) == n:
+            <span class="hljs-keyword">yield</span> batch
+            batch = []
+    <span class="hljs-keyword">if</span> batch:
+        <span class="hljs-keyword">yield</span> batch
+
+<span class="hljs-keyword">for</span> batch <span class="hljs-keyword">in</span> batched(<span class="hljs-built_in">range</span>(<span class="hljs-number">7</span>), <span class="hljs-number">3</span>):
+    <span class="hljs-built_in">print</span>(batch)            <span class="hljs-comment"># [0, 1, 2]  [3, 4, 5]  [6]</span>
+
+total = <span class="hljs-built_in">sum</span>(x * x <span class="hljs-keyword">for</span> x <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">1_000_000</span>))   <span class="hljs-comment"># generator expression: no list in memory</span></code></pre>
+<p>Pipelines of generators process data in constant memory: <code>batched(clean(read_jsonl(path)), 32)</code> reads, cleans and batches one record at a time.</p>
+<div class="callout mllink"><b>Where you will see this</b>PyTorch <code>IterableDataset</code>, Hugging Face streaming datasets, and streaming LLM APIs (a generator of text chunks) all follow this pattern. <code>yield from other_gen()</code> delegates to another generator.</div>
+
+<h3 id="itertools-and-functools">itertools and functools</h3>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">import</span> itertools <span class="hljs-keyword">as</span> it
+<span class="hljs-built_in">list</span>(it.islice(it.count(), <span class="hljs-number">5</span>))                 <span class="hljs-comment"># [0, 1, 2, 3, 4]: first 5 of an infinite counter</span>
+<span class="hljs-built_in">list</span>(it.chain([<span class="hljs-number">1</span>, <span class="hljs-number">2</span>], [<span class="hljs-number">3</span>]))                    <span class="hljs-comment"># [1, 2, 3]</span>
+<span class="hljs-built_in">list</span>(it.product([<span class="hljs-string">&quot;lr=1e-3&quot;</span>, <span class="hljs-string">&quot;lr=1e-4&quot;</span>], [<span class="hljs-number">16</span>, <span class="hljs-number">32</span>]))   <span class="hljs-comment"># grid search combinations</span>
+<span class="hljs-keyword">for</span> key, group <span class="hljs-keyword">in</span> it.groupby(<span class="hljs-built_in">sorted</span>([<span class="hljs-string">&quot;ab&quot;</span>, <span class="hljs-string">&quot;ac&quot;</span>, <span class="hljs-string">&quot;b&quot;</span>]), key=<span class="hljs-keyword">lambda</span> s: s[<span class="hljs-number">0</span>]):
+    <span class="hljs-built_in">print</span>(key, <span class="hljs-built_in">list</span>(group))                    <span class="hljs-comment"># a [&#x27;ab&#x27;, &#x27;ac&#x27;]  b [&#x27;b&#x27;]</span>
+
+<span class="hljs-keyword">from</span> functools <span class="hljs-keyword">import</span> lru_cache, partial, reduce
+<span class="hljs-meta">@lru_cache(<span class="hljs-params">maxsize=<span class="hljs-literal">None</span></span>)                       </span><span class="hljs-comment"># memoize: compute each n once</span>
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">fib</span>(<span class="hljs-params">n</span>): <span class="hljs-keyword">return</span> n <span class="hljs-keyword">if</span> n &lt; <span class="hljs-number">2</span> <span class="hljs-keyword">else</span> fib(n - <span class="hljs-number">1</span>) + fib(n - <span class="hljs-number">2</span>)
+<span class="hljs-built_in">print</span>(fib(<span class="hljs-number">80</span>))
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">scale</span>(<span class="hljs-params">x, factor</span>): <span class="hljs-keyword">return</span> x * factor
+double = partial(scale, factor=<span class="hljs-number">2</span>)              <span class="hljs-comment"># pre-fill an argument</span>
+<span class="hljs-built_in">print</span>(double(<span class="hljs-number">21</span>), reduce(<span class="hljs-keyword">lambda</span> a, b: a * b, [<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>, <span class="hljs-number">4</span>]))   <span class="hljs-comment"># 42 24</span></code></pre>
+
+<h3 id="decorators-functions-that-wrap-functions">Decorators: functions that wrap functions</h3>
+<p>A decorator takes a function and returns a new function that adds behaviour around it: timing, logging, caching, retrying. <code>@decorator</code> above a definition is shorthand for <code>f = decorator(f)</code>.</p>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">import</span> time, functools, random
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">timed</span>(<span class="hljs-params">fn</span>):
+<span class="hljs-meta">    @functools.wraps(<span class="hljs-params">fn</span>)                       </span><span class="hljs-comment"># keep the original name and docstring</span>
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">wrapper</span>(<span class="hljs-params">*args, **kwargs</span>):
+        t0 = time.perf_counter()
+        <span class="hljs-keyword">try</span>:
+            <span class="hljs-keyword">return</span> fn(*args, **kwargs)
+        <span class="hljs-keyword">finally</span>:
+            <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;<span class="hljs-subst">{fn.__name__}</span> took <span class="hljs-subst">{time.perf_counter() - t0:<span class="hljs-number">.3</span>f}</span>s&quot;</span>)
+    <span class="hljs-keyword">return</span> wrapper
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">retry</span>(<span class="hljs-params">times=<span class="hljs-number">3</span>, base_delay=<span class="hljs-number">0.5</span></span>):
+    <span class="hljs-string">&quot;&quot;&quot;Retry with exponential backoff: the standard pattern for flaky API calls.&quot;&quot;&quot;</span>
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">deco</span>(<span class="hljs-params">fn</span>):
+<span class="hljs-meta">        @functools.wraps(<span class="hljs-params">fn</span>)</span>
+        <span class="hljs-keyword">def</span> <span class="hljs-title function_">wrapper</span>(<span class="hljs-params">*args, **kwargs</span>):
+            <span class="hljs-keyword">for</span> attempt <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(times):
+                <span class="hljs-keyword">try</span>:
+                    <span class="hljs-keyword">return</span> fn(*args, **kwargs)
+                <span class="hljs-keyword">except</span> ConnectionError:
+                    <span class="hljs-keyword">if</span> attempt == times - <span class="hljs-number">1</span>:
+                        <span class="hljs-keyword">raise</span>
+                    time.sleep(base_delay * <span class="hljs-number">2</span> ** attempt + random.random() * <span class="hljs-number">0.1</span>)
+        <span class="hljs-keyword">return</span> wrapper
+    <span class="hljs-keyword">return</span> deco
+
+<span class="hljs-meta">@timed</span>
+<span class="hljs-meta">@retry(<span class="hljs-params">times=<span class="hljs-number">4</span></span>)</span>
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">call_model</span>(<span class="hljs-params">prompt</span>):
+    ...</code></pre>
+<p>You already use decorators: <code>@torch.no_grad()</code>, <code>@dataclass</code>, <code>@property</code>, <code>@app.post("/predict")</code> in FastAPI.</p>
+
+<h3 id="context-managers">Context managers</h3>
+<p><code>with</code> guarantees setup and cleanup, even when an exception is raised: files are closed, locks released, GPU modes restored.</p>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">from</span> contextlib <span class="hljs-keyword">import</span> contextmanager
+
+<span class="hljs-meta">@contextmanager</span>
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">timer</span>(<span class="hljs-params">label</span>):
+    t0 = time.perf_counter()
+    <span class="hljs-keyword">yield</span>
+    <span class="hljs-built_in">print</span>(label, <span class="hljs-string">f&quot;<span class="hljs-subst">{time.perf_counter() - t0:<span class="hljs-number">.3</span>f}</span>s&quot;</span>)
+
+<span class="hljs-keyword">with</span> timer(<span class="hljs-string">&quot;tokenize&quot;</span>):
+    words = <span class="hljs-string">&quot;a b c&quot;</span>.split()
+<span class="hljs-comment"># torch.no_grad(), torch.autocast(...) and open(...) are all context managers</span></code></pre>
+
+<h3 id="type-hints">Type hints</h3>
+<p>Type hints document what a function expects and returns. Python does not enforce them at runtime, but editors and checkers (mypy, pyright) catch whole classes of bugs before you run anything, and frameworks like FastAPI and Pydantic use them to validate data.</p>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> Iterator, <span class="hljs-type">Literal</span>, <span class="hljs-type">Optional</span>, TypedDict, <span class="hljs-type">Callable</span>
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">top_k</span>(<span class="hljs-params">scores: <span class="hljs-built_in">dict</span>[<span class="hljs-built_in">str</span>, <span class="hljs-built_in">float</span>], k: <span class="hljs-built_in">int</span> = <span class="hljs-number">5</span></span>) -&gt; <span class="hljs-built_in">list</span>[<span class="hljs-built_in">tuple</span>[<span class="hljs-built_in">str</span>, <span class="hljs-built_in">float</span>]]:
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">sorted</span>(scores.items(), key=<span class="hljs-keyword">lambda</span> kv: kv[<span class="hljs-number">1</span>], reverse=<span class="hljs-literal">True</span>)[:k]
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">stream_tokens</span>(<span class="hljs-params">text: <span class="hljs-built_in">str</span></span>) -&gt; Iterator[<span class="hljs-built_in">str</span>]:
+    <span class="hljs-keyword">yield</span> <span class="hljs-keyword">from</span> text.split()
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">Message</span>(<span class="hljs-title class_ inherited__">TypedDict</span>):
+    role: <span class="hljs-type">Literal</span>[<span class="hljs-string">&quot;system&quot;</span>, <span class="hljs-string">&quot;user&quot;</span>, <span class="hljs-string">&quot;assistant&quot;</span>]
+    content: <span class="hljs-built_in">str</span>
+
+Metric = <span class="hljs-type">Callable</span>[[<span class="hljs-built_in">list</span>[<span class="hljs-built_in">int</span>], <span class="hljs-built_in">list</span>[<span class="hljs-built_in">int</span>]], <span class="hljs-built_in">float</span>]
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">evaluate</span>(<span class="hljs-params">metric: Metric, preds: <span class="hljs-built_in">list</span>[<span class="hljs-built_in">int</span>], labels: <span class="hljs-built_in">list</span>[<span class="hljs-built_in">int</span>]</span>) -&gt; <span class="hljs-built_in">float</span>:
+    <span class="hljs-keyword">return</span> metric(preds, labels)
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">find</span>(<span class="hljs-params">user_id: <span class="hljs-built_in">int</span></span>) -&gt; <span class="hljs-type">Optional</span>[<span class="hljs-built_in">dict</span>]:      <span class="hljs-comment"># may return None (also written dict | None)</span>
+    ...</code></pre>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>Write a generator <code>sliding_windows(seq, size)</code> that yields every contiguous window of length <code>size</code>.
+<details><summary>Solution</summary><div><code>def sliding_windows(seq, size):<br>&nbsp;&nbsp;&nbsp;&nbsp;for i in range(len(seq) - size + 1):<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;yield seq[i:i + size]</code></div></details></li>
+<li>Why does the decorator use <code>functools.wraps</code>?
+<details><summary>Solution</summary><div>Without it the wrapped function's <code>__name__</code> and docstring become those of <code>wrapper</code>, which breaks logging, debugging and tools that inspect functions.</div></details></li>
+</ol></div>

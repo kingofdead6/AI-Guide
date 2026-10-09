@@ -1,0 +1,37 @@
+<h3 id="project-layout">Project layout</h3>
+<pre class="code" data-lang="bash"><code class="hljs language-bash">my-project/
+├── pyproject.toml        <span class="hljs-comment"># dependencies and tool config (uv / pip / poetry)</span>
+├── configs/train.yaml    <span class="hljs-comment"># hyperparameters live in config, not in code</span>
+├── src/my_project/
+│   ├── data.py  model.py  train.py  evaluate.py
+├── tests/test_data.py  tests/test_model.py
+├── scripts/              <span class="hljs-comment"># entry points, one-off jobs</span>
+└── notebooks/            <span class="hljs-comment"># exploration only; move reusable code into src/</span></code></pre>
+<h3 id="habits-that-pay-off">Habits that pay off</h3>
+<ul>
+<li>Type hints, a formatter and linter (ruff), and pre-commit hooks.</li>
+<li>Config objects (dataclasses, YAML, Hydra) and a CLI (argparse/typer) so every run is reproducible from a command.</li>
+<li>Logging instead of print; log the git commit, config and data version with each run.</li>
+<li>Small pull requests with clear descriptions; review others' code.</li>
+<li>Version large data and models outside git (DVC, object storage, model registry).</li>
+</ul>
+<h3 id="testing-ml-code">Testing ML code</h3>
+<p>Unit-test data transforms on tiny hand-made inputs. Test output shapes and dtypes. Test that the model can overfit a single batch. Test invariances (a flipped image should keep the same label) and directional expectations (more square metres should not lower a predicted price). Fix seeds for determinism in tests.</p>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-comment"># tests/test_model.py  (run with: pytest -q)</span>
+<span class="hljs-keyword">import</span> torch
+<span class="hljs-keyword">from</span> my_project.model <span class="hljs-keyword">import</span> MLP
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">test_output_shape</span>():
+    m = MLP(<span class="hljs-number">10</span>, <span class="hljs-number">32</span>, <span class="hljs-number">3</span>)
+    <span class="hljs-keyword">assert</span> m(torch.randn(<span class="hljs-number">4</span>, <span class="hljs-number">10</span>)).shape == (<span class="hljs-number">4</span>, <span class="hljs-number">3</span>)
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">test_can_overfit_one_batch</span>():
+    torch.manual_seed(<span class="hljs-number">0</span>)
+    m = MLP(<span class="hljs-number">10</span>, <span class="hljs-number">64</span>, <span class="hljs-number">3</span>); x = torch.randn(<span class="hljs-number">16</span>, <span class="hljs-number">10</span>); y = torch.randint(<span class="hljs-number">0</span>, <span class="hljs-number">3</span>, (<span class="hljs-number">16</span>,))
+    opt = torch.optim.Adam(m.parameters(), <span class="hljs-number">1e-2</span>)
+    <span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">300</span>):
+        loss = torch.nn.functional.cross_entropy(m(x), y)
+        opt.zero_grad(); loss.backward(); opt.step()
+    <span class="hljs-keyword">assert</span> loss.item() &lt; <span class="hljs-number">0.05</span></code></pre>
+<h3 id="performance-and-the-machine">Performance and the machine</h3>
+<p>Profile before optimizing (<code>cProfile</code>, <code>py-spy</code>, <code>torch.profiler</code>). The usual training bottleneck is the data loader: use more workers, pinned memory, pre-processed Parquet or sharded datasets. Be at home on Linux: <code>ssh</code>, <code>tmux</code>, <code>nvidia-smi</code>, <code>htop</code>, environment variables, and Docker for reproducible environments.</p>

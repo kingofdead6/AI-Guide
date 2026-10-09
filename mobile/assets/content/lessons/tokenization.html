@@ -1,0 +1,35 @@
+<p>Word-level vocabularies explode and can't handle unseen words; character-level sequences are very long. <b>Subwords</b> sit in between: common words are single tokens, rare words split into pieces ("unbelievably" → "un", "believ", "ably").</p>
+<h3 id="byte-pair-encoding">Byte-Pair Encoding</h3>
+<ol>
+<li>Start with a vocabulary of single characters (or all 256 bytes, so any text is representable).</li>
+<li>Count all adjacent symbol pairs in the corpus.</li>
+<li>Merge the most frequent pair into a new symbol; record the merge.</li>
+<li>Repeat until the vocabulary reaches the target size (e.g. 32k–200k).</li>
+</ol>
+<p>To tokenize new text, apply the learned merges in order. <b>WordPiece</b> (BERT) picks merges by likelihood gain; <b>Unigram</b> (SentencePiece) starts large and prunes. In English a token averages about ¾ of a word. Languages underrepresented in tokenizer training, often including Arabic, need more tokens per word, which makes them more expensive and shortens the effective context.</p>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">from</span> collections <span class="hljs-keyword">import</span> Counter
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">learn_bpe</span>(<span class="hljs-params">words, n_merges</span>):
+    vocab = Counter(<span class="hljs-built_in">tuple</span>(w) + (<span class="hljs-string">&quot;&lt;/w&gt;&quot;</span>,) <span class="hljs-keyword">for</span> w <span class="hljs-keyword">in</span> words)       <span class="hljs-comment"># words as symbol tuples</span>
+    merges = []
+    <span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(n_merges):
+        pairs = Counter()
+        <span class="hljs-keyword">for</span> sym, f <span class="hljs-keyword">in</span> vocab.items():
+            <span class="hljs-keyword">for</span> a, b <span class="hljs-keyword">in</span> <span class="hljs-built_in">zip</span>(sym, sym[<span class="hljs-number">1</span>:]): pairs[(a, b)] += f
+        <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> pairs: <span class="hljs-keyword">break</span>
+        best = <span class="hljs-built_in">max</span>(pairs, key=pairs.get); merges.append(best)
+        new_vocab = Counter()
+        <span class="hljs-keyword">for</span> sym, f <span class="hljs-keyword">in</span> vocab.items():
+            out, i = [], <span class="hljs-number">0</span>
+            <span class="hljs-keyword">while</span> i &lt; <span class="hljs-built_in">len</span>(sym):
+                <span class="hljs-keyword">if</span> i &lt; <span class="hljs-built_in">len</span>(sym) - <span class="hljs-number">1</span> <span class="hljs-keyword">and</span> (sym[i], sym[i+<span class="hljs-number">1</span>]) == best:
+                    out.append(sym[i] + sym[i+<span class="hljs-number">1</span>]); i += <span class="hljs-number">2</span>
+                <span class="hljs-keyword">else</span>:
+                    out.append(sym[i]); i += <span class="hljs-number">1</span>
+            new_vocab[<span class="hljs-built_in">tuple</span>(out)] += f
+        vocab = new_vocab
+    <span class="hljs-keyword">return</span> merges
+<span class="hljs-built_in">print</span>(learn_bpe(<span class="hljs-string">&quot;low low low lower lowest newer newer wider&quot;</span>.split(), <span class="hljs-number">10</span>))
+
+<span class="hljs-comment"># Real tokenizers:</span>
+<span class="hljs-comment"># import tiktoken; enc = tiktoken.get_encoding(&quot;cl100k_base&quot;); enc.encode(&quot;مرحبا بالعالم&quot;)</span>
+<span class="hljs-comment"># from transformers import AutoTokenizer; AutoTokenizer.from_pretrained(&quot;bert-base-uncased&quot;)</span></code></pre>

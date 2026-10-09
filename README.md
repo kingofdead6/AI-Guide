@@ -3,9 +3,23 @@
 ```
 client/   the course site (React 19 + Vite + Tailwind). See client/README.md for the content format.
 server/   the API (Express + MongoDB): accounts, saved progress, admin endpoints.
+mobile/   the Flutter app for Android and iOS, using the same API and progress. See mobile/README.md.
 ```
 
-## Setup
+## Deployed API
+
+Both the website and the mobile app use the API at **https://ai-guide-uo4m.onrender.com** by default
+(`client/src/lib/api.ts` and `mobile/lib/core/api.dart`).
+
+That server only serves the API, so the browser needs CORS permission. On Render, set the environment variable
+`CLIENT_ORIGIN` to the website's address plus local development, for example
+`CLIENT_ORIGIN=https://your-website.example,http://localhost:5173`, or `CLIENT_ORIGIN=*` to allow any origin
+(safe here because sign-in uses bearer tokens, not cookies). The mobile app is not affected by CORS.
+
+To work against a local server instead, create `client/.env.local` with `VITE_API_URL=/api` and run the app with
+`flutter run --dart-define=API_URL=http://10.0.2.2:4000`.
+
+## Setup (local server)
 
 Requires Node 20 or newer and a MongoDB database (MongoDB Atlas works).
 
@@ -16,7 +30,7 @@ Requires Node 20 or newer and a MongoDB database (MongoDB Atlas works).
 ```bash
 npm run install:all
 npm run dev:server     # API on http://localhost:4000 (entry: server/index.js)
-npm run dev:client     # site on http://localhost:5173, /api is proxied to the server
+npm run dev:client     # site on http://localhost:5173 (uses the Render API unless VITE_API_URL=/api)
 ```
 
 Sign in with the admin account: it only sees the admin panel (learners, deletion requests, account settings), never the learning site.

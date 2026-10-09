@@ -1,0 +1,45 @@
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">import</span> torch, torch.nn <span class="hljs-keyword">as</span> nn, torch.nn.functional <span class="hljs-keyword">as</span> F
+<span class="hljs-keyword">from</span> torch.utils.data <span class="hljs-keyword">import</span> DataLoader
+<span class="hljs-keyword">from</span> torchvision <span class="hljs-keyword">import</span> datasets, transforms
+
+torch.manual_seed(<span class="hljs-number">0</span>)
+device = <span class="hljs-string">&quot;cuda&quot;</span> <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> <span class="hljs-string">&quot;cpu&quot;</span>
+tf = transforms.Compose([transforms.ToTensor(), transforms.Normalize((<span class="hljs-number">0.2860</span>,), (<span class="hljs-number">0.3530</span>,))])
+train_ds = datasets.FashionMNIST(<span class="hljs-string">&quot;data&quot;</span>, train=<span class="hljs-literal">True</span>, download=<span class="hljs-literal">True</span>, transform=tf)
+val_ds   = datasets.FashionMNIST(<span class="hljs-string">&quot;data&quot;</span>, train=<span class="hljs-literal">False</span>, download=<span class="hljs-literal">True</span>, transform=tf)
+train_dl = DataLoader(train_ds, batch_size=<span class="hljs-number">128</span>, shuffle=<span class="hljs-literal">True</span>, num_workers=<span class="hljs-number">2</span>)
+val_dl   = DataLoader(val_ds, batch_size=<span class="hljs-number">512</span>)
+
+model = nn.Sequential(nn.Flatten(), nn.Linear(<span class="hljs-number">784</span>, <span class="hljs-number">512</span>), nn.GELU(), nn.Dropout(<span class="hljs-number">0.2</span>),
+                      nn.Linear(<span class="hljs-number">512</span>, <span class="hljs-number">256</span>), nn.GELU(), nn.Dropout(<span class="hljs-number">0.2</span>),
+                      nn.Linear(<span class="hljs-number">256</span>, <span class="hljs-number">10</span>)).to(device)
+epochs = <span class="hljs-number">10</span>
+opt = torch.optim.AdamW(model.parameters(), lr=<span class="hljs-number">1e-3</span>, weight_decay=<span class="hljs-number">0.01</span>)
+sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=<span class="hljs-number">3e-3</span>,
+                                            total_steps=epochs * <span class="hljs-built_in">len</span>(train_dl))
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">evaluate</span>():
+    model.<span class="hljs-built_in">eval</span>(); correct = total = <span class="hljs-number">0</span>; loss_sum = <span class="hljs-number">0.0</span>
+    <span class="hljs-keyword">with</span> torch.no_grad():
+        <span class="hljs-keyword">for</span> xb, yb <span class="hljs-keyword">in</span> val_dl:
+            xb, yb = xb.to(device), yb.to(device)
+            logits = model(xb)
+            loss_sum += F.cross_entropy(logits, yb, reduction=<span class="hljs-string">&quot;sum&quot;</span>).item()
+            correct += (logits.argmax(<span class="hljs-number">1</span>) == yb).<span class="hljs-built_in">sum</span>().item(); total += <span class="hljs-built_in">len</span>(yb)
+    <span class="hljs-keyword">return</span> loss_sum / total, correct / total
+
+best = <span class="hljs-number">0.0</span>
+<span class="hljs-keyword">for</span> epoch <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(epochs):
+    model.train()
+    <span class="hljs-keyword">for</span> xb, yb <span class="hljs-keyword">in</span> train_dl:
+        xb, yb = xb.to(device), yb.to(device)
+        loss = F.cross_entropy(model(xb), yb)        <span class="hljs-comment"># logits in, no softmax</span>
+        opt.zero_grad(set_to_none=<span class="hljs-literal">True</span>)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), <span class="hljs-number">1.0</span>)
+        opt.step(); sched.step()
+    val_loss, val_acc = evaluate()
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;epoch <span class="hljs-subst">{epoch}</span>: val_loss=<span class="hljs-subst">{val_loss:<span class="hljs-number">.4</span>f}</span> val_acc=<span class="hljs-subst">{val_acc:<span class="hljs-number">.4</span>f}</span>&quot;</span>)
+    <span class="hljs-keyword">if</span> val_acc &gt; best:
+        best = val_acc; torch.save(model.state_dict(), <span class="hljs-string">&quot;best.pt&quot;</span>)   <span class="hljs-comment"># checkpoint</span></code></pre>
+<p>Add mixed precision with <code>torch.autocast(device_type="cuda", dtype=torch.bfloat16)</code> around the forward pass. Swap the model for a CNN (next lesson) and this reaches about 92% on Fashion-MNIST.</p>

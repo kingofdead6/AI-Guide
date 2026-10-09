@@ -15,7 +15,8 @@ const app = express();
 app.set('trust proxy', 1);
 // The client loads fonts, KaTeX and Pyodide from CDNs and runs an inline theme script, so CSP is left to the host.
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
-if (config.clientOrigins.length) app.use('/api', cors({ origin: config.clientOrigins }));
+// Auth uses bearer tokens, not cookies, so allowing other origins does not expose sessions to CSRF.
+if (config.clientOrigins.length) app.use('/api', cors({ origin: config.clientOrigins.includes('*') ? true : config.clientOrigins }));
 // Progress includes the learner's saved exercise code, so allow a generous body.
 app.use(express.json({ limit: '4mb' }));
 

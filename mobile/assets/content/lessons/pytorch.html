@@ -1,0 +1,32 @@
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">import</span> torch, torch.nn <span class="hljs-keyword">as</span> nn
+device = <span class="hljs-string">&quot;cuda&quot;</span> <span class="hljs-keyword">if</span> torch.cuda.is_available() <span class="hljs-keyword">else</span> <span class="hljs-string">&quot;cpu&quot;</span>
+
+<span class="hljs-comment"># Tensors behave like NumPy arrays</span>
+t = torch.randn(<span class="hljs-number">4</span>, <span class="hljs-number">3</span>, device=device)
+<span class="hljs-built_in">print</span>(t.shape, t.dtype, t.T @ t)
+
+<span class="hljs-comment"># Autograd: build a graph, call backward, read .grad</span>
+x = torch.tensor(<span class="hljs-number">2.0</span>, requires_grad=<span class="hljs-literal">True</span>)
+y = x**<span class="hljs-number">3</span> + <span class="hljs-number">2</span> * x
+y.backward()
+<span class="hljs-built_in">print</span>(x.grad)            <span class="hljs-comment"># dy/dx = 3x^2 + 2 = 14</span>
+
+<span class="hljs-comment"># Modules hold parameters and define forward()</span>
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">MLP</span>(nn.Module):
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self, d_in, d_hidden, d_out</span>):
+        <span class="hljs-built_in">super</span>().__init__()
+        <span class="hljs-variable language_">self</span>.net = nn.Sequential(nn.Linear(d_in, d_hidden), nn.ReLU(),
+                                 nn.Linear(d_hidden, d_out))
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">forward</span>(<span class="hljs-params">self, x</span>):
+        <span class="hljs-keyword">return</span> <span class="hljs-variable language_">self</span>.net(x)
+
+model = MLP(<span class="hljs-number">784</span>, <span class="hljs-number">256</span>, <span class="hljs-number">10</span>).to(device)
+<span class="hljs-built_in">print</span>(<span class="hljs-built_in">sum</span>(p.numel() <span class="hljs-keyword">for</span> p <span class="hljs-keyword">in</span> model.parameters()))   <span class="hljs-comment"># 203,530 (matches &lt;a class=&quot;xref&quot; href=&quot;#/course/math/matrices&quot;&gt;Matrices &amp; Linear Maps&lt;/a&gt;)</span>
+
+<span class="hljs-comment"># Datasets and loaders: batching, shuffling, parallel loading</span>
+<span class="hljs-keyword">from</span> torch.utils.data <span class="hljs-keyword">import</span> TensorDataset, DataLoader
+ds = TensorDataset(torch.randn(<span class="hljs-number">1000</span>, <span class="hljs-number">784</span>), torch.randint(<span class="hljs-number">0</span>, <span class="hljs-number">10</span>, (<span class="hljs-number">1000</span>,)))
+dl = DataLoader(ds, batch_size=<span class="hljs-number">64</span>, shuffle=<span class="hljs-literal">True</span>)
+xb, yb = <span class="hljs-built_in">next</span>(<span class="hljs-built_in">iter</span>(dl))   <span class="hljs-comment"># (64, 784), (64,)</span></code></pre>
+<div class="callout intuition"><b>How autograd works</b><p>Every operation on a tensor with <code>requires_grad=True</code> records itself and its inputs in a graph. <code>.backward()</code> walks that graph in reverse, applying the chain rule with each operation's local derivative. You will build a tiny version of this yourself in <a class="xref" href="#/course/dl/backprop">Backpropagation, Derived and Built</a>.</p></div>
+<div class="callout warn"><b>Three things beginners forget</b><code>optimizer.zero_grad()</code> each step (gradients accumulate by default); <code>model.eval()</code> plus <code>torch.no_grad()</code> for evaluation (affects dropout and batch norm); and moving both model and data to the same device.</div>

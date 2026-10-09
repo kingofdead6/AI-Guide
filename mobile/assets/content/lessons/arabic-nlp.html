@@ -1,0 +1,86 @@
+<h3 id="what-makes-arabic-different">What makes Arabic different</h3>
+<ul>
+<li><b>Script:</b> written right to left; letters change shape by position and connect; short vowels are written as optional diacritics (<i>tashkeel</i>) that most everyday text omits.</li>
+<li><b>Rich morphology:</b> words are built from (usually three-letter) roots and patterns, plus attached prefixes and suffixes. The root ك ت ب (k-t-b, "writing") gives كتب (he wrote), كاتب (writer), مكتبة (library), كتاب (book). One orthographic word can be a whole phrase: وسيكتبونها ("and they will write it").</li>
+<li><b>Diglossia:</b> Modern Standard Arabic (MSA) is used in news and formal writing; people speak and post in dialects (Maghrebi/Darija, Egyptian, Levantine, Gulf, …) that differ in vocabulary, grammar and spelling, and often have no standard orthography.</li>
+<li><b>Code-switching and Arabizi:</b> North African social media mixes Arabic, French and English, and often writes Arabic in Latin letters with digits for missing sounds (3 for ع, 7 for ح, 9 for ق): "sa7a" (صحة), "3andi".</li>
+<li><b>Ambiguity without diacritics:</b> علم can be ʿilm (knowledge), ʿalam (flag) or ʿallama (he taught). Context does the disambiguation, which is exactly what contextual models are good at.</li>
+</ul>
+
+<h3 id="normalization">Normalization</h3>
+<p>Arabic text from the web is inconsistent: the same word appears with different letter variants, optional diacritics and stretching characters. Normalize before counting, matching or building search indexes, and decide deliberately how much to normalize: aggressive normalization helps retrieval and classic models but loses information a neural model could use.</p>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">import</span> re, unicodedata
+
+DIACRITICS = re.<span class="hljs-built_in">compile</span>(<span class="hljs-string">r&quot;[ؐ-ًؚ-ٰٟۖ-ۭ]&quot;</span>)   <span class="hljs-comment"># tashkeel and Quranic marks</span>
+TATWEEL = <span class="hljs-string">&quot;ـ&quot;</span>                                                          <span class="hljs-comment"># the stretching character ـ</span>
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">normalize_arabic</span>(<span class="hljs-params">text: <span class="hljs-built_in">str</span>, letters: <span class="hljs-built_in">bool</span> = <span class="hljs-literal">True</span></span>) -&gt; <span class="hljs-built_in">str</span>:
+    text = unicodedata.normalize(<span class="hljs-string">&quot;NFKC&quot;</span>, text)
+    text = DIACRITICS.sub(<span class="hljs-string">&quot;&quot;</span>, text)
+    text = text.replace(TATWEEL, <span class="hljs-string">&quot;&quot;</span>)
+    <span class="hljs-keyword">if</span> letters:
+        text = re.sub(<span class="hljs-string">&quot;[إأآا]&quot;</span>, <span class="hljs-string">&quot;ا&quot;</span>, text)    <span class="hljs-comment"># alef variants -&gt; bare alef</span>
+        text = text.replace(<span class="hljs-string">&quot;ى&quot;</span>, <span class="hljs-string">&quot;ي&quot;</span>)         <span class="hljs-comment"># alef maqsura -&gt; ya</span>
+        text = text.replace(<span class="hljs-string">&quot;ة&quot;</span>, <span class="hljs-string">&quot;ه&quot;</span>)         <span class="hljs-comment"># ta marbuta -&gt; ha (common for search)</span>
+    text = re.sub(<span class="hljs-string">r&quot;[٠-٩]&quot;</span>, <span class="hljs-keyword">lambda</span> m: <span class="hljs-built_in">str</span>(<span class="hljs-built_in">ord</span>(m.group()) - <span class="hljs-number">0x0660</span>), text)   <span class="hljs-comment"># Arabic-Indic digits -&gt; 0-9</span>
+    <span class="hljs-keyword">return</span> re.sub(<span class="hljs-string">r&quot;\s+&quot;</span>, <span class="hljs-string">&quot; &quot;</span>, text).strip()
+
+<span class="hljs-built_in">print</span>(normalize_arabic(<span class="hljs-string">&quot;الْعَرَبِيَّةُ  جميلـــة ٢٠٢٦&quot;</span>))   <span class="hljs-comment"># العربيه جميله 2026</span></code></pre>
+
+<h3 id="tokenization-and-segmentation">Tokenization and segmentation</h3>
+<p>Whitespace tokens are too coarse for Arabic: "والكتاب" (and the book) is one space-separated token holding three meaningful parts. Options:</p>
+<ul>
+<li><b>Clitic segmentation</b> (و+ال+كتاب) with morphological analyzers such as those in CAMeL Tools or Farasa; helpful for classic models and for search.</li>
+<li><b>Subword tokenization</b> (BPE / SentencePiece, <a class="xref" href="#/course/nlp/tokenization">Subword Tokenization: BPE &amp; Friends</a>) learns frequent pieces automatically. Quality depends on how much Arabic was in the tokenizer's training data.</li>
+</ul>
+<div class="callout warn"><b>The token tax</b>Tokenizers trained mostly on English split Arabic into many more tokens per word than English. More tokens per sentence means higher API cost, slower generation and a shorter effective context window for the same text. Measure tokens-per-word on your own data when you choose a model.</div>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">from</span> transformers <span class="hljs-keyword">import</span> AutoTokenizer
+text_ar = <span class="hljs-string">&quot;ذهب الطالب إلى المكتبة لقراءة كتاب جديد&quot;</span>
+text_en = <span class="hljs-string">&quot;The student went to the library to read a new book&quot;</span>
+<span class="hljs-keyword">for</span> name <span class="hljs-keyword">in</span> [<span class="hljs-string">&quot;bert-base-multilingual-cased&quot;</span>, <span class="hljs-string">&quot;aubmindlab/bert-base-arabertv02&quot;</span>]:
+    tok = AutoTokenizer.from_pretrained(name)
+    <span class="hljs-built_in">print</span>(name, <span class="hljs-built_in">len</span>(tok.tokenize(text_ar)), <span class="hljs-string">&quot;Arabic tokens vs&quot;</span>, <span class="hljs-built_in">len</span>(tok.tokenize(text_en)), <span class="hljs-string">&quot;English tokens&quot;</span>)</code></pre>
+
+<h3 id="models-and-resources">Models and resources</h3>
+<ul>
+<li><b>Arabic-specific encoders</b> such as AraBERT, CAMeLBERT and MARBERT (trained heavily on dialectal tweets) are strong for classification, NER and sentiment, especially on dialects.</li>
+<li><b>Multilingual models</b> (XLM-R, multilingual sentence-embedding models, and most large LLMs) handle Arabic with varying quality: test them on your dialect and domain, not on a generic benchmark.</li>
+<li><b>Arabic-centric LLMs</b> exist alongside general multilingual ones; compare cost, licence and quality on your own evaluation set.</li>
+<li>Shared tasks and datasets for dialect identification, sentiment and NER (for example the NADI dialect tasks) are good starting points for evaluation data.</li>
+</ul>
+
+<h3 id="building-for-dialects-like-darija">Building for dialects like Darija</h3>
+<ol>
+<li><b>Collect real data</b> from the setting you serve (support tickets, comments), including Arabizi and French code-switching. Label a few hundred examples carefully before building anything.</li>
+<li><b>Decide on script handling:</b> keep Arabizi as is and let a multilingual model cope, or transliterate it to Arabic script. Evaluate both.</li>
+<li><b>Start with a baseline:</b> character n-gram TF-IDF + logistic regression is surprisingly strong for dialects because character n-grams survive spelling variation.</li>
+<li><b>Then fine-tune</b> a dialect-aware encoder, or prompt an LLM with dialect examples, and compare on the same held-out set.</li>
+<li><b>Evaluate per segment:</b> MSA vs dialect vs Arabizi. An average can hide a model that fails completely on one of them.</li>
+</ol>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">from</span> sklearn.feature_extraction.text <span class="hljs-keyword">import</span> TfidfVectorizer
+<span class="hljs-keyword">from</span> sklearn.linear_model <span class="hljs-keyword">import</span> LogisticRegression
+<span class="hljs-keyword">from</span> sklearn.pipeline <span class="hljs-keyword">import</span> make_pipeline
+
+<span class="hljs-comment"># Character n-grams within word boundaries: robust to spelling variation and Arabizi</span>
+clf = make_pipeline(
+    TfidfVectorizer(analyzer=<span class="hljs-string">&quot;char_wb&quot;</span>, ngram_range=(<span class="hljs-number">2</span>, <span class="hljs-number">5</span>), min_df=<span class="hljs-number">2</span>, sublinear_tf=<span class="hljs-literal">True</span>,
+                    preprocessor=<span class="hljs-keyword">lambda</span> t: normalize_arabic(t.lower())),
+    LogisticRegression(max_iter=<span class="hljs-number">2000</span>, C=<span class="hljs-number">4.0</span>),
+)
+<span class="hljs-comment"># clf.fit(train_texts, train_labels); clf.score(test_texts, test_labels)</span></code></pre>
+
+<h3 id="multilingual-systems-in-general">Multilingual systems in general</h3>
+<ul>
+<li><b>Cross-lingual transfer:</b> a multilingual model fine-tuned on English labels often works zero-shot in other languages, usually worse than with even a little in-language data.</li>
+<li><b>Translate-train vs translate-test:</b> machine-translate your training data into the target language, or translate inputs into English at test time. Both are cheap baselines.</li>
+<li><b>Language identification</b> first, then route to the right model, prompt or tokenizer.</li>
+<li><b>RAG across languages:</b> use a multilingual embedding model so an Arabic question can retrieve a French or English document, and check retrieval quality per language (<a class="xref" href="#/course/rag/rag-eval">Evaluating Retrieval &amp; RAG</a>).</li>
+<li><b>Right-to-left UI:</b> set <code>dir="rtl"</code> (or <code>dir="auto"</code> for user content) and test mixed Arabic/Latin text in your interface.</li>
+</ul>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>Your Arabic search returns nothing for "مكتبه" although documents contain "مكتبة". What fixes it?
+<details><summary>Solution</summary><div>Apply the same normalization to documents and queries (ta marbuta → ha, alef variants, diacritics removed) before indexing and searching, or use a dense multilingual retriever that is robust to such variation.</div></details></li>
+<li>Why do character n-grams work well for Darija?
+<details><summary>Solution</summary><div>Dialect spelling is unstandardized, so the same word appears in many forms. Character n-grams share most pieces across those forms (and across Arabizi variants), so the model still sees overlapping features where word-level features would all be different.</div></details></li>
+</ol></div>

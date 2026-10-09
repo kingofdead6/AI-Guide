@@ -1,5 +1,10 @@
-/** Thin fetch wrapper for the academy API. In development Vite proxies /api to the server (see vite.config.ts). */
-export const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || '/api';
+/**
+ * Thin fetch wrapper for the academy API. The deployed API on Render is the default for both
+ * `npm run dev` and production builds. Set VITE_API_URL=/api in client/.env.local to use a local
+ * server instead (Vite then proxies /api to it, see vite.config.ts).
+ */
+export const DEFAULT_API_URL = 'https://ai-guide-uo4m.onrender.com/api';
+export const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || DEFAULT_API_URL;
 
 const TOKEN_KEY = 'aiguide-token';
 

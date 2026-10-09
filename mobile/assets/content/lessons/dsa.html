@@ -1,0 +1,69 @@
+<h3 id="the-complexity-table-to-know-cold">The complexity table to know cold</h3>
+<table>
+<tr><th>Structure</th><th>Access / search</th><th>Insert / delete</th><th>ML use</th></tr>
+<tr><td>Array / list</td><td>O(1) index, O(n) search</td><td>O(n) middle, O(1) append</td><td>tensors, batches</td></tr>
+<tr><td>Hash map / set</td><td>O(1) average</td><td>O(1) average</td><td>vocabularies, caches, dedup</td></tr>
+<tr><td>Heap (priority queue)</td><td>O(1) min</td><td>O(log n)</td><td>top-k, beam search, schedulers</td></tr>
+<tr><td>Balanced BST / sorted list</td><td>O(log n)</td><td>O(log n)</td><td>ordered stats, intervals</td></tr>
+<tr><td>Deque</td><td>O(1) both ends</td><td>O(1) both ends</td><td>sliding windows, replay buffers</td></tr>
+<tr><td>Graph (adjacency list)</td><td>O(deg)</td><td>O(1)</td><td>dependency DAGs, GNNs, knowledge graphs</td></tr>
+<tr><td>Trie</td><td>O(length)</td><td>O(length)</td><td>tokenizers, autocomplete, constrained decoding</td></tr>
+</table>
+<h3 id="patterns-that-solve-most-interview-problems">Patterns that solve most interview problems</h3>
+<p>Two pointers · sliding window · binary search (also on the answer) · BFS/DFS · topological sort · dynamic programming · heaps for top-k · union-find · prefix sums · interval merging · backtracking.</p>
+<h3 id="ml-flavoured-problems-you-should-be-able-to-write-from-scrat">ML-flavoured problems you should be able to write from scratch</h3>
+<p>Softmax and cross-entropy · k-means · kNN · IoU and NMS · AUC from scores · reservoir sampling · an LRU cache · edit distance (the core of WER/CER) · beam search · BPE merges · matrix multiplication · a mini-batch iterator · stratified train/test split.</p>
+<pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">import</span> heapq, random
+<span class="hljs-keyword">from</span> collections <span class="hljs-keyword">import</span> Counter, OrderedDict
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">top_k_frequent</span>(<span class="hljs-params">words, k</span>):                  <span class="hljs-comment"># O(n log k)</span>
+    <span class="hljs-keyword">return</span> [w <span class="hljs-keyword">for</span> w, _ <span class="hljs-keyword">in</span> heapq.nlargest(k, Counter(words).items(), key=<span class="hljs-keyword">lambda</span> t: t[<span class="hljs-number">1</span>])]
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">LRUCache</span>:                                <span class="hljs-comment"># the idea behind prompt / KV caches</span>
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self, cap</span>): <span class="hljs-variable language_">self</span>.cap, <span class="hljs-variable language_">self</span>.d = cap, OrderedDict()
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">get</span>(<span class="hljs-params">self, k</span>):
+        <span class="hljs-keyword">if</span> k <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> <span class="hljs-variable language_">self</span>.d: <span class="hljs-keyword">return</span> <span class="hljs-literal">None</span>
+        <span class="hljs-variable language_">self</span>.d.move_to_end(k); <span class="hljs-keyword">return</span> <span class="hljs-variable language_">self</span>.d[k]
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">put</span>(<span class="hljs-params">self, k, v</span>):
+        <span class="hljs-variable language_">self</span>.d[k] = v; <span class="hljs-variable language_">self</span>.d.move_to_end(k)
+        <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(<span class="hljs-variable language_">self</span>.d) &gt; <span class="hljs-variable language_">self</span>.cap: <span class="hljs-variable language_">self</span>.d.popitem(last=<span class="hljs-literal">False</span>)
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">edit_distance</span>(<span class="hljs-params">a, b</span>):                       <span class="hljs-comment"># DP, O(len(a)·len(b)); word error rate uses this</span>
+    dp = <span class="hljs-built_in">list</span>(<span class="hljs-built_in">range</span>(<span class="hljs-built_in">len</span>(b) + <span class="hljs-number">1</span>))
+    <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">1</span>, <span class="hljs-built_in">len</span>(a) + <span class="hljs-number">1</span>):
+        prev, dp[<span class="hljs-number">0</span>] = dp[<span class="hljs-number">0</span>], i
+        <span class="hljs-keyword">for</span> j <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">1</span>, <span class="hljs-built_in">len</span>(b) + <span class="hljs-number">1</span>):
+            prev, dp[j] = dp[j], <span class="hljs-built_in">min</span>(dp[j] + <span class="hljs-number">1</span>, dp[j - <span class="hljs-number">1</span>] + <span class="hljs-number">1</span>, prev + (a[i - <span class="hljs-number">1</span>] != b[j - <span class="hljs-number">1</span>]))
+    <span class="hljs-keyword">return</span> dp[-<span class="hljs-number">1</span>]
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">reservoir_sample</span>(<span class="hljs-params">stream, k</span>):               <span class="hljs-comment"># uniform sample from a stream of unknown length</span>
+    res = []
+    <span class="hljs-keyword">for</span> i, x <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(stream):
+        <span class="hljs-keyword">if</span> i &lt; k: res.append(x)
+        <span class="hljs-keyword">else</span>:
+            j = random.randint(<span class="hljs-number">0</span>, i)
+            <span class="hljs-keyword">if</span> j &lt; k: res[j] = x
+    <span class="hljs-keyword">return</span> res
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">auc</span>(<span class="hljs-params">scores, labels</span>):                       <span class="hljs-comment"># P(score_pos &gt; score_neg), O(n log n)</span>
+    order = <span class="hljs-built_in">sorted</span>(<span class="hljs-built_in">range</span>(<span class="hljs-built_in">len</span>(scores)), key=<span class="hljs-keyword">lambda</span> i: scores[i])
+    rank_sum = <span class="hljs-built_in">sum</span>(r + <span class="hljs-number">1</span> <span class="hljs-keyword">for</span> r, i <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(order) <span class="hljs-keyword">if</span> labels[i] == <span class="hljs-number">1</span>)
+    P = <span class="hljs-built_in">sum</span>(labels); N = <span class="hljs-built_in">len</span>(labels) - P
+    <span class="hljs-keyword">return</span> (rank_sum - P * (P + <span class="hljs-number">1</span>) / <span class="hljs-number">2</span>) / (P * N)       <span class="hljs-comment"># Mann–Whitney U (ignores ties)</span>
+
+<span class="hljs-built_in">print</span>(edit_distance(<span class="hljs-string">&quot;kitten&quot;</span>, <span class="hljs-string">&quot;sitting&quot;</span>))      <span class="hljs-comment"># 3</span></code></pre>
+<div class="callout intuition"><b>How to run a coding interview</b><p>Restate the problem and ask about input sizes and edge cases. Say a brute-force solution and its complexity first. Improve it, then code cleanly with good names. Test out loud with a small example and an edge case. Interviewers grade communication as much as the final code.</p></div>
+<div class="callout ex"><b>Practice problem</b><ol>
+<li>Implement beam search with beam width <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>b</mi></mrow><annotation encoding="application/x-tex">b</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal">b</span></span></span></span> over a function <code>next_logprobs(prefix)</code> returning a dict of token → log-probability.
+<details><summary>Solution</summary><div><pre class="code" data-lang="python"><code class="hljs language-python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">beam_search</span>(<span class="hljs-params">next_logprobs, bos, eos, b=<span class="hljs-number">3</span>, max_len=<span class="hljs-number">20</span></span>):
+    beams = [(<span class="hljs-number">0.0</span>, [bos])]
+    <span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(max_len):
+        cand = []
+        <span class="hljs-keyword">for</span> score, seq <span class="hljs-keyword">in</span> beams:
+            <span class="hljs-keyword">if</span> seq[-<span class="hljs-number">1</span>] == eos: cand.append((score, seq)); <span class="hljs-keyword">continue</span>
+            <span class="hljs-keyword">for</span> tok, lp <span class="hljs-keyword">in</span> next_logprobs(seq).items():
+                cand.append((score + lp, seq + [tok]))
+        beams = heapq.nlargest(b, cand, key=<span class="hljs-keyword">lambda</span> t: t[<span class="hljs-number">0</span>])
+        <span class="hljs-keyword">if</span> <span class="hljs-built_in">all</span>(s[-<span class="hljs-number">1</span>] == eos <span class="hljs-keyword">for</span> _, s <span class="hljs-keyword">in</span> beams): <span class="hljs-keyword">break</span>
+    <span class="hljs-keyword">return</span> beams[<span class="hljs-number">0</span>][<span class="hljs-number">1</span>]</code></pre></div></details></li>
+</ol></div>

@@ -1,0 +1,54 @@
+<h3 id="what-governance-means-in-practice">What governance means in practice</h3>
+<p>AI governance is the set of practices that make sure a system does what it should, for the people it affects, within the rules that apply. For an engineer it is concrete work: writing down intended use and limits, measuring risks, keeping records, and building the controls that let a team catch problems early.</p>
+
+<h3 id="a-lightweight-risk-assessment">A lightweight risk assessment</h3>
+<p>Before building, and again before launch, answer these in writing:</p>
+<ol>
+<li><b>Purpose and users:</b> what decision or task does the system support, and who is affected, including people who never use it directly?</li>
+<li><b>Harms:</b> what happens when it is wrong? Consider errors (false positives and negatives), unequal error rates across groups (<a class="xref" href="#/course/ops/responsible-ai">Fairness, Explainability &amp; Privacy</a>), misuse, privacy, security and over-reliance.</li>
+<li><b>Severity and likelihood:</b> rank each harm. A movie recommender's mistakes are cheap; a loan, hiring, medical or policing system's are not.</li>
+<li><b>Controls:</b> for each serious harm, a mitigation (human review, thresholds, restricted scope, monitoring) and an owner.</li>
+<li><b>Go / no-go criteria:</b> metrics and thresholds the system must meet before launch, decided in advance.</li>
+</ol>
+
+<h3 id="documentation-that-teams-actually-use">Documentation that teams actually use</h3>
+<ul>
+<li><b>Model cards:</b> intended use and out-of-scope uses, training data summary, evaluation results overall and per relevant subgroup, known limitations, ethical considerations, and contact owner.</li>
+<li><b>Datasheets for datasets:</b> motivation, collection process, consent and licensing, preprocessing, known biases and recommended uses (<a class="xref" href="#/course/ops/data-centric">Data-Centric AI: Labels, Quality &amp; Synthetic Data</a>).</li>
+<li><b>System cards</b> for LLM applications: the model, the prompts and tools, the safety mitigations and the results of red-teaming.</li>
+<li><b>Decision logs:</b> why thresholds, data sources and trade-offs were chosen, so future maintainers can revisit them.</li>
+</ul>
+<pre class="code" data-lang="markdown"><code class="hljs language-markdown"><span class="hljs-section"># Model card: Support-ticket triage classifier v3</span>
+Intended use: route incoming tickets to one of 8 queues. A human agent can re-route.
+Out of scope: deciding refunds or account closures.
+Data: 120k labelled tickets (2024-2026), English, French and Arabic; PII removed before training.
+Evaluation (held-out, time-split): macro-F1 0.86; Arabic 0.81, French 0.85, English 0.88.
+Limitations: weaker on Darija written in Latin script; new product names are misrouted until retraining.
+Monitoring: weekly per-language F1 on a reviewed sample; alert if any language drops by 5 points.
+Owner: ML platform team.</code></pre>
+
+<h3 id="the-regulatory-landscape">The regulatory landscape</h3>
+<p>Rules for AI are developing quickly and differ by country, so treat this section as orientation and check current official sources for anything you ship.</p>
+<ul>
+<li><b>Risk-based regulation:</b> the European Union's AI Act sorts systems by risk. A small set of practices is prohibited; "high-risk" uses (for example in hiring, credit, education and critical infrastructure) carry obligations such as risk management, data governance, documentation, human oversight, accuracy and robustness; some systems have transparency duties (people must know they are talking to an AI or viewing generated content); and general-purpose AI model providers have their own obligations. Its requirements phase in over several years.</li>
+<li><b>Data protection law</b> such as the GDPR (and many national laws modelled on similar principles) already applies whenever personal data is processed: lawful basis, purpose limitation, data minimization, rights of access and erasure, and rules on solely automated decisions with significant effects.</li>
+<li><b>Frameworks and standards:</b> the NIST AI Risk Management Framework (govern, map, measure, manage) and ISO/IEC 42001 (AI management systems) give voluntary structures many organizations adopt.</li>
+<li><b>Sector rules:</b> medicine, finance, insurance and employment often have their own requirements for validation, explainability and record-keeping.</li>
+</ul>
+<div class="callout warn"><b>Not legal advice</b>This lesson explains the shape of the landscape so you can ask the right questions. For a real product, involve legal or compliance specialists and read the current texts that apply in your jurisdiction.</div>
+
+<h3 id="building-governance-into-the-workflow">Building governance into the workflow</h3>
+<ul>
+<li>Make the risk assessment and model card part of the definition of done, reviewed like code.</li>
+<li>Automate the evidence: evaluation reports, per-group metrics and data lineage generated by the training pipeline (<a class="xref" href="#/course/ops/mlops">From Notebook to Production</a>).</li>
+<li>Keep a human in the loop where errors are costly, and design the interface so the human can actually disagree (show confidence, sources and the reason for a decision).</li>
+<li>Plan incident response: how users report problems, who triages them, how to roll back a model.</li>
+<li>Re-assess when the data, the model, the users or the purpose change.</li>
+</ul>
+
+<div class="callout ex"><b>Practice problems</b><ol>
+<li>Which of these needs the heaviest controls: a playlist recommender, an internal code-search assistant, or a CV-screening model? Why?
+<details><summary>Solution</summary><div>The CV-screening model. Its errors affect people's access to jobs, can encode discrimination, and fall into categories that regulation commonly treats as high-risk, so it needs bias evaluation, documentation, human oversight and legal review.</div></details></li>
+<li>Write the two most important lines of a model card for a toxicity filter.
+<details><summary>Solution</summary><div>For example: "Intended use: flag comments for human review; not for automatic account bans." and "Known limitation: higher false-positive rate on dialectal Arabic and reclaimed slurs; see per-language results."</div></details></li>
+</ol></div>
