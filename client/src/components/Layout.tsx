@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { api } from '../lib/api';
 import { applyAppearance, useAppearance } from '../lib/appearance';
@@ -6,6 +6,7 @@ import { ANDROID_APP } from '../lib/site';
 import { useAuth } from '../lib/auth';
 import { useProgress, type Theme } from '../lib/store';
 import { IconMenu, IconMoon, IconSearch, IconSettings, IconShield, IconSun, IconX } from './icons';
+import { MobileMenu } from './MobileMenu';
 import { useRevealObserver } from './motion';
 import { openSearch, SearchPalette } from './SearchPalette';
 import { cx } from './ui';
@@ -36,7 +37,7 @@ export function Logo({ className }: { className?: string }) {
         <circle cx="22" cy="16" r="3.6" fill="#f5a84a" />
         <path d="M12.6 12.2 19 15M12.6 19.8 19 17" stroke="var(--surface)" strokeWidth="1.6" />
       </svg>
-      <span className="font-wide font-[750] text-[17px] tracking-tight leading-none">
+      <span className="font-wide font-[750] text-[16px] min-[400px]:text-[17px] tracking-tight leading-none whitespace-nowrap">
         The AI Guide<span className="hidden sm:inline font-normal text-muted"> Academy</span>
       </span>
     </Link>
@@ -67,7 +68,7 @@ function useApplyAppearance() {
   }, [palette, uiFont, readingFont, codeFont, readingScale, motion, glow]);
 }
 
-function ThemeToggle() {
+function ThemeToggle({ className }: { className?: string }) {
   const theme = useProgress((s) => s.theme);
   const setTheme = useProgress((s) => s.setTheme);
   const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -76,7 +77,7 @@ function ThemeToggle() {
     <button
       type="button"
       onClick={() => setTheme(next)}
-      className="h-10 w-10 inline-flex items-center justify-center rounded-[10px] hover:bg-sunk transition-colors"
+      className={cx('h-10 w-10 items-center justify-center rounded-[10px] hover:bg-sunk transition-colors', className ?? 'inline-flex')}
       aria-label={`Switch to ${next} theme`}
       title={theme === 'system' ? 'Following your system theme' : undefined}
     >
@@ -112,13 +113,21 @@ export function Layout({ children }: { children: ReactNode }) {
     ? ADMIN_NAV.map((n) => ({ ...n, badge: n.to === '/admin/requests' ? pending : 0 }))
     : NAV.map((n) => ({ ...n, match: undefined as ((p: string) => boolean) | undefined, badge: 0 }));
   const linkClass = (n: (typeof nav)[number], isActive: boolean) => (n.match ? n.match(loc.pathname) : isActive);
+  const closeMenu = useCallback(() => setMenu(false), []);
   useEffect(() => setMenu(false), [loc.pathname]);
+  // The sheet is for small screens only; close it if the window grows past the desktop breakpoint.
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const on = () => mq.matches && setMenu(false);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
   useEffect(() => {
     if (!loc.hash || loc.hash.length < 2) window.scrollTo(0, 0);
   }, [loc.pathname, loc.hash]);
 
   return (
-    <div className="min-h-dvh flex flex-col">
+    <div className="min-h-dvh flex flex-col overflow-x-clip">
       <div className="aurora" aria-hidden>
         <span />
         <span />
@@ -133,7 +142,7 @@ export function Layout({ children }: { children: ReactNode }) {
           scrolled ? 'bg-bg/80 backdrop-blur-xl border-line shadow-[0_8px_30px_-18px_rgb(0_0_0/0.35)]' : 'bg-bg/40 backdrop-blur-md border-transparent',
         )}
       >
-        <div className="mx-auto max-w-[1280px] h-16 px-4 sm:px-6 flex items-center gap-3">
+        <div className="mx-auto max-w-[1280px] h-16 px-4 sm:px-6 flex items-center gap-2 sm:gap-3">
           <Logo />
           {isAdmin && (
             <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-accent-soft text-accent-ink px-2.5 py-1 text-[12px] font-bold uppercase tracking-wide">
@@ -158,12 +167,12 @@ export function Layout({ children }: { children: ReactNode }) {
               </NavLink>
             ))}
           </nav>
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-0.5 sm:gap-1 shrink-0">
             {!isAdmin && (
             <button
               type="button"
               onClick={openSearch}
-              className="h-10 inline-flex items-center gap-2 rounded-[10px] border border-line bg-surface/70 px-3 text-muted hover:border-accent hover:text-ink transition-colors"
+              className="h-10 min-w-10 inline-flex items-center justify-center gap-2 rounded-[10px] border border-line bg-surface/70 px-2.5 md:px-3 text-muted hover:border-accent hover:text-ink transition-colors"
               aria-label="Search (Ctrl+K)"
             >
               <IconSearch size={17} />
@@ -172,44 +181,36 @@ export function Layout({ children }: { children: ReactNode }) {
             </button>
             )}
             <SyncBadge />
-            <ThemeToggle />
+            <ThemeToggle className="hidden md:inline-flex" />
             <Link
               to="/settings"
-              className="group h-10 w-10 inline-flex items-center justify-center rounded-[10px] hover:bg-sunk transition-colors"
+              className="group h-10 w-10 hidden md:inline-flex items-center justify-center rounded-[10px] hover:bg-sunk transition-colors"
               aria-label="Appearance settings"
               title="Appearance settings"
             >
               <IconSettings className="transition-transform duration-500 group-hover:rotate-90" />
             </Link>
+            <div className="hidden md:block">
+              <UserMenu />
+            </div>
             <button
               type="button"
-              className="lg:hidden h-10 w-10 inline-flex items-center justify-center rounded-[10px] hover:bg-sunk"
+              className={cx(
+                'lg:hidden h-10 w-10 inline-flex items-center justify-center rounded-[10px] transition-colors',
+                menu ? 'bg-accent-soft text-accent-ink' : 'hover:bg-sunk',
+              )}
               aria-label={menu ? 'Close menu' : 'Open menu'}
               aria-expanded={menu}
               onClick={() => setMenu((m) => !m)}
             >
-              {menu ? <IconX /> : <IconMenu />}
+              <span key={String(menu)} className="animate-spin-in inline-flex">
+                {menu ? <IconX /> : <IconMenu />}
+              </span>
             </button>
-            <UserMenu />
           </div>
         </div>
-        {menu && (
-          <nav className="lg:hidden border-t border-line bg-bg/95 backdrop-blur-xl px-4 py-3 flex flex-col animate-pop" aria-label="Main">
-            {nav.map((n, i) => (
-              <NavLink
-                key={n.to}
-                to={n.to}
-                style={{ ['--d' as string]: i }}
-                end={n.to === '/admin'}
-                className={({ isActive }) => cx('animate-fade-up flex items-center gap-2 px-2 py-3 text-[17px] font-medium border-b border-line last:border-0', linkClass(n, isActive) && 'text-accent')}
-              >
-                {n.label}
-                {n.badge > 0 && <span className="h-5 px-1.5 rounded-full bg-bad text-white text-[11.5px] font-bold inline-flex items-center">{n.badge}</span>}
-              </NavLink>
-            ))}
-          </nav>
-        )}
       </header>
+      <MobileMenu open={menu} onClose={closeMenu} items={nav.map((n) => ({ to: n.to, label: n.label, badge: n.badge, active: n.match ? n.match(loc.pathname) : loc.pathname === n.to || loc.pathname.startsWith(n.to + '/') }))} />
       <main id="main" key={loc.pathname} className="flex-1 animate-page">
         {children}
       </main>

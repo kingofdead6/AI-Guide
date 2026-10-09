@@ -1,5 +1,7 @@
 # The AI Guide Academy: mobile app
 
+**Download:** [Ai-guide.apk](https://ai-guide-app-liart.vercel.app/Ai-guide.apk) (Android 7.0 or newer) · **Website:** [client-m7q4.vercel.app](https://client-m7q4.vercel.app) · **API:** [ai-guide-uo4m.onrender.com](https://ai-guide-uo4m.onrender.com/api/health)
+
 A Flutter app (Android and iOS) for the academy. It uses the same server, the same accounts and the exact same progress format as the website, so a learner can switch between phone and browser freely.
 
 ## What is in it
@@ -31,10 +33,10 @@ By default the app talks to the deployed API at `https://ai-guide-uo4m.onrender.
 
 ```bash
 flutter run --dart-define=API_URL=http://10.0.2.2:4000          # a local server, from the Android emulator
-flutter build apk --release --dart-define=SITE_URL=https://your-website.example   # where the website is hosted
+flutter build apk --release --dart-define=SITE_URL=https://client-m7q4.vercel.app   # where the website is hosted
 ```
 
-`SITE_URL` is used for the policy pages and "Open the website". Without it the app uses the API address, which only works if that server also serves the website.
+`SITE_URL` (default `https://client-m7q4.vercel.app`) is used for the policy pages and "Open the website".
 
 The address can also be changed inside the app under **Me → Server**.
 

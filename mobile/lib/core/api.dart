@@ -8,9 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// (for a local server on the Android emulator use http://10.0.2.2:4000).
 const defaultServerUrl = String.fromEnvironment('API_URL', defaultValue: 'https://ai-guide-uo4m.onrender.com');
 
-/// Where the website is hosted, for the policy pages and "Open the website". Defaults to the API address,
-/// which only works when the server also serves the built website.
-const siteBaseUrl = String.fromEnvironment('SITE_URL');
+/// Where the website is hosted, for the policy pages and "Open the website". Override with --dart-define=SITE_URL=...;
+/// an empty value falls back to the API address.
+const siteBaseUrl = String.fromEnvironment('SITE_URL', defaultValue: 'https://client-m7q4.vercel.app');
 
 class ApiError implements Exception {
   final String message;

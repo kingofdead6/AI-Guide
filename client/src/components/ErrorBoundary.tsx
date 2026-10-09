@@ -16,13 +16,18 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error: E
 
   render() {
     if (!this.state.error) return this.props.children;
+    const updated = /dynamically imported module|Importing a module script failed|error loading dynamically/i.test(this.state.error.message);
     return (
       <div className="mx-auto max-w-[640px] px-4 sm:px-6 pt-20 text-center animate-fade-up">
         <div className="mx-auto inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-bad-soft text-bad text-[38px] font-bold animate-float" aria-hidden>
           !
         </div>
-        <h1 className="mt-6 font-wide text-[36px] font-[780] tracking-tight">Something went wrong</h1>
-        <p className="mt-3 text-muted text-lg">This page hit an unexpected error. Your progress is safe. Reload to try again, or head back home.</p>
+        <h1 className="mt-6 font-wide text-[36px] font-[780] tracking-tight">{updated ? 'The academy was updated' : 'Something went wrong'}</h1>
+        <p className="mt-3 text-muted text-lg">
+          {updated
+            ? 'A new version was published while this tab was open. Reload to get it; your progress is safe.'
+            : 'This page hit an unexpected error. Your progress is safe. Reload to try again, or head back home.'}
+        </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <button type="button" className={btn.primary} onClick={() => window.location.reload()}>
             <IconRefresh size={17} /> Reload page

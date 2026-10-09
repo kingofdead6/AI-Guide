@@ -1,5 +1,29 @@
 # The AI Guide Academy
 
+A free, self-paced academy for becoming an AI engineer: 16 courses, 106 lessons, graded quizzes, Python exercises,
+final exams and certificates, on the web and on Android.
+
+## Links
+
+| | |
+| --- | --- |
+| **Website** | [client-m7q4.vercel.app](https://client-m7q4.vercel.app) |
+| **Android app** | [Download Ai-guide.apk](https://ai-guide-app-liart.vercel.app/Ai-guide.apk) (87 MB, Android 7.0 or newer) |
+| **API** | [ai-guide-uo4m.onrender.com](https://ai-guide-uo4m.onrender.com/api/health) (health check at `/api/health`) |
+
+The website and the app share accounts: sign in with the same email on both and your progress follows you.
+
+### Installing the Android app
+
+1. Open the [APK link](https://ai-guide-app-liart.vercel.app/Ai-guide.apk) on your phone (or tap **Download for Android** on the website's home page).
+2. When the download finishes, open the file. Android asks you to allow installs from your browser the first time; allow it and tap **Install**.
+3. Open **AI Guide Academy**, then sign in or continue as a guest.
+
+The app is distributed as an APK rather than through Google Play. The first API request after a quiet period can take
+up to a minute while the free Render server wakes up.
+
+## Repository
+
 ```
 client/   the course site (React 19 + Vite + Tailwind). See client/README.md for the content format.
 server/   the API (Express + MongoDB): accounts, saved progress, admin endpoints.
