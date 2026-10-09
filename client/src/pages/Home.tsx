@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { AppDownloadSection } from '../components/AppDownload';
 import { LearningMap } from '../components/LearningMap';
 import { IconAward, IconBook, IconChevronRight, IconCode, IconSpark, IconTarget } from '../components/icons';
 import { CountUp } from '../components/motion';
@@ -139,7 +140,11 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1280px] px-4 sm:px-6 mt-16 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="mx-auto max-w-[1280px] px-4 sm:px-6 mt-16">
+        <AppDownloadSection />
+      </div>
+
+      <section className="mx-auto max-w-[1280px] px-4 sm:px-6 mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { to: '/projects', icon: IconTarget, title: 'Guided projects', text: 'Six portfolio projects with milestones you can tick off.' },
           { to: '/playground', icon: IconSpark, title: 'Playground', text: 'Train a network, race optimizers and explore attention.' },

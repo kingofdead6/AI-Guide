@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { api } from '../lib/api';
 import { applyAppearance, useAppearance } from '../lib/appearance';
+import { ANDROID_APP } from '../lib/site';
 import { useAuth } from '../lib/auth';
 import { useProgress, type Theme } from '../lib/store';
 import { IconMenu, IconMoon, IconSearch, IconSettings, IconShield, IconSun, IconX } from './icons';
@@ -228,6 +229,9 @@ export function Layout({ children }: { children: ReactNode }) {
               <Link to="/courses">All courses</Link>
               <Link to="/projects">Guided projects</Link>
               <Link to="/playground">Playground</Link>
+              <a href={ANDROID_APP.url} download rel="noopener">
+                Android app
+              </a>
             </FooterCol>
             <FooterCol title="Reference">
               <Link to="/cheatsheet">Equation cheat sheet</Link>

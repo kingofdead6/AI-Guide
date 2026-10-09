@@ -5,3 +5,10 @@ export const SITE = {
   contactEmail: '',
   policiesUpdated: '9 October 2026',
 };
+
+/** The Android app (built from ../mobile). */
+export const ANDROID_APP = {
+  url: 'https://ai-guide-app-liart.vercel.app/Ai-guide.apk',
+  size: '87 MB',
+  minAndroid: 'Android 7.0 or newer',
+};

@@ -153,3 +153,18 @@ export const IconPalette = make(
 );
 export const IconType = make(<path d="M4 7V5h16v2M9 19h6M12 5v14" />);
 export const IconArrowLeft = make(<path d="M19 12H5M11 6l-6 6 6 6" />);
+export const IconPhone = make(
+  <>
+    <rect x="6" y="2.5" width="12" height="19" rx="2.5" />
+    <path d="M10.5 18.5h3" />
+  </>,
+);
+export const IconAndroid = make(
+  <>
+    <path d="M5 16V11a7 7 0 0 1 14 0v5z" />
+    <path d="M8 5.5 6.5 3.5M16 5.5l1.5-2" />
+    <circle cx="9.3" cy="10.5" r=".6" fill="currentColor" />
+    <circle cx="14.7" cy="10.5" r=".6" fill="currentColor" />
+    <path d="M8 16v3.5M16 16v3.5" />
+  </>,
+);
